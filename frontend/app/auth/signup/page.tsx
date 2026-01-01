@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext"; // Import your Auth Context
+import { useAuth } from "@/context/AuthContext";
+import axios from "axios";
 import {
   User,
   Mail,
@@ -20,70 +21,104 @@ import {
   Zap,
   CheckCircle2,
   GraduationCap,
-  Loader2, // Added for loading state
+  Loader2,
+  Users,
+  FileText,
 } from "lucide-react";
 
 export default function SignupPage() {
-  const { register } = useAuth(); // Hook from your AuthContext
-  const [role, setRole] = useState("patient");
+  const { register } = useAuth();
+  const router = useRouter();
+
+  const [role, setRole] = useState<"patient" | "therapist">("patient");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const router = useRouter();
+
+  const [genders, setGenders] = useState([]);
+  const [professionTypes, setProfessionTypes] = useState([]);
 
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
     password2: "",
-    phone: "",
+    full_name: "",
+    phone_number: "",
     date_of_birth: "",
-    license_number: "",
-    specialization: "",
+    gender: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    basic_health_info: "",
+    terms_accepted: false,
+    profession_type: "",
+    license_id: "",
+    years_of_experience: "",
   });
 
-  const commonFields = [
-    { name: "username", placeholder: "Username", icon: User, type: "text" },
-    { name: "email", placeholder: "Email Address", icon: Mail, type: "email" },
-    { name: "phone", placeholder: "Phone Number", icon: Phone, type: "tel" },
-  ];
+  // 🔗 Fetch dropdown metadata from backend
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        // Mock data
+        const data = {
+          genders: ["male", "female", "other"],
+          profession_types: [
+            "psychologist",
+            "psychiatrist",
+            "counselor",
+            "therapist",
+            "social_worker",
+          ],
+        };
+        setGenders(data.genders);
+        setProfessionTypes(data.profession_types);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchMetadata();
+  }, []);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     if (errorMsg) setErrorMsg("");
   };
 
-  // --- INTEGRATION LOGIC ---
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
 
-    // Prepare payload exactly as backend expects
-    const payload = {
-      username: formData.username,
+    const payload: any = {
       email: formData.email,
       password: formData.password,
       password2: formData.password2,
-      role: role,
-      phone: formData.phone,
+      full_name: formData.full_name,
+      phone_number: formData.phone_number,
+      date_of_birth: formData.date_of_birth,
+      gender: formData.gender,
     };
 
     if (role === "patient") {
-      payload.date_of_birth = formData.date_of_birth;
+      payload.emergency_contact_name = formData.emergency_contact_name;
+      payload.emergency_contact_phone = formData.emergency_contact_phone;
+      payload.basic_health_info = formData.basic_health_info;
+      payload.terms_accepted = formData.terms_accepted;
     } else {
-      payload.license_number = formData.license_number;
-      payload.specialization = formData.specialization;
+      payload.profession_type = formData.profession_type;
+      payload.license_id = formData.license_id;
+      payload.years_of_experience = Number(formData.years_of_experience);
     }
 
     try {
-      await register(payload);
-      // Redirection logic
-      if (role === "therapist") {
-        router.push("/therapist/dashboard");
-      } else {
-        router.push("/patient/dashboard");
-      }
+      await register(role, payload);
+      router.push(
+        role === "therapist" ? "/therapist/dashboard" : "/patient/dashboard"
+      );
     } catch (err: any) {
       const data = err.response?.data;
       if (data) {
@@ -96,17 +131,35 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+  const commonFields = [
+    {
+      name: "full_name",
+      placeholder: "Full Name",
+      icon: User,
+      type: "text",
+    },
+    {
+      name: "email",
+      placeholder: "Email Address",
+      icon: Mail,
+      type: "email",
+    },
+    {
+      name: "phone_number",
+      placeholder: "Phone Number",
+      icon: Phone,
+      type: "tel",
+    },
+  ];
 
   return (
     <div className="relative min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 overflow-hidden font-sans">
-      {/* Background Decorative Blobs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col lg:flex-row">
-        {/* LEFT SIDE: Form */}
-        <div className="w-full lg:w-[45%] flex items-center py-12">
-          <div className="max-w-md w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col lg:flex-row py-12">
+        <div className="w-full lg:w-[45%] flex items-start">
+          <div className="max-w-md w-full pb-12">
             <header className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center">
@@ -130,7 +183,6 @@ export default function SignupPage() {
               </p>
             </header>
 
-            {/* Error Message Display */}
             {errorMsg && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
                 {errorMsg}
@@ -138,7 +190,6 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role Switcher */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {[
                   { id: "patient", label: "Patient", icon: Heart },
@@ -160,7 +211,6 @@ export default function SignupPage() {
                 ))}
               </div>
 
-              {/* Dynamic Input Fields */}
               <div className="space-y-3">
                 {commonFields.map((field) => (
                   <FormInput
@@ -172,33 +222,123 @@ export default function SignupPage() {
                 ))}
 
                 {role === "patient" ? (
-                  <FormInput
-                    name="date_of_birth"
-                    type="date"
-                    icon={Calendar}
-                    value={formData.date_of_birth}
-                    onChange={handleInputChange}
-                  />
+                  <>
+                    <FormInput
+                      name="date_of_birth"
+                      type="date"
+                      icon={Calendar}
+                      value={formData.date_of_birth}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="relative">
+                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <FormInput
+                      name="emergency_contact_name"
+                      placeholder="Emergency Contact Name"
+                      icon={User}
+                      value={formData.emergency_contact_name}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="emergency_contact_phone"
+                      placeholder="Emergency Contact Phone"
+                      icon={Phone}
+                      type="tel"
+                      value={formData.emergency_contact_phone}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-4 w-5 h-5 text-slate-400 z-10" />
+                      <textarea
+                        name="basic_health_info"
+                        placeholder="Basic Health Information (optional)"
+                        value={formData.basic_health_info}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors resize-none"
+                      />
+                    </div>
+                  </>
                 ) : (
                   <>
                     <FormInput
-                      name="license_number"
-                      placeholder="License Number"
-                      icon={Award}
-                      value={formData.license_number}
+                      name="date_of_birth"
+                      type="date"
+                      icon={Calendar}
+                      value={formData.date_of_birth}
                       onChange={handleInputChange}
                     />
+
+                    <div className="relative">
+                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="relative">
+                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="profession_type"
+                        value={formData.profession_type}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Profession Type</option>
+                        <option value="psychologist">Psychologist</option>
+                        <option value="psychiatrist">Psychiatrist</option>
+                        <option value="counselor">Counselor</option>
+                        <option value="therapist">Therapist</option>
+                        <option value="social_worker">Social Worker</option>
+                      </select>
+                    </div>
+
                     <FormInput
-                      name="specialization"
-                      placeholder="Specialization"
+                      name="license_id"
+                      placeholder="License ID"
+                      icon={Award}
+                      value={formData.license_id}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="years_of_experience"
+                      placeholder="Years of Experience"
                       icon={BookOpen}
-                      value={formData.specialization}
+                      type="number"
+                      value={formData.years_of_experience}
                       onChange={handleInputChange}
                     />
                   </>
                 )}
 
-                {/* Password Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   <FormInput
                     name="password"
@@ -230,6 +370,22 @@ export default function SignupPage() {
                     </button>
                   </div>
                 </div>
+
+                {role === "patient" && (
+                  <div className="flex items-start gap-3 pt-2">
+                    <input
+                      type="checkbox"
+                      name="terms_accepted"
+                      checked={formData.terms_accepted}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <label className="text-xs text-slate-600 leading-relaxed">
+                      I accept the terms and conditions and privacy policy
+                    </label>
+                  </div>
+                )}
               </div>
 
               <button
@@ -250,7 +406,6 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: Information Section (PRESERVED) */}
         <div className="hidden lg:flex w-[55%] pt-24 pb-12 flex-col items-center justify-start pl-12">
           <div className="max-w-xl w-full space-y-6">
             <div className="bg-white rounded-3xl p-8 shadow-2xl shadow-slate-200/50 border border-slate-100">
@@ -308,8 +463,6 @@ export default function SignupPage() {
     </div>
   );
 }
-
-/* --- HELPER SUB-COMPONENTS --- */
 
 const FormInput = ({
   name,

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+
 import {
   User,
   ClipboardCheck,
@@ -18,11 +20,10 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, isAuthenticated, logout } = useAuth();
+  const userRole: UserRole = user?.role ?? null;
 
-  // Mock states - replace with your auth logic
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>("patient");
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -46,11 +47,12 @@ export default function Header() {
 
   // Determine home/dashboard link
   const getHomeHref = () => {
-    if (!isLoggedIn) return "/"; // Landing page
+    if (!isAuthenticated) return "/";
     if (userRole === "patient") return "/patient/dashboard";
     if (userRole === "therapist") return "/therapist/dashboard";
     return "/";
   };
+
   const homeHref = getHomeHref();
 
   // Middle nav links based on role
@@ -60,7 +62,7 @@ export default function Header() {
       { label: "How it works", href: "/how-it-works" },
     ];
 
-    if (isLoggedIn) {
+    if (isAuthenticated) {
       if (userRole === "patient") {
         return [
           ...base,
@@ -68,6 +70,7 @@ export default function Header() {
           { label: "Support", href: "/support" },
         ];
       }
+
       if (userRole === "therapist") {
         return [
           ...base,
@@ -137,7 +140,7 @@ export default function Header() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            {!isLoggedIn ? (
+            {!isAuthenticated ? (
               <div className="hidden md:flex items-center space-x-6">
                 <Link href="/auth/login" className={linkClassName}>
                   Login
@@ -200,9 +203,7 @@ export default function Header() {
                           Signed in as
                         </p>
                         <p className="text-sm font-bold text-gray-900 truncate">
-                          {userRole === "patient"
-                            ? "Patient User"
-                            : "Dr. Specialist"}
+                          {user?.full_name || user?.email}
                         </p>
                       </div>
                       <Link
@@ -218,7 +219,7 @@ export default function Header() {
                         <Settings className="w-4 h-4" /> Settings
                       </Link>
                       <button
-                        onClick={() => setIsLoggedIn(false)}
+                        onClick={logout}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors mt-1 border-t border-gray-50"
                       >
                         <LogOut className="w-4 h-4" /> Logout
@@ -281,7 +282,7 @@ export default function Header() {
               </Link>
             ))}
 
-            {!isLoggedIn ? (
+            {!isAuthenticated ? (
               <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                 <Link
                   href="/auth/login"
@@ -314,6 +315,12 @@ export default function Header() {
                     My Patients
                   </Link>
                 )}
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-3 font-bold text-red-600 text-left"
+                >
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
               </div>
             )}
           </div>
