@@ -1,72 +1,139 @@
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
-import api from "@/lib/axios";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  authAPI,
+  PatientRegistrationData,
+  TherapistRegistrationData,
+  LoginData,
+} from "@/lib/api";
 
-const AuthContext = createContext<any>(null);
+interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string;
+  redirect_url: string;
+  [key: string]: any;
+}
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState(null);
+type UserRole = "patient" | "therapist";
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  register: (
+    role: UserRole,
+    data: PatientRegistrationData | TherapistRegistrationData
+  ) => Promise<any>;
+  login: (data: LoginData) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // 1. Check if user is logged in on page refresh
+  // Initialize authentication
   useEffect(() => {
-    const loadUser = async () => {
+    const initAuth = async () => {
       const token = localStorage.getItem("access_token");
+
       if (token) {
         try {
-          const res = await api.get("/profile/");
-          setUser(res.data);
-        } catch (err) {
-          logout();
+          const userData = await authAPI.getCurrentUser();
+          setUser(userData);
+        } catch (error) {
+          console.error("Failed to fetch user:", error);
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
         }
       }
+
       setLoading(false);
     };
-    loadUser();
+
+    initAuth();
   }, []);
 
-  // 2. Login Logic
-  const login = async (payload: any) => {
-    const res = await api.post("/login/", payload);
-    const { access, refresh, user } = res.data;
+  // ✅ Explicit role-based registration
+  const register = async (
+    role: UserRole,
+    data: PatientRegistrationData | TherapistRegistrationData
+  ) => {
+    try {
+      let response;
 
-    localStorage.setItem("access_token", access);
-    localStorage.setItem("refresh_token", refresh);
-    setUser(user);
+      if (role === "patient") {
+        response = await authAPI.registerPatient(
+          data as PatientRegistrationData
+        );
+      } else {
+        response = await authAPI.registerTherapist(
+          data as TherapistRegistrationData
+        );
+      }
 
-    // Role-based redirection
-    if (user.role === "therapist") router.push("/dashboard/therapist");
-    else router.push("/dashboard/patient");
+      // Store JWT tokens
+      localStorage.setItem("access_token", response.tokens.access);
+      localStorage.setItem("refresh_token", response.tokens.refresh);
+
+      // Set authenticated user
+      setUser(response.user);
+
+      return response;
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      throw error;
+    }
   };
 
-  // 3. Register Logic
-  const register = async (payload: any) => {
-    const res = await api.post("/register/", payload);
-    const { access, refresh, user } = res.data;
+  // Login
+  const login = async (data: LoginData) => {
+    try {
+      const response = await authAPI.login(data);
 
-    localStorage.setItem("access_token", access);
-    localStorage.setItem("refresh_token", refresh);
-    setUser(user);
+      localStorage.setItem("access_token", response.tokens.access);
+      localStorage.setItem("refresh_token", response.tokens.refresh);
 
-    router.push(
-      user.role === "therapist" ? "/dashboard/therapist" : "/dashboard/patient"
-    );
+      setUser(response.user);
+      router.push(response.redirect_url);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      throw error;
+    }
   };
 
+  // Logout
   const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    authAPI.logout();
     setUser(null);
-    router.push("/login");
+    router.push("/auth/login");
   };
 
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  const value: AuthContextType = {
+    user,
+    loading,
+    register,
+    login,
+    logout,
+    isAuthenticated: !!user,
+  };
 
-export const useAuth = () => useContext(AuthContext);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Hook
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
