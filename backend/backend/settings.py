@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     
     # Local apps
     'accounts',
+    'surveys',
 ]
 
 MIDDLEWARE = [
@@ -182,3 +183,9 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# Llama AI Settings
+LLAMA_API_URL = 'http://localhost:11434/api/generate'
+LLAMA_MODEL_NAME = 'llama3'  # Change to your model name
+LLAMA_TIMEOUT = 30
+MAX_DYNAMIC_QUESTIONS = 5
