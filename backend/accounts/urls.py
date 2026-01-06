@@ -12,4 +12,7 @@ urlpatterns = [
     path('therapist/profile/complete/', views.TherapistProfileCompleteView.as_view(), name='therapist-profile-complete'),
     path('therapist/profile/me/', views.TherapistProfileDetailView.as_view(), name='therapist-profile-detail'),
     path('therapist/profile/update/', views.TherapistProfileUpdateView.as_view(), name='therapist-profile-update'),
+    path('patient/profile/me/', views.PatientProfileDetailView.as_view(), name='patient-profile-detail'),
+    path('patient/profile/update/', views.PatientProfileUpdateView.as_view(), name='patient-profile-update'),
+
 ]

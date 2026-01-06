@@ -196,3 +196,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
         elif obj.role == 'therapist':
             return '/therapist/dashboard'
         return '/'
+
+
+class PatientProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientProfile
+        fields = [
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'basic_health_info',
+        ]

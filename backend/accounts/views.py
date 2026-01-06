@@ -13,9 +13,13 @@ from .serializers import (
     LoginSerializer,
     UserDetailSerializer,
     TherapistProfileSerializer,
-    TherapistProfileCompleteSerializer
+    TherapistProfileCompleteSerializer,
+    PatientProfileSerializer,
+    PatientProfileUpdateSerializer,
+    
+    
 )
-from .permissions import IsTherapist
+from .permissions import IsTherapist, IsPatient
 
 
 def get_tokens_for_user(user):
@@ -156,7 +160,36 @@ class TherapistProfileUpdateView(generics.UpdateAPIView):
             'profile': TherapistProfileSerializer(instance).data
         }, status=status.HTTP_200_OK)
         
-        
+
+class PatientProfileDetailView(generics.RetrieveAPIView):
+    """Get patient profile details"""
+    serializer_class = PatientProfileSerializer
+    permission_classes = [IsAuthenticated, IsPatient]
+
+    def get_object(self):
+        return self.request.user.patient_profile
+
+
+class PatientProfileUpdateView(generics.UpdateAPIView):
+    """Update patient profile"""
+    serializer_class = PatientProfileUpdateSerializer
+    permission_classes = [IsAuthenticated, IsPatient]
+
+    def get_object(self):
+        return self.request.user.patient_profile
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response({
+            'message': 'Profile updated successfully',
+            'profile': PatientProfileSerializer(instance).data
+        }, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])
