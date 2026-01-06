@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAdminUser
+from django.utils import timezone
 from .models import User, TherapistProfile
 from .serializers import (
     PatientRegistrationSerializer,
@@ -84,7 +86,6 @@ def login_view(request):
                 'redirect_url': user_data['redirect_url']
             }
             
-            # Add profile completion status for therapists
             if user.role == 'therapist':
                 response_data['profile_completed'] = user.therapist_profile.profile_completed
             
@@ -154,3 +155,113 @@ class TherapistProfileUpdateView(generics.UpdateAPIView):
             'message': 'Profile updated successfully',
             'profile': TherapistProfileSerializer(instance).data
         }, status=status.HTTP_200_OK)
+        
+        
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def verify_therapist(request, therapist_id):
+    """
+    Admin endpoint to verify a therapist
+    Only admins can verify therapists
+    """
+    try:
+        therapist_profile = TherapistProfile.objects.select_related('user').get(
+            user_id=therapist_id,
+            user__role='therapist'
+        )
+    except TherapistProfile.DoesNotExist:
+        return Response({
+            'error': 'Therapist not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if therapist_profile.is_verified:
+        return Response({
+            'message': 'Therapist is already verified'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Verify the therapist
+    therapist_profile.is_verified = True
+    therapist_profile.verified_at = timezone.now()
+    therapist_profile.verified_by = request.user
+    therapist_profile.save()
+    
+    return Response({
+        'message': f'Therapist {therapist_profile.user.full_name} has been verified successfully',
+        'therapist': {
+            'id': therapist_profile.user.id,
+            'full_name': therapist_profile.user.full_name,
+            'email': therapist_profile.user.email,
+            'is_verified': therapist_profile.is_verified,
+            'verified_at': therapist_profile.verified_at,
+            'verified_by': therapist_profile.verified_by.full_name if therapist_profile.verified_by else None
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def unverify_therapist(request, therapist_id):
+    """
+    Admin endpoint to remove verification from a therapist
+    Only admins can unverify therapists
+    """
+    try:
+        therapist_profile = TherapistProfile.objects.select_related('user').get(
+            user_id=therapist_id,
+            user__role='therapist'
+        )
+    except TherapistProfile.DoesNotExist:
+        return Response({
+            'error': 'Therapist not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if not therapist_profile.is_verified:
+        return Response({
+            'message': 'Therapist is not verified'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Unverify the therapist
+    therapist_profile.is_verified = False
+    therapist_profile.verified_at = None
+    therapist_profile.verified_by = None
+    therapist_profile.save()
+    
+    return Response({
+        'message': f'Verification removed for therapist {therapist_profile.user.full_name}',
+        'therapist': {
+            'id': therapist_profile.user.id,
+            'full_name': therapist_profile.user.full_name,
+            'email': therapist_profile.user.email,
+            'is_verified': therapist_profile.is_verified
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def list_unverified_therapists(request):
+    """
+    Admin endpoint to list all unverified therapists
+    """
+    unverified = TherapistProfile.objects.filter(
+        is_verified=False
+    ).select_related('user')
+    
+    therapists_data = []
+    for profile in unverified:
+        therapists_data.append({
+            'id': profile.user.id,
+            'full_name': profile.user.full_name,
+            'email': profile.user.email,
+            'profession_type': profile.profession_type,
+            'license_id': profile.license_id,
+            'years_of_experience': profile.years_of_experience,
+            'profile_completed': profile.profile_completed,
+            'created_at': profile.created_at
+        })
+    
+    return Response({
+        'count': len(therapists_data),
+        'therapists': therapists_data
+    }, status=status.HTTP_200_OK)

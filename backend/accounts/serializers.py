@@ -38,20 +38,17 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Remove password2 and patient-specific fields
         validated_data.pop('password2')
         emergency_contact_name = validated_data.pop('emergency_contact_name')
         emergency_contact_phone = validated_data.pop('emergency_contact_phone')
         basic_health_info = validated_data.pop('basic_health_info', '')
         terms_accepted = validated_data.pop('terms_accepted')
 
-        # Create user
         user = User.objects.create_user(
             role='patient',
             **validated_data
         )
 
-        # Create patient profile
         PatientProfile.objects.create(
             user=user,
             emergency_contact_name=emergency_contact_name,
@@ -93,19 +90,16 @@ class TherapistRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Remove password2 and therapist-specific fields
         validated_data.pop('password2')
         profession_type = validated_data.pop('profession_type')
         license_id = validated_data.pop('license_id', None)
         years_of_experience = validated_data.pop('years_of_experience', None)
 
-        # Create user
         user = User.objects.create_user(
             role='therapist',
             **validated_data
         )
 
-        # Create therapist profile
         TherapistProfile.objects.create(
             user=user,
             profession_type=profession_type,
@@ -165,7 +159,6 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        # Mark profile as completed if all required fields are filled
         if all([
             instance.specialization_tags,
             instance.languages_spoken,
