@@ -96,12 +96,10 @@ class TherapistProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='therapist_profile')
     
-    # Basic fields (filled during registration)
     profession_type = models.CharField(max_length=50, choices=PROFESSION_CHOICES)
     license_id = models.CharField(max_length=100, blank=True, null=True)
     years_of_experience = models.IntegerField(blank=True, null=True)
     
-    # Profile completion fields
     specialization_tags = models.JSONField(blank=True, null=True, help_text="List of specializations")
     languages_spoken = models.JSONField(blank=True, null=True, help_text="List of languages")
     consultation_mode = models.CharField(
@@ -123,8 +121,21 @@ class TherapistProfile(models.Model):
     )
     bio = models.TextField(blank=True, null=True)
     
-    # Profile completion status
     profile_completed = models.BooleanField(default=False)
+    
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Verified therapists can publish blogs directly without approval"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='verified_therapists',
+        limit_choices_to={'role': 'admin'}
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
