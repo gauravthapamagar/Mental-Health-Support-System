@@ -55,6 +55,14 @@ export default function Header() {
 
   const homeHref = getHomeHref();
 
+  const getProfileHref = () => {
+    if (userRole === "therapist") return "/therapist/profile";
+    if (userRole === "patient") return "/patient/profile";
+    return "/auth/login";
+  };
+
+  const profileHref = getProfileHref();
+
   // Middle nav links based on role
   const getMiddleLinks = () => {
     const base = [
@@ -207,11 +215,12 @@ export default function Header() {
                         </p>
                       </div>
                       <Link
-                        href="/profile"
+                        href={profileHref}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                       >
                         <User className="w-4 h-4" /> My Profile
                       </Link>
+
                       <Link
                         href="/settings"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
@@ -300,11 +309,13 @@ export default function Header() {
             ) : (
               <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
                 <Link
-                  href="/profile"
+                  href={profileHref}
                   className="flex items-center gap-3 font-bold text-gray-700"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <User /> Profile
                 </Link>
+
                 {userRole === "patient" && (
                   <Link href="/assessment" className="text-blue-600 font-bold">
                     Take Assessment
