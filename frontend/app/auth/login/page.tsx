@@ -69,9 +69,7 @@ export default function LoginPage() {
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
                 <Heart className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-900">
-                MentalSathi
-              </span>
+              <span className="text-xl font-bold text-slate-900">CarePair</span>
             </div>
 
             <h1 className="text-3xl font-extrabold text-slate-900 mb-2">

@@ -25,8 +25,8 @@ const manrope = Manrope({
 // Metadata
 export const metadata: Metadata = {
   title: {
-    default: "MentalSathi",
-    template: "%s | MentalSathi",
+    default: "CarePair",
+    template: "%s | CarePair",
   },
   description: "Smart Mental Health Support Platform",
 };

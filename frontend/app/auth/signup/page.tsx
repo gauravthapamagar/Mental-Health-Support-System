@@ -166,7 +166,7 @@ export default function SignupPage() {
                   <Heart className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-bold text-slate-900">
-                  MentalSathi
+                  CarePair
                 </span>
               </div>
               <h1 className="text-4xl font-bold text-slate-900 mb-2">
@@ -415,7 +415,7 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">
-                    MentalSathi Platform
+                    CarePair Platform
                   </h3>
                   <p className="text-sm text-slate-600">8th Semester Project</p>
                 </div>

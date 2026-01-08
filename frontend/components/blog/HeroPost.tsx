@@ -1,4 +1,4 @@
-import { BlogPost } from "@/lib/blog-data";
+import { BlogPost } from "@/lib/blog";
 import ApprovalBadge from "./ApprovalBadge";
 import { CheckCircle2 } from "lucide-react";
 
@@ -7,7 +7,7 @@ export default function HeroPost({ post }: { post: BlogPost }) {
     <div className="relative h-[460px] rounded-xl overflow-hidden group cursor-pointer">
       {/* Background Image */}
       <img
-        src={post.coverImage}
+        src={post.cover_image}
         alt={post.title}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
@@ -30,18 +30,20 @@ export default function HeroPost({ post }: { post: BlogPost }) {
             {post.author.avatar && (
               <img
                 src={post.author.avatar}
-                alt={post.author.name}
+                alt={post.author.full_name}
                 className="w-6 h-6 rounded-full mr-2 border border-white/30"
               />
             )}
-            <span>Written by {post.author.name}</span>
+            <span>Written by {post.author.full_name}</span>
           </div>
           <span>•</span>
-          <time>Published on {post.date}</time>
+          <time>Published on {post.published_at}</time>
           {post.isApproved && (
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-1 text-white fill-green-500" />
-              <span className="text-sm">Approved by {post.approverName}</span>
+              <span className="text-sm">
+                Approved by {post.approved_by_name}
+              </span>
             </div>
           )}
         </div>

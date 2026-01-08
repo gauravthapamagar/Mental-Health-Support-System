@@ -1,5 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  getTherapistProfile,
+  updateTherapistProfile,
+} from "@/lib/api/therapist";
 import {
   User,
   Mail,
@@ -21,31 +25,64 @@ import {
 export default function TherapistProfile() {
   const [activeTab, setActiveTab] = useState("personal");
   const [showPassword, setShowPassword] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [formData, setFormData] = useState({
-    username: "dr_sarah_smith",
-    email: "dr.smith@example.com",
-    phone: "+1 (555) 234-5678",
-    licenseNumber: "PSY-12345-CA",
-    specialization: "Clinical Psychology, CBT, Trauma",
-    experience: "8",
-    bio: "Experienced clinical psychologist specializing in anxiety, depression, and trauma recovery.",
-    hourlyRate: "150",
-    availableMonday: true,
-    availableTuesday: true,
-    availableWednesday: true,
-    availableThursday: true,
-    availableFriday: true,
+    fullName: "",
+    email: "",
+    phone: "",
+    licenseNumber: "",
+    specialization: "",
+    experience: "",
+    bio: "",
+    hourlyRate: "",
+    startTime: "",
+    endTime: "",
+    availableMonday: false,
+    availableTuesday: false,
+    availableWednesday: false,
+    availableThursday: false,
+    availableFriday: false,
     availableSaturday: false,
     availableSunday: false,
-    startTime: "09:00",
-    endTime: "17:00",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    emailNotifications: true,
-    bookingNotifications: true,
-    cancelNotifications: true,
   });
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) return;
+
+        const data = await getTherapistProfile(token);
+        setProfile(data);
+        setFormData({
+          fullName: data.user?.full_name || "",
+
+          email: data.user?.email || "",
+          phone: data.phone_number || "",
+
+          licenseNumber: data.license_id || "",
+          specialization: data.profession_type || "",
+          experience: data.years_of_experience?.toString() || "",
+          bio: data.bio || "",
+          hourlyRate: data.hourly_rate?.toString() || "",
+          startTime: data.start_time || "",
+          endTime: data.end_time || "",
+
+          availableMonday: data.available_days?.includes("Monday") || false,
+          availableTuesday: data.available_days?.includes("Tuesday") || false,
+          availableWednesday:
+            data.available_days?.includes("Wednesday") || false,
+          availableThursday: data.available_days?.includes("Thursday") || false,
+          availableFriday: data.available_days?.includes("Friday") || false,
+          availableSaturday: data.available_days?.includes("Saturday") || false,
+          availableSunday: data.available_days?.includes("Sunday") || false,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadProfile();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -55,9 +92,36 @@ export default function TherapistProfile() {
     }));
   };
 
-  const handleSave = () => {
-    console.log("Saving therapist profile data:", formData);
-    alert("Profile updated successfully!");
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const payload = {
+        license_id: formData.licenseNumber,
+        profession_type: formData.specialization,
+        years_of_experience: Number(formData.experience),
+        bio: formData.bio,
+        hourly_rate: Number(formData.hourlyRate),
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        available_days: [
+          formData.availableMonday && "Monday",
+          formData.availableTuesday && "Tuesday",
+          formData.availableWednesday && "Wednesday",
+          formData.availableThursday && "Thursday",
+          formData.availableFriday && "Friday",
+          formData.availableSaturday && "Saturday",
+          formData.availableSunday && "Sunday",
+        ].filter(Boolean),
+      };
+
+      await updateTherapistProfile(token, payload);
+      alert("Profile updated successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile");
+    }
   };
 
   const tabs = [
@@ -113,19 +177,25 @@ export default function TherapistProfile() {
               <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200">
                 <div className="relative mb-4">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-                    SS
+                    {formData.fullName
+                      ?.split(" ")
+                      .map((n) => n[0]?.toUpperCase())
+                      .slice(0, 2)
+                      .join("")}
                   </div>
                   <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg border-2 border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
                     <Camera className="w-4 h-4 text-slate-600" />
                   </button>
                 </div>
                 <h3 className="font-bold text-slate-900">
-                  {formData.username}
+                  {formData.fullName}
                 </h3>
                 <p className="text-sm text-slate-500">Therapist</p>
-                <span className="mt-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                  Verified
-                </span>
+                {profile?.is_verified && (
+                  <span className="mt-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                    Verified
+                  </span>
+                )}
               </div>
 
               {/* Tabs */}
@@ -166,14 +236,14 @@ export default function TherapistProfile() {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Username
+                        fullName
                       </label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                           type="text"
-                          name="username"
-                          value={formData.username}
+                          name="fullName"
+                          value={formData.fullName}
                           onChange={handleInputChange}
                           className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-purple-500 outline-none transition-colors"
                         />

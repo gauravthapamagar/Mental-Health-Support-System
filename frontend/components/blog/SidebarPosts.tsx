@@ -1,4 +1,4 @@
-import { BlogPost } from "@/lib/blog-data";
+import { BlogPost } from "@/lib/blog";
 import { CheckCircle2 } from "lucide-react";
 
 export default function SidebarPosts({ posts }: { posts: BlogPost[] }) {
@@ -14,7 +14,7 @@ export default function SidebarPosts({ posts }: { posts: BlogPost[] }) {
           >
             <div className="w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden relative">
               <img
-                src={post.coverImage}
+                src={post.cover_image}
                 alt={post.title}
                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
               />

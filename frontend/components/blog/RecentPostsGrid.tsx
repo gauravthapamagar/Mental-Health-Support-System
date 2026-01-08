@@ -1,4 +1,4 @@
-import { BlogPost } from "@/lib/blog-data";
+import { BlogPost } from "@/lib/blog";
 import { CheckCircle2 } from "lucide-react";
 
 export default function RecentPostsGrid({ posts }: { posts: BlogPost[] }) {
@@ -19,7 +19,7 @@ export default function RecentPostsGrid({ posts }: { posts: BlogPost[] }) {
           >
             <div className="rounded-xl overflow-hidden h-60 mb-4 relative">
               <img
-                src={post.coverImage}
+                src={post.cover_image}
                 alt={post.title}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
