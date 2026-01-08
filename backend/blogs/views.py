@@ -37,6 +37,7 @@ class BlogPostListView(generics.ListAPIView):
     """
     serializer_class = BlogPostListSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []
     pagination_class = BlogPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'excerpt', 'content', 'tags']
@@ -110,8 +111,8 @@ class BlogPostDetailView(generics.RetrieveAPIView):
 def create_blog_post(request):
     """
     Create a new blog post
-    - Verified therapists: Auto-published
-    - Unverified therapists: Pending approval
+    - Verified therapists: Auto-published (published_at set to NOW)
+    - Unverified therapists: Pending approval (published_at remains NULL)
     """
     if request.user.role != 'therapist':
         return Response({
@@ -125,18 +126,19 @@ def create_blog_post(request):
         if hasattr(request.user, 'therapist_profile'):
             is_verified = request.user.therapist_profile.is_verified
         
-        # Set initial status based on verification
+        # Determine status and publication date
         if is_verified:
             initial_status = 'published'
-            published_at = timezone.now()
+            pub_date = timezone.now() # THIS ensures it shows up in your list
         else:
             initial_status = 'pending'
-            published_at = None
+            pub_date = None
         
+        # Save the blog post with the extra calculated fields
         blog_post = serializer.save(
             author=request.user,
             status=initial_status,
-            published_at=published_at
+            published_at=pub_date
         )
         
         response_message = (

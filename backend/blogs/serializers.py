@@ -7,6 +7,7 @@ class BlogAuthorSerializer(serializers.ModelSerializer):
     """Minimal author info for blog posts"""
     is_verified = serializers.SerializerMethodField()
     
+    
     class Meta:
         model = User
         fields = ['id', 'full_name', 'is_verified']

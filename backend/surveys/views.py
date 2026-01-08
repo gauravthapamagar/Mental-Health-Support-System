@@ -193,9 +193,10 @@ def get_next_dynamic_question(request):
     
     if not question_text:
         return Response({
-            'error': 'Unable to generate dynamic question. Please try again.',
-            'is_final': True
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    'message': 'No further dynamic questions',
+    'is_final': True
+}, status=status.HTTP_200_OK)
+
     
     return Response({
         'question_text': question_text,

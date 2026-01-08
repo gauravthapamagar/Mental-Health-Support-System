@@ -39,16 +39,17 @@ class BlogPostAdmin(admin.ModelAdmin):
     actions = ['approve_blogs', 'reject_blogs', 'publish_blogs']
     
     def title_short(self, obj):
+        if not obj.title: return "-"
         return obj.title[:50] + '...' if len(obj.title) > 50 else obj.title
-    title_short.short_description = 'Title'
     
     def author_verified(self, obj):
         if hasattr(obj.author, 'therapist_profile'):
             is_verified = obj.author.therapist_profile.is_verified
             if is_verified:
-                return format_html('<span style="color: green;">✓ Verified</span>')
-            return format_html('<span style="color: orange;">⚠ Unverified</span>')
-        return '-'
+                # Use {} and pass the text as an argument
+                return format_html('<span style="color: green;">{}</span>', "✓ Verified")
+            return format_html('<span style="color: orange;">{}</span>', "⚠ Unverified")
+        return "-"
     author_verified.short_description = 'Author Status'
     
     def approve_blogs(self, request, queryset):
