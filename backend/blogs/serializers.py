@@ -26,9 +26,7 @@ class BlogCommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'content', 'is_approved', 'created_at', 'updated_at']
         read_only_fields = ['author', 'is_approved', 'created_at', 'updated_at']
 
-
 class BlogPostListSerializer(serializers.ModelSerializer):
-    """Serializer for blog list view"""
     author = BlogAuthorSerializer(read_only=True)
     reading_time = serializers.IntegerField(read_only=True)
     is_liked = serializers.SerializerMethodField()
@@ -42,11 +40,11 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         ]
     
     def get_is_liked(self, obj):
+        # The 'context' allows us to see who the logged-in patient is
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return BlogLike.objects.filter(blog_post=obj, user=request.user).exists()
         return False
-
 
 class BlogPostDetailSerializer(serializers.ModelSerializer):
     """Serializer for detailed blog view"""
@@ -166,3 +164,12 @@ class BlogStatsSerializer(serializers.Serializer):
     total_views = serializers.IntegerField()
     total_likes = serializers.IntegerField()
     total_comments = serializers.IntegerField()
+    
+    
+class BlogRecommendationSerializer(serializers.Serializer):
+    """
+    Wraps a BlogPost with a reason for the recommendation
+    """
+    blog = BlogPostListSerializer()
+    reason = serializers.CharField() # e.g., "Based on your interest in Anxiety"
+    recommendation_type = serializers.CharField()
