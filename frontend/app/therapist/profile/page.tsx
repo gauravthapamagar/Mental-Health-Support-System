@@ -44,7 +44,15 @@ export default function TherapistProfile() {
     availableFriday: false,
     availableSaturday: false,
     availableSunday: false,
+    // Security and Notification states
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    emailNotifications: true,
+    bookingNotifications: true,
+    cancelNotifications: true,
   });
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -53,12 +61,11 @@ export default function TherapistProfile() {
 
         const data = await getTherapistProfile(token);
         setProfile(data);
-        setFormData({
+        setFormData((prev) => ({
+          ...prev,
           fullName: data.user?.full_name || "",
-
           email: data.user?.email || "",
           phone: data.phone_number || "",
-
           licenseNumber: data.license_id || "",
           specialization: data.profession_type || "",
           experience: data.years_of_experience?.toString() || "",
@@ -66,7 +73,6 @@ export default function TherapistProfile() {
           hourlyRate: data.hourly_rate?.toString() || "",
           startTime: data.start_time || "",
           endTime: data.end_time || "",
-
           availableMonday: data.available_days?.includes("Monday") || false,
           availableTuesday: data.available_days?.includes("Tuesday") || false,
           availableWednesday:
@@ -75,7 +81,7 @@ export default function TherapistProfile() {
           availableFriday: data.available_days?.includes("Friday") || false,
           availableSaturday: data.available_days?.includes("Saturday") || false,
           availableSunday: data.available_days?.includes("Sunday") || false,
-        });
+        }));
       } catch (err) {
         console.error(err);
       }
@@ -84,7 +90,7 @@ export default function TherapistProfile() {
     loadProfile();
   }, []);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: any) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -161,7 +167,6 @@ export default function TherapistProfile() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 py-12 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">My Profile</h1>
           <p className="text-slate-600">
@@ -173,7 +178,6 @@ export default function TherapistProfile() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              {/* Profile Picture */}
               <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200">
                 <div className="relative mb-4">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
@@ -198,7 +202,6 @@ export default function TherapistProfile() {
                 )}
               </div>
 
-              {/* Tabs */}
               <div className="space-y-2">
                 {tabs.map((tab) => (
                   <button
@@ -232,11 +235,10 @@ export default function TherapistProfile() {
                       Update your personal details and contact information
                     </p>
                   </div>
-
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        fullName
+                        Full Name
                       </label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -249,7 +251,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Email Address
@@ -265,7 +266,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Phone Number
@@ -296,7 +296,6 @@ export default function TherapistProfile() {
                       Manage your credentials and professional information
                     </p>
                   </div>
-
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -313,7 +312,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Years of Experience
@@ -329,7 +327,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Specialization
@@ -346,7 +343,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Professional Bio
@@ -359,7 +355,6 @@ export default function TherapistProfile() {
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-purple-500 outline-none transition-colors resize-none"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Hourly Rate ($)
@@ -375,7 +370,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Upload Documents
@@ -402,7 +396,6 @@ export default function TherapistProfile() {
                       Set your working hours and available days
                     </p>
                   </div>
-
                   <div className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
@@ -430,7 +423,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-4">
                         Available Days
@@ -440,7 +432,7 @@ export default function TherapistProfile() {
                           <label
                             key={day.key}
                             className={`flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                              formData[day.key]
+                              formData[day.key as keyof typeof formData]
                                 ? "border-purple-500 bg-purple-50"
                                 : "border-slate-200 hover:border-purple-300"
                             }`}
@@ -451,7 +443,9 @@ export default function TherapistProfile() {
                             <input
                               type="checkbox"
                               name={day.key}
-                              checked={formData[day.key]}
+                              checked={
+                                !!formData[day.key as keyof typeof formData]
+                              }
                               onChange={handleInputChange}
                               className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
                             />
@@ -474,7 +468,6 @@ export default function TherapistProfile() {
                       Manage your password and security preferences
                     </p>
                   </div>
-
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -491,7 +484,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         New Password
@@ -507,7 +499,6 @@ export default function TherapistProfile() {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Confirm New Password
@@ -549,75 +540,53 @@ export default function TherapistProfile() {
                       Choose how you want to receive updates
                     </p>
                   </div>
-
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border-2 border-slate-200 rounded-xl hover:border-purple-300 transition-colors">
-                      <div>
-                        <h4 className="font-semibold text-slate-900">
-                          Email Notifications
-                        </h4>
-                        <p className="text-sm text-slate-600">
-                          Receive updates via email
-                        </p>
+                    {[
+                      {
+                        name: "emailNotifications",
+                        label: "Email Notifications",
+                        desc: "Receive updates via email",
+                      },
+                      {
+                        name: "bookingNotifications",
+                        label: "Booking Notifications",
+                        desc: "New patient bookings",
+                      },
+                      {
+                        name: "cancelNotifications",
+                        label: "Cancellation Alerts",
+                        desc: "Patient cancellations",
+                      },
+                    ].map((n) => (
+                      <div
+                        key={n.name}
+                        className="flex items-center justify-between p-4 border-2 border-slate-200 rounded-xl hover:border-purple-300 transition-colors"
+                      >
+                        <div>
+                          <h4 className="font-semibold text-slate-900">
+                            {n.label}
+                          </h4>
+                          <p className="text-sm text-slate-600">{n.desc}</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={n.name}
+                            checked={
+                              !!formData[n.name as keyof typeof formData]
+                            }
+                            onChange={handleInputChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          name="emailNotifications"
-                          checked={formData.emailNotifications}
-                          onChange={handleInputChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border-2 border-slate-200 rounded-xl hover:border-purple-300 transition-colors">
-                      <div>
-                        <h4 className="font-semibold text-slate-900">
-                          Booking Notifications
-                        </h4>
-                        <p className="text-sm text-slate-600">
-                          New patient bookings
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          name="bookingNotifications"
-                          checked={formData.bookingNotifications}
-                          onChange={handleInputChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border-2 border-slate-200 rounded-xl hover:border-purple-300 transition-colors">
-                      <div>
-                        <h4 className="font-semibold text-slate-900">
-                          Cancellation Alerts
-                        </h4>
-                        <p className="text-sm text-slate-600">
-                          Patient cancellations
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          name="cancelNotifications"
-                          checked={formData.cancelNotifications}
-                          onChange={handleInputChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Save Button */}
+              {/* Action Buttons */}
               <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end gap-4">
                 <button className="px-6 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all">
                   Cancel

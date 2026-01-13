@@ -102,7 +102,7 @@ export default function Home() {
 
               {/* Main Heading */}
               <h1 className="text-base md:text-xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Join MentalSathi &<br />
+                Join CarePair &<br />
                 Shape The
                 <br />
                 Future of Health
