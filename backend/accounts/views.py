@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAdminUser
 from django.utils import timezone
+from blogs.models import BlogPost
 from .models import User, TherapistProfile
 from .serializers import (
     PatientRegistrationSerializer,
@@ -30,7 +31,45 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_stats(request):
+    """Endpoint for the OverviewTab statistics and Recent Activity"""
+    
+    # Get the 5 most recent blog posts for the activity feed
+    recent_blogs = BlogPost.objects.select_related('author').order_by('-created_at')[:3]
+    
+    recent_activity = []
+    for blog in recent_blogs:
+        recent_activity.append({
+            "message": f"New Blog: {blog.title} by {blog.author.full_name}",
+            "time": blog.created_at.strftime("%b %d, %H:%M"),
+        })
 
+    # Add a "New User" activity if any exist
+    latest_user = User.objects.exclude(role='admin').order_by('-created_at').first()
+    if latest_user:
+        recent_activity.append({
+            "message": f"New {latest_user.role} joined: {latest_user.full_name}",
+            "time": latest_user.created_at.strftime("%b %d, %H:%M"),
+        })
+
+    return Response({
+        'totalUsers': User.objects.count(),
+        'totalPatients': User.objects.filter(role='patient').count(),
+        'totalTherapists': User.objects.filter(role='therapist').count(),
+        'verifiedTherapists': TherapistProfile.objects.filter(is_verified=True).count(),
+        'pendingTherapists': TherapistProfile.objects.filter(is_verified=False).count(),
+        
+        # Blog Statistics
+        'totalBlogs': BlogPost.objects.count(), 
+        'publishedBlogs': BlogPost.objects.filter(status='published').count(),
+        'pendingBlogs': BlogPost.objects.filter(status='pending').count(),
+        
+        # Activity Feed
+        'recentActivity': recent_activity,
+        'totalSurveys': 0, 
+    }, status=status.HTTP_200_OK)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def patient_registration(request):
@@ -100,6 +139,15 @@ def login_view(request):
             }, status=status.HTTP_401_UNAUTHORIZED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def user_list_view(request):
+    """Admin endpoint to list all users (Patients, Therapists, Admins)"""
+    users = User.objects.all().order_by('-created_at')
+    # Using your existing UserDetailSerializer
+    serializer = UserDetailSerializer(users, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

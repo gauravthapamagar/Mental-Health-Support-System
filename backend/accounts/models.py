@@ -95,7 +95,7 @@ class TherapistProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='therapist_profile')
-    
+    phone_number = models.CharField(max_length=17, default="0000000000")
     profession_type = models.CharField(max_length=50, choices=PROFESSION_CHOICES)
     license_id = models.CharField(max_length=100, blank=True, null=True)
     years_of_experience = models.IntegerField(blank=True, null=True)
