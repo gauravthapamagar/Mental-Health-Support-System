@@ -98,7 +98,26 @@ export const authAPI = {
     localStorage.removeItem("refresh_token");
   },
 };
+export const patientAPI = {
+  // Get Patient Profile (Matches your Django path: patient/profile/me/)
+  getProfile: async () => {
+    const response = await axiosInstance.get("/patient/profile/me/");
+    return response.data;
+  },
 
+  // Update Patient Profile (Matches your Django path: patient/profile/update/)
+  updateProfile: async (data: {
+    emergency_contact_name: string;
+    emergency_contact_phone: string;
+    basic_health_info?: string;
+  }) => {
+    const response = await axiosInstance.patch(
+      "/patient/profile/update/",
+      data
+    );
+    return response.data;
+  },
+};
 export const therapistAPI = {
   // Get Therapist Profile
   getProfile: async () => {
@@ -125,4 +144,4 @@ export const therapistAPI = {
   },
 };
 
-export default { authAPI, therapistAPI };
+export default { authAPI, therapistAPI, patientAPI };

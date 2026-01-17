@@ -185,7 +185,7 @@ const TherapistsSection = () => {
                 {/* Actions & Social */}
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                   <a
-                    href={`/therapists/${therapist.id}`}
+                    href={`/find-therapist/${therapist.id}`}
                     className="text-slate-700 font-semibold hover:text-blue-700 transition-colors flex items-center gap-2 group/link text-sm"
                   >
                     View Profile
@@ -226,7 +226,7 @@ const TherapistsSection = () => {
         {/* View All Button */}
         <div className="text-center mt-12">
           <a
-            href="/find-a-therapist"
+            href="/find-therapist"
             className="group inline-flex items-center px-8 py-4 text-white bg-blue-600 hover:bg-blue-700 rounded-full font-semibold text-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
           >
             View All Therapists
