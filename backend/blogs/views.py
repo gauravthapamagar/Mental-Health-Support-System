@@ -6,6 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
+from .recommender import BlogRecommender
 from .models import BlogPost, BlogLike, BlogComment, BlogView
 from .serializers import (
     BlogPostListSerializer,
@@ -15,7 +16,8 @@ from .serializers import (
     BlogApprovalSerializer,
     BlogCommentSerializer,
     BlogCommentCreateSerializer,
-    BlogStatsSerializer
+    BlogStatsSerializer,
+    BlogRecommendationSerializer,
 )
 from .permissions import (
     IsTherapistOrReadOnly,
@@ -364,3 +366,39 @@ def blog_categories(request):
         for choice in BlogPost.CATEGORY_CHOICES
     ]
     return Response({'categories': categories}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_recommendations(request):
+    recommender = BlogRecommender()
+    user = request.user
+    
+    # Check if user has any likes
+    has_history = BlogLike.objects.filter(user=user).exists()
+    
+    if has_history:
+        # Personalized logic
+        blogs = recommender.get_content_based_recommendations(user)
+        data = [
+            {"blog": blog, "reason": f"Similar to posts you liked in {blog.category}", "type": "personalized"} 
+            for blog in blogs
+        ]
+    else:
+        # NEW USER / COLD START logic: Use Survey or Popularity
+        # Try to get survey category first
+        from surveys.models import Response # adjust based on your actual survey model name
+        latest_survey = Response.objects.filter(user=user).last()
+        
+        if latest_survey:
+            # Recommend based on survey result
+            topic = latest_survey.primary_concern 
+            blogs = BlogPost.objects.filter(category=topic, status='published')[:5]
+            data = [{"blog": b, "reason": f"Based on your survey result: {topic}", "type": "survey"} for b in blogs]
+        else:
+            # Total Cold Start: Popular blogs
+            blogs = BlogPost.objects.filter(status='published').order_of('-views_count')[:5]
+            data = [{"blog": b, "reason": "Trending on the platform", "type": "trending"} for b in blogs]
+
+    # Serialize the data
+    serializer = BlogRecommendationSerializer(data, many=True, context={'request': request})
+    return Response(serializer.data)
