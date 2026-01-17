@@ -30,7 +30,19 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
+class PublicTherapistListView(generics.ListAPIView):
+    """
+    Publicly accessible endpoint to list all verified therapists.
+    """
+    permission_classes = [AllowAny] # Anyone can see the list
+    serializer_class = TherapistProfileSerializer
 
+    def get_queryset(self):
+        # Only show verified therapists who have completed their profiles
+        return TherapistProfile.objects.filter(
+            is_verified=True, 
+            profile_completed=True
+        ).select_related('user')
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminUser])
 def admin_stats(request):
@@ -187,7 +199,11 @@ class TherapistProfileDetailView(generics.RetrieveAPIView):
     def get_object(self):
         return self.request.user.therapist_profile
 
-
+class PublicTherapistDetailView(generics.RetrieveAPIView):
+    """View for patients to see a specific therapist's public profile"""
+    queryset = TherapistProfile.objects.filter(is_verified=True, profile_completed=True)
+    serializer_class = TherapistProfileSerializer
+    permission_classes = [AllowAny] # This is the key difference!
 class TherapistProfileUpdateView(generics.UpdateAPIView):
     """Update therapist profile"""
     serializer_class = TherapistProfileCompleteSerializer

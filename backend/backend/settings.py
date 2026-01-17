@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -177,3 +178,6 @@ LLAMA_API_URL = 'http://localhost:11434/api/generate'
 LLAMA_MODEL_NAME = 'llama3'  
 LLAMA_TIMEOUT = 30
 MAX_DYNAMIC_QUESTIONS = 5
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

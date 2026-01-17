@@ -87,7 +87,11 @@ class TherapistProfile(models.Model):
         ('therapist', 'Therapist'),
         ('other', 'Other'),
     ]
-    
+    profile_picture = models.ImageField(
+        upload_to='media/therapist_profiles/', 
+        null=True, 
+        blank=True
+    )
     CONSULTATION_MODE_CHOICES = [
         ('online', 'Online'),
         ('offline', 'Offline'),

@@ -15,7 +15,9 @@ urlpatterns = [
     path('therapist/profile/update/', views.TherapistProfileUpdateView.as_view(), name='therapist-profile-update'),
     path('patient/profile/me/', views.PatientProfileDetailView.as_view(), name='patient-profile-detail'),
     path('patient/profile/update/', views.PatientProfileUpdateView.as_view(), name='patient-profile-update'),
-path('therapists/unverified/', views.list_unverified_therapists, name='list-unverified-therapists'),
+    path('therapists/unverified/', views.list_unverified_therapists, name='list-unverified-therapists'),
     path('therapists/<int:therapist_id>/verify/', views.verify_therapist, name='verify-therapist'),
+    path('public/therapists/', views.PublicTherapistListView.as_view(), name='public-therapist-list'),
+    path('public/therapists/<int:pk>/', views.PublicTherapistDetailView.as_view(), name='therapist-detail'),
     path('therapists/<int:therapist_id>/unverify/', views.unverify_therapist, name='unverify-therapist'),
 ]
