@@ -12,7 +12,7 @@ urlpatterns = [
     
     # 2. Public List (empty string)
     path('', views.BlogPostListView.as_view(), name='blog-list'),
-    
+    path('recommendations/', views.get_recommendations, name='get-recommendations'),
     # 3. Dynamic/Slug paths MUST come last
     # If this is at the top, it "eats" the 'create/' request
     path('<slug:slug>/', views.BlogPostDetailView.as_view(), name='blog-detail'),

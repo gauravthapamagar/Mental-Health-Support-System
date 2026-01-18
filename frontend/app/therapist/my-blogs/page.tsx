@@ -28,7 +28,7 @@ export default function MyBlogsPage() {
         // Role protection
         const currentUser = await authAPI.getCurrentUser();
         if (currentUser.role !== "therapist") {
-          window.location.href = "/login";
+          window.location.href = "/auth/login";
           return;
         }
         setUser(currentUser);
@@ -37,7 +37,7 @@ export default function MyBlogsPage() {
         await loadStats();
       } catch (error) {
         console.error("Failed to load data:", error);
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
       } finally {
         setLoading(false);
       }

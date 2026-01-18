@@ -165,13 +165,24 @@ export default function Header() {
               <div className="flex items-center gap-3 md:gap-5">
                 {/* Patient / Therapist Button */}
                 {userRole === "patient" && (
-                  <Link
-                    href="/patient/assessment"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all active:scale-95"
-                  >
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span className="hidden sm:inline">Take Assessment</span>
-                  </Link>
+                  <>
+                    {/* Dashboard Button */}
+                    <Link
+                      href="/patient/dashboard"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5 transition-all active:scale-95"
+                    >
+                      <span className="hidden sm:inline">Dashboard</span>
+                    </Link>
+
+                    {/* Assessment Button */}
+                    <Link
+                      href="/patient/assessment"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all active:scale-95"
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span className="hidden sm:inline">Take Assessment</span>
+                    </Link>
+                  </>
                 )}
                 {userRole === "therapist" && (
                   <Link

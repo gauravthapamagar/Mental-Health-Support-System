@@ -143,5 +143,44 @@ export const therapistAPI = {
     return response.data;
   },
 };
+export interface RecommendedBlog {
+  blog: {
+    id: number;
+    title: string;
+    slug: string;
+    category: string;
+    excerpt: string;
+    cover_image: string | null;
+    author_name: string;
+    published_at: string;
+  };
+  reason: string;
+  type: string;
+}
+export const blogAPI = {
+  // Get all published blogs with optional filters
+  getBlogs: async (params?: any) => {
+    const response = await axiosInstance.get("/blog/", { params });
+    return response.data;
+  },
 
-export default { authAPI, therapistAPI, patientAPI };
+  // Get recommendations for the logged-in user
+  getRecommendations: async (): Promise<RecommendedBlog[]> => {
+    const response = await axiosInstance.get("/blog/recommendations/");
+    return response.data;
+  },
+
+  // Get a single blog detail
+  getBlogDetail: async (slug: string) => {
+    const response = await axiosInstance.get(`/blog/${slug}/`);
+    return response.data;
+  },
+
+  // Like/Unlike a blog
+  toggleLike: async (slug: string) => {
+    const response = await axiosInstance.post(`/blog/like/${slug}/`);
+    return response.data;
+  },
+};
+
+export default { authAPI, therapistAPI, patientAPI, blogAPI };

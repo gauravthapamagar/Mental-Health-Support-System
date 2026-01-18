@@ -1,85 +1,97 @@
-import { notFound } from "next/navigation";
+"use client";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, BookmarkPlus, Share2 } from "lucide-react";
+import { ArrowLeft, BookmarkPlus, Share2, Loader2 } from "lucide-react";
 
-// This would fetch from your API/database
-async function getArticle(id: string) {
-  // Replace with actual data fetching
-  return {
-    id,
-    title: "Understanding Anxiety Triggers",
-    category: "Anxiety Management",
-    readTime: "5 min",
-    content: `
-      <p>Anxiety is a natural response to stress, but understanding what triggers it can help you manage it more effectively...</p>
-      <h2>Common Anxiety Triggers</h2>
-      <p>Several factors can trigger anxiety episodes...</p>
-    `,
-    author: "Dr. Sarah Jenkins",
-    publishedDate: "Dec 15, 2025",
-  };
-}
+export default function ArticleDetailPage() {
+  const { id } = useParams(); // This is the slug
+  const [article, setArticle] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function ArticleDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const article = await getArticle(params.id);
+  useEffect(() => {
+    async function fetchArticle() {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/blog/${id}/`);
+        if (!response.ok) throw new Error("Not found");
+        const data = await response.json();
+        setArticle(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) fetchArticle();
+  }, [id]);
 
-  if (!article) {
-    notFound();
-  }
+  if (loading)
+    return (
+      <div className="flex justify-center p-20">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  if (!article)
+    return <div className="p-20 text-center">Article not found.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Link
-        href="/patient/articles"
-        className="flex items-center gap-2 text-blue-600 hover:underline mb-6"
-      >
-        <ArrowLeft size={20} />
-        Back to Articles
-      </Link>
+    <div>
+      {/* Back Button Aligned with Page Start */}
+      <div className="mb-8">
+        <Link
+          href="/patient/articles"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors mb-4"
+        >
+          <ArrowLeft size={20} /> Back to Articles
+        </Link>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Read Article</h1>
+        <p className="text-gray-600">
+          Explore mental health insights and guides
+        </p>
+      </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <div className="mb-6">
-          <span className="text-xs font-medium text-blue-600 uppercase">
+      <article className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        {article.cover_image && (
+          <img
+            src={article.cover_image}
+            alt=""
+            className="w-full h-80 object-cover"
+          />
+        )}
+
+        <div className="p-8 md:p-12">
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">
             {article.category}
           </span>
-          <h1 className="text-4xl font-bold mt-2 mb-4">{article.title}</h1>
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div>
-              By {article.author} • {article.publishedDate} • {article.readTime}{" "}
-              read
+          <h2 className="text-4xl font-bold mt-2 mb-6 text-slate-900 leading-tight">
+            {article.title}
+          </h2>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 py-6 border-y border-slate-100 mb-8">
+            <div className="text-sm text-slate-500">
+              By{" "}
+              <span className="font-semibold text-slate-900">
+                {article.author.full_name}
+              </span>{" "}
+              • {new Date(article.published_at).toLocaleDateString()} •{" "}
+              {article.reading_time} min read
             </div>
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <BookmarkPlus size={18} />
-                Save
+            <div className="flex gap-2">
+              <button className="p-2 hover:bg-slate-50 rounded-full border border-slate-200 transition-colors">
+                <BookmarkPlus size={20} className="text-slate-600" />
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Share2 size={18} />
-                Share
+              <button className="p-2 hover:bg-slate-50 rounded-full border border-slate-200 transition-colors">
+                <Share2 size={20} className="text-slate-600" />
               </button>
             </div>
           </div>
-        </div>
 
-        <div
-          className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: article.content }}
-        />
-
-        <div className="mt-8 p-6 bg-blue-50 rounded-lg">
-          <h3 className="font-bold mb-2">Want to practice what you learned?</h3>
-          <p className="text-sm text-gray-700 mb-4">
-            Generate flashcards from this article to reinforce key concepts
-          </p>
-          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Generate Flashcards
-          </button>
+          <div
+            className="prose prose-blue max-w-none text-slate-700 leading-relaxed text-lg"
+            dangerouslySetInnerHTML={{ __html: article.content }}
+          />
         </div>
-      </div>
+      </article>
     </div>
   );
 }

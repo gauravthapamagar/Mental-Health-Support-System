@@ -23,7 +23,7 @@ const TherapistDashboard = () => {
 
         // 🔒 Role protection
         if (currentUser.role !== "therapist") {
-          window.location.href = "/login";
+          window.location.href = "/auth/login";
           return;
         }
 
@@ -33,7 +33,7 @@ const TherapistDashboard = () => {
         await therapistAPI.getProfile();
       } catch (error) {
         console.error("Failed to load therapist dashboard", error);
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
       } finally {
         setLoading(false);
       }

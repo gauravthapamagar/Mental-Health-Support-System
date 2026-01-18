@@ -146,7 +146,10 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center gap-3 p-6 border-b border-gray-200">
+      <Link
+        href="/"
+        className="flex items-center gap-3 p-6 border-b border-gray-200 hover:opacity-80 transition-opacity cursor-pointer"
+      >
         <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
           <svg
             className="w-6 h-6 text-white"
@@ -163,7 +166,7 @@ export default function Sidebar() {
           </svg>
         </div>
         <span className="text-xl font-bold text-gray-900">CarePair</span>
-      </div>
+      </Link>
 
       {/* Scrollable Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-3">
