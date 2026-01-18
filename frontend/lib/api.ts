@@ -182,5 +182,34 @@ export const blogAPI = {
     return response.data;
   },
 };
+export const bookingAPI = {
+  // Get therapists for the booking list
+  listTherapists: async (params?: { specialization?: string; mode?: string; page?: number }) => {
+    const response = await axiosInstance.get("/booking/therapists/", { params });
+    return response.data; // Returns { results: [], count: ... }
+  },
 
-export default { authAPI, therapistAPI, patientAPI, blogAPI };
+  // Get slots for a specific therapist
+  getAvailableSlots: async (therapistId: number) => {
+    const response = await axiosInstance.get(`/booking/therapists/${therapistId}/slots/`);
+    return response.data;
+  },
+
+  // Create the appointment
+  createAppointment: async (data: any) => {
+    const response = await axiosInstance.post("/booking/appointments/create/", data);
+    return response.data;
+  },
+
+  // Fetch appointments for the current user
+  getMyAppointments: async (filterType: string) => {
+    // filterType will be 'upcoming', 'past', or 'cancelled'
+    const response = await axiosInstance.get("/booking/appointments/my/", {
+      params: { filter: filterType }
+    });
+    return response.data; // This returns the paginated object
+  }
+};
+export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI };
+
+
