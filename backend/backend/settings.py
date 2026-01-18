@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'accounts',
     'surveys',
     'blogs',
+    'booking',
 ]
 
 MIDDLEWARE = [
@@ -181,3 +182,7 @@ MAX_DYNAMIC_QUESTIONS = 5
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Quiz Generation Settings
+QUESTIONS_PER_QUIZ = 5  # Number of questions to generate per blog
+VERIFICATION_POINTS_THRESHOLD = 100  # Points needed for auto-verification
