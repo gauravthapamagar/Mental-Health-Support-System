@@ -3,6 +3,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view, permission_classes, parser_classes 
+# Add this new line for the Parsers:
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
@@ -110,6 +113,7 @@ class BlogPostDetailView(generics.RetrieveAPIView):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser]) # FIX: This allows image uploads
 def create_blog_post(request):
     """
     Create a new blog post
@@ -121,6 +125,7 @@ def create_blog_post(request):
             'error': 'Only therapists can create blog posts'
         }, status=status.HTTP_403_FORBIDDEN)
     
+    # In MultiPartParser, data is in request.data just like JSON
     serializer = BlogPostCreateSerializer(data=request.data)
     if serializer.is_valid():
         # Check if therapist is verified
@@ -131,12 +136,12 @@ def create_blog_post(request):
         # Determine status and publication date
         if is_verified:
             initial_status = 'published'
-            pub_date = timezone.now() # THIS ensures it shows up in your list
+            pub_date = timezone.now() 
         else:
             initial_status = 'pending'
             pub_date = None
         
-        # Save the blog post with the extra calculated fields
+        # Save the blog post
         blog_post = serializer.save(
             author=request.user,
             status=initial_status,
@@ -182,6 +187,7 @@ def my_blog_posts(request):
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser]) # FIX: Allows updating images
 def update_blog_post(request, slug):
     """Update a blog post (only by author)"""
     try:
@@ -373,32 +379,33 @@ def get_recommendations(request):
     recommender = BlogRecommender()
     user = request.user
     
-    # Check if user has any likes
-    has_history = BlogLike.objects.filter(user=user).exists()
+    # Check if user has any likes or views
+    has_history = BlogLike.objects.filter(user=user).exists() or \
+                  BlogView.objects.filter(user=user).exists()
     
     if has_history:
-        # Personalized logic
+        # Personalized AI Logic (TF-IDF)
         blogs = recommender.get_content_based_recommendations(user)
         data = [
-            {"blog": blog, "reason": f"Similar to posts you liked in {blog.category}", "type": "personalized"} 
+            {
+                "blog": blog, 
+                "reason": f"Because you enjoyed articles in {blog.get_category_display()}", 
+                "recommendation_type": "personalized"
+            } 
             for blog in blogs
         ]
     else:
-        # NEW USER / COLD START logic: Use Survey or Popularity
-        # Try to get survey category first
-        from surveys.models import Response # adjust based on your actual survey model name
-        latest_survey = Response.objects.filter(user=user).last()
+        # COLD START: Since Survey isn't ready, we show Trending and Newest
+        # Fix the typo '.order_of' -> '.order_by'
+        trending_blogs = BlogPost.objects.filter(status='published').order_by('-views_count')[:3]
+        new_blogs = BlogPost.objects.filter(status='published').order_by('-published_at')[:2]
         
-        if latest_survey:
-            # Recommend based on survey result
-            topic = latest_survey.primary_concern 
-            blogs = BlogPost.objects.filter(category=topic, status='published')[:5]
-            data = [{"blog": b, "reason": f"Based on your survey result: {topic}", "type": "survey"} for b in blogs]
-        else:
-            # Total Cold Start: Popular blogs
-            blogs = BlogPost.objects.filter(status='published').order_of('-views_count')[:5]
-            data = [{"blog": b, "reason": "Trending on the platform", "type": "trending"} for b in blogs]
+        data = []
+        for b in trending_blogs:
+            data.append({"blog": b, "reason": "Trending on the platform", "recommendation_type": "trending"})
+        for b in new_blogs:
+            data.append({"blog": b, "reason": "Freshly published", "recommendation_type": "new"})
 
-    # Serialize the data
+    # Serialize with context so 'is_liked' works
     serializer = BlogRecommendationSerializer(data, many=True, context={'request': request})
     return Response(serializer.data)

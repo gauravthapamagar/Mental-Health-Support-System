@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -30,7 +31,43 @@ class AppointmentPagination(PageNumberPagination):
 
 
 # ========== PATIENT VIEWS ==========
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPatient])
+def my_appointments(request):
+    """
+    Get all appointments for logged-in patient
+    """
+    # Use select_related to prevent N+1 queries for therapist and their profile
+    appointments = Appointment.objects.filter(
+        patient=request.user
+    ).select_related('therapist', 'therapist__therapist_profile').order_by('-appointment_date', '-start_time')
+    
+    # Filter by status (e.g. ?status=pending)
+    status_filter = request.query_params.get('status')
+    if status_filter:
+        appointments = appointments.filter(status=status_filter)
+    
+    # Filter by upcoming/past
+    filter_type = request.query_params.get('filter')
+    today = timezone.now().date()
 
+    if filter_type == 'upcoming':
+        appointments = appointments.filter(
+            appointment_date__gte=today,
+            status__in=['pending', 'confirmed']
+        )
+    elif filter_type == 'past':
+        # Use Q objects for the OR condition to prevent 500 error
+        appointments = appointments.filter(
+            Q(appointment_date__lt=today) | 
+            Q(status__in=['completed', 'cancelled'])
+        )
+    
+    paginator = AppointmentPagination()
+    paginated = paginator.paginate_queryset(appointments, request)
+    serializer = AppointmentListSerializer(paginated, many=True)
+    
+    return paginator.get_paginated_response(serializer.data)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def list_available_therapists(request):

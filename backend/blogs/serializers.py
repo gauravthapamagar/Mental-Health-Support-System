@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import BlogPost, BlogLike, BlogComment, BlogView
 from accounts.models import User
+import json
 
 
 class BlogAuthorSerializer(serializers.ModelSerializer):
@@ -82,29 +83,45 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
 
 
 class BlogPostCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating blog posts"""
-    
+    # CHANGE: Use ListField to handle multiple 'tags' keys from FormData
+    tags = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        default=list
+    )
+    cover_image = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = BlogPost
         fields = [
             'title', 'content', 'excerpt', 'category', 'tags',
             'cover_image', 'meta_description'
         ]
-    
-    def validate_title(self, value):
-        if len(value) < 10:
-            raise serializers.ValidationError("Title must be at least 10 characters long")
-        return value
-    
-    def validate_content(self, value):
-        if len(value) < 100:
-            raise serializers.ValidationError("Content must be at least 100 characters long")
-        return value
-    
-    def validate_excerpt(self, value):
-        if len(value) < 50:
-            raise serializers.ValidationError("Excerpt must be at least 50 characters long")
-        return value
+
+    def to_internal_value(self, data):
+        """
+        Extracts multiple values for 'tags' from the QueryDict.
+        """
+        # FormData sends arrays as multiple entries for the same key.
+        # .getlist('tags') retrieves all of them as a Python list.
+        if hasattr(data, 'getlist'):
+            tags = data.getlist('tags')
+            # If the frontend accidentally sent a stringified JSON array, 
+            # or a single comma-separated string, handle it here:
+            if len(tags) == 1 and (tags[0].startswith('[') or ',' in tags[0]):
+                try:
+                    import json
+                    parsed = json.loads(tags[0])
+                    tags = parsed if isinstance(parsed, list) else [t.strip() for t in tags[0].split(',')]
+                except:
+                    tags = [t.strip() for t in tags[0].split(',') if t.strip()]
+            
+            # Create a mutable copy to update the value
+            internal_data = data.copy()
+            internal_data.setlist('tags', [t for t in tags if t])
+            return super().to_internal_value(internal_data)
+            
+        return super().to_internal_value(data)
 
 
 class BlogPostUpdateSerializer(serializers.ModelSerializer):
@@ -167,9 +184,7 @@ class BlogStatsSerializer(serializers.Serializer):
     
     
 class BlogRecommendationSerializer(serializers.Serializer):
-    """
-    Wraps a BlogPost with a reason for the recommendation
-    """
     blog = BlogPostListSerializer()
-    reason = serializers.CharField() # e.g., "Based on your interest in Anxiety"
+    reason = serializers.CharField()
+    # Ensure this matches the key name in the View (recommendation_type)
     recommendation_type = serializers.CharField()

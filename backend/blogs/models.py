@@ -43,7 +43,7 @@ class BlogPost(models.Model):
     tags = models.JSONField(default=list, blank=True, help_text="List of tags")
     
     # Cover image (URL or path)
-    cover_image = models.URLField(blank=True, null=True)
+    cover_image = models.ImageField(upload_to='blog_covers/', blank=True, null=True)
     
     # Status and approval
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')

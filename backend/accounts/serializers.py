@@ -142,7 +142,10 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         model = TherapistProfile
         fields = [
             'specialization_tags', 'languages_spoken', 'consultation_mode',
-            'consultation_fees', 'availability_slots', 'bio','profile_picture',
+            'consultation_fees', 'availability_slots', 'bio','profile_picture','profile_picture',
+            'phone_number', 
+            'license_id',    
+            'years_of_experience'
         ]
 
     def validate_specialization_tags(self, value):
