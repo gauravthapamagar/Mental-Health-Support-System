@@ -1,3 +1,4 @@
+"use client";
 import { Video, Phone, MapPin, Star, Clock } from "lucide-react";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ interface TherapistCardProps {
   bio?: string;
   rating?: number;
   reviewCount?: number;
+  onBookClick: () => void;
 }
 
 export default function TherapistCard({
@@ -29,6 +31,7 @@ export default function TherapistCard({
   bio,
   rating = 4.9,
   reviewCount = 127,
+  onBookClick,
 }: TherapistCardProps) {
   const getAvailabilityColor = () => {
     switch (availability) {
@@ -147,12 +150,15 @@ export default function TherapistCard({
             View Profile
           </Link>
 
-          <Link
-            href={`/patient/appointments/book?therapist=${id}`}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onBookClick(); // Calls the function to open the Modal
+            }}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-medium whitespace-nowrap"
           >
             Book Appointment
-          </Link>
+          </button>
         </div>
       </div>
     </div>

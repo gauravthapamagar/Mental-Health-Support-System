@@ -8,8 +8,11 @@ import { bookingAPI } from "@/lib/api";
 export default function TherapistsPage() {
   const [therapists, setTherapists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTherapist, setSelectedTherapist] = useState<{id: number, name: string} | null>(null);
-  
+  const [selectedTherapist, setSelectedTherapist] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
   // Filter States
   const [specialization, setSpecialization] = useState("");
   const [mode, setMode] = useState("");
@@ -17,9 +20,10 @@ export default function TherapistsPage() {
   const fetchTherapists = async () => {
     setLoading(true);
     try {
-      const data = await bookingAPI.listTherapists({ 
-        specialization: specialization !== "All Specialties" ? specialization : "",
-        mode: mode !== "All Formats" ? mode : "" 
+      const data = await bookingAPI.listTherapists({
+        specialization:
+          specialization !== "All Specialties" ? specialization : "",
+        mode: mode !== "All Formats" ? mode : "",
       });
       setTherapists(data.results || []);
     } catch (error) {
@@ -42,7 +46,7 @@ export default function TherapistsPage() {
 
       {/* Filters */}
       <div className="mb-6 flex gap-4">
-        <select 
+        <select
           onChange={(e) => setSpecialization(e.target.value)}
           className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         >
@@ -52,7 +56,7 @@ export default function TherapistsPage() {
           <option value="cbt">CBT</option>
         </select>
 
-        <select 
+        <select
           onChange={(e) => setMode(e.target.value)}
           className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         >
@@ -65,7 +69,9 @@ export default function TherapistsPage() {
       {/* List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" size={40} /></div>
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-blue-600" size={40} />
+          </div>
         ) : therapists.length > 0 ? (
           therapists.map((t: any) => (
             <TherapistCard
@@ -78,11 +84,15 @@ export default function TherapistsPage() {
               availability={t.is_verified ? "Verified" : "Available"}
               formats={[t.consultation_mode]}
               // We pass a function to open the modal
-              onBookClick={() => setSelectedTherapist({ id: t.id, name: t.full_name })}
+              onBookClick={() =>
+                setSelectedTherapist({ id: t.id, name: t.full_name })
+              }
             />
           ))
         ) : (
-          <p className="text-center py-20 text-gray-500">No therapists found matching your criteria.</p>
+          <p className="text-center py-20 text-gray-500">
+            No therapists found matching your criteria.
+          </p>
         )}
       </div>
 

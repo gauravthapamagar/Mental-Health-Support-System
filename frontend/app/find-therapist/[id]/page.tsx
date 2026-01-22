@@ -23,7 +23,7 @@ export default function TherapistProfilePage() {
       try {
         setLoading(true);
         const response = await fetch(
-          `http://127.0.0.1:8000/api/public/therapists/${id}/`
+          `http://127.0.0.1:8000/api/public/therapists/${id}/`,
         );
         const data = await response.json();
         setTherapist(data);
@@ -144,7 +144,7 @@ export default function TherapistProfilePage() {
                       >
                         {tag}
                       </span>
-                    )
+                    ),
                   )}
                 </div>
               </section>
@@ -176,7 +176,7 @@ export default function TherapistProfilePage() {
                             {times.length > 0 ? times[0] : "Closed"}
                           </p>
                         </div>
-                      )
+                      ),
                     )}
                 </div>
               </section>

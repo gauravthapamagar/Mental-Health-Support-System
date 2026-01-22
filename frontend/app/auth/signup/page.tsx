@@ -117,7 +117,7 @@ export default function SignupPage() {
     try {
       await register(role, payload);
       router.push(
-        role === "therapist" ? "/therapist/dashboard" : "/patient/dashboard"
+        role === "therapist" ? "/therapist/dashboard" : "/patient/dashboard",
       );
     } catch (err: any) {
       const data = err.response?.data;
@@ -162,8 +162,20 @@ export default function SignupPage() {
           <div className="max-w-md w-full pb-12">
             <header className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      d="M12 2v20M2 12h20"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
                 <span className="text-xl font-bold text-slate-900">
                   CarePair
@@ -410,8 +422,20 @@ export default function SignupPage() {
           <div className="max-w-xl w-full space-y-6">
             <div className="bg-white rounded-3xl p-8 shadow-2xl shadow-slate-200/50 border border-slate-100">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      d="M12 2v20M2 12h20"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">

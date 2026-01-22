@@ -1,12 +1,35 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/authcontext"; // Adjust this path if your file name is different
 import StatsGrid from "@/components/patient/dashboard/StatsGrid";
 import UpcomingSessions from "@/components/patient/dashboard/UpcomingSessions";
 import CarePlan from "@/components/patient/dashboard/CarePlan";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const [greeting, setGreeting] = useState("Good morning");
+
+  // Get the first name from the full_name string
+  const firstName = user?.full_name?.split(" ")[0] || "User";
+
+  useEffect(() => {
+    const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning";
+      if (hour < 18) return "Good afternoon";
+      return "Good evening";
+    };
+
+    setGreeting(getGreeting());
+  }, []);
+
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Good morning, Sugam</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          {greeting}, {firstName}
+        </h1>
         <p className="text-gray-600">
           Here is what is happening with your health today.
         </p>

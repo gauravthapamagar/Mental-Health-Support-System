@@ -77,7 +77,7 @@ const TherapistsSection = () => {
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px" }
+      { threshold: 0.1, rootMargin: "0px" },
     );
 
     cardRefs.current.forEach((card) => {
@@ -173,7 +173,7 @@ const TherapistsSection = () => {
                       <li
                         key={i}
                         className={`text-xs font-medium px-3 py-1 rounded-full border ${getTagStyle(
-                          i
+                          i,
                         )}`}
                       >
                         {specialty}

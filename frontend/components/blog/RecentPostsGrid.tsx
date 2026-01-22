@@ -1,4 +1,5 @@
-import { BlogPost } from "@/lib/blog";
+import Link from "next/link";
+import { BlogPost } from "@/lib/types/blog";
 import { CheckCircle2 } from "lucide-react";
 
 export default function RecentPostsGrid({ posts }: { posts: BlogPost[] }) {
@@ -6,16 +7,14 @@ export default function RecentPostsGrid({ posts }: { posts: BlogPost[] }) {
     <div className="mt-12">
       <div className="flex justify-between items-center mb-8">
         <h3 className="text-2xl font-bold text-gray-900">Recent Posts</h3>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-          All Posts
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {posts.map((post) => (
-          <div
+          <Link
             key={post.id}
-            className="group cursor-pointer flex flex-col h-full"
+            href={`/blog/${post.slug}`}
+            className="group flex flex-col h-full cursor-pointer"
           >
             <div className="rounded-xl overflow-hidden h-60 mb-4 relative">
               <img
@@ -33,15 +32,15 @@ export default function RecentPostsGrid({ posts }: { posts: BlogPost[] }) {
               </p>
 
               <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between font-medium">
-                {post.isApproved && (
+                {post.is_verified && (
                   <div className="flex items-center text-xs text-gray-500">
                     <CheckCircle2 className="w-3 h-3 mr-1 text-white fill-green-500" />
-                    <span>Approved by {post.approverName}</span>
+                    <span>Verified Post</span>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

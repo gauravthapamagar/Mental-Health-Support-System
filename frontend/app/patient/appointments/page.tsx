@@ -1,131 +1,109 @@
-// import AppointmentCard from "@/components/patient/appointments/AppointmentCard";
-// import { Calendar, Plus } from "lucide-react";
-// import Link from "next/link";
-
-// export default function AppointmentsPage() {
-//   return (
-//     <div>
-//       <div className="flex justify-between items-center mb-8">
-//         <div>
-//           <h1 className="text-3xl font-bold mb-2">Appointments</h1>
-//           <p className="text-gray-600">Manage your therapy sessions</p>
-//         </div>
-//         <Link
-//           href="/patient/therapists"
-//           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-//         >
-//           <Plus size={20} />
-//           Book New Appointment
-//         </Link>
-//       </div>
-
-//       {/* Tabs */}
-//       <div className="flex gap-4 mb-6 border-b border-gray-200">
-//         <button className="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
-//           Upcoming
-//         </button>
-//         <button className="px-4 py-2 font-medium text-gray-600 hover:text-gray-900">
-//           Past
-//         </button>
-//         <button className="px-4 py-2 font-medium text-gray-600 hover:text-gray-900">
-//           Cancelled
-//         </button>
-//       </div>
-
-//       {/* Appointments List */}
-//       <div className="space-y-4">
-//         <AppointmentCard
-//           id="1"
-//           therapist="Dr. Sarah Johnson"
-//           title="Clinical Psychologist"
-//           date="Dec 30, 2025"
-//           time="02:00 PM"
-//           format="Video Call"
-//           matchScore={98}
-//           sentiment="Anxious"
-//         />
-
-//         <AppointmentCard
-//           id="2"
-//           therapist="Counsellor David Chen"
-//           title="CBT Specialist"
-//           date="Jan 05, 2026"
-//           time="11:30 AM"
-//           format="In-Person"
-//           matchScore={85}
-//           sentiment="Stable"
-//         />
-//       </div>
-
-//       {/* Empty State (if no appointments) */}
-//       {/* <div className="text-center py-16">
-//         <Calendar className="mx-auto mb-4 text-gray-400" size={64} />
-//         <h3 className="text-xl font-bold mb-2">No upcoming appointments</h3>
-//         <p className="text-gray-600 mb-6">Book your first session with a therapist</p>
-//         <Link
-//           href="/patient/therapists"
-//           className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-//         >
-//           <Plus size={20} />
-//           Find a Therapist
-//         </Link>
-//       </div> */}
-//     </div>
-//   );
-// }
-
-
-
-
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { bookingAPI } from "@/lib/api";
 import AppointmentCard from "@/components/patient/appointments/AppointmentCard";
-// ... icons ...
+import { Calendar, Plus, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [loading, setLoading] = useState(true);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await bookingAPI.getMyAppointments(activeTab);
-      // Django pagination returns { results: [...] }
       setAppointments(data.results || []);
     } catch (error) {
       console.error("Failed to fetch", error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchAppointments();
-  }, [activeTab]);
+  }, [fetchAppointments]);
 
   return (
-    <div>
-      {/* ... header and tabs ... */}
-      
-      <div className="space-y-4">
-        {appointments.map((app: any) => (
-          <div key={app.id} className="relative">
-            {app.status === 'pending' && (
-              <span className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                Pending Confirmation
-              </span>
-            )}
-            <AppointmentCard
-              id={app.id}
-              therapist={app.therapist.full_name}
-              title={app.therapist.profession}
-              date={app.appointment_date}
-              time={app.start_time}
-              format={app.appointment_type_label}
-              matchScore={90} // Hardcoded or from backend
-              sentiment="Stable"
-            />
-          </div>
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            My Appointments
+          </h1>
+          <p className="text-gray-600">
+            View and manage your scheduled therapy
+          </p>
+        </div>
+        <Link
+          href="/patient/therapists"
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm font-semibold"
+        >
+          <Plus size={20} />
+          Book New Appointment
+        </Link>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-8 p-1 bg-gray-100 rounded-xl w-fit">
+        {["upcoming", "past", "cancelled"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2 rounded-lg font-medium capitalize transition-all ${
+              activeTab === tab
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {tab}
+          </button>
         ))}
       </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
+          <p className="text-gray-500 animate-pulse">Loading Appointments...</p>
+        </div>
+      ) : appointments.length > 0 ? (
+        <div className="grid gap-4">
+          {appointments.map((app: any) => (
+            <AppointmentCard
+              key={app.id}
+              id={app.id}
+              therapist={app.therapist?.full_name || "Specialist"}
+              title={app.therapist?.profession || "Mental Health Professional"}
+              date={app.appointment_date}
+              time={app.start_time}
+              format={app.session_mode === "online" ? "video" : "in-person"}
+              matchScore={95}
+              status={activeTab as any}
+              onRefresh={fetchAppointments} // Pass refresh trigger
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+          <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="text-gray-400" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            No {activeTab} appointments
+          </h3>
+          <p className="text-gray-500 mb-8 max-w-xs mx-auto">
+            You don't have any appointments in this category at the moment.
+          </p>
+          <Link
+            href="/patient/therapists"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            Browse Therapists
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@ interface AuthContextType {
   loading: boolean;
   register: (
     role: UserRole,
-    data: PatientRegistrationData | TherapistRegistrationData
+    data: PatientRegistrationData | TherapistRegistrationData,
   ) => Promise<any>;
   login: (data: LoginData) => Promise<void>;
   logout: () => void;
@@ -65,18 +65,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // ✅ Explicit role-based registration
   const register = async (
     role: UserRole,
-    data: PatientRegistrationData | TherapistRegistrationData
+    data: PatientRegistrationData | TherapistRegistrationData,
   ) => {
     try {
       let response;
 
       if (role === "patient") {
         response = await authAPI.registerPatient(
-          data as PatientRegistrationData
+          data as PatientRegistrationData,
         );
       } else {
         response = await authAPI.registerTherapist(
-          data as TherapistRegistrationData
+          data as TherapistRegistrationData,
         );
       }
 
@@ -95,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Login
+  // Login
   const login = async (data: LoginData) => {
     try {
       const response = await authAPI.login(data);
@@ -103,7 +104,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem("refresh_token", response.tokens.refresh);
 
       setUser(response.user);
-      router.push(response.redirect_url);
+
+      // ✅ Redirect to landing page for patients, dashboard for therapists
+      if (response.user.role === "admin") {
+        router.push("/admin");
+      } else if (response.user.role === "patient") {
+        router.push("/patient");
+      } else if (response.user.role === "therapist") {
+        router.push("/therapist/dashboard");
+      } else {
+        // Fallback: use backend provided URL or home
+        router.push(response.redirect_url || "/");
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       throw error;

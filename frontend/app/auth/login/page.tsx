@@ -66,8 +66,20 @@ export default function LoginPage() {
               className="flex items-center gap-2 mb-8 cursor-pointer group"
               onClick={() => router.push("/")}
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
-                <Heart className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                <svg
+                  className="w-6 h-6 text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path
+                    d="M12 2v20M2 12h20"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
               <span className="text-xl font-bold text-slate-900">CarePair</span>
             </div>
@@ -137,12 +149,7 @@ export default function LoginPage() {
           </div>
 
           <footer className="mt-10 pt-8 border-t border-slate-100">
-            <div className="flex items-center gap-3 text-slate-400">
-              <ShieldCheck className="w-5 h-5" />
-              <p className="text-[10px] uppercase tracking-widest font-bold">
-                Secure Enterprise-grade Encryption
-              </p>
-            </div>
+            <div className="flex items-center gap-3 text-slate-400"></div>
           </footer>
         </div>
 

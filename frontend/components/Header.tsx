@@ -81,9 +81,11 @@ export default function Header() {
       }
 
       if (userRole === "therapist") {
+        const therapistBase = base.filter((link) => link.label !== "Blog");
         return [
-          ...base,
-          { label: "Appointments", href: "/appointments" },
+          ...therapistBase,
+          { label: "My Blogs", href: "/therapist/my-blogs" },
+          { label: "Appointments", href: "/therapist/appointments" },
           { label: "Support", href: "/support" },
         ];
       }
