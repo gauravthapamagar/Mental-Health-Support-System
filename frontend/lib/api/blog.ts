@@ -1,12 +1,14 @@
 // lib/api/blog.ts
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (isFormData: boolean = false) => {
   if (typeof window === "undefined")
     return { "Content-Type": "application/json" };
   const token = localStorage.getItem("access_token");
+
   return {
-    "Content-Type": "application/json",
+    // FIX: If it's FormData, do NOT set Content-Type. Browser sets it automatically.
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
@@ -17,7 +19,7 @@ export const blogAPI = {
     // Ensure params is an object and remove undefined values
     const cleanParams = params
       ? Object.fromEntries(
-          Object.entries(params).filter(([_, v]) => v !== undefined)
+          Object.entries(params).filter(([_, v]) => v !== undefined),
         )
       : {};
 
@@ -49,7 +51,7 @@ export const blogAPI = {
     if (!response.ok) throw new Error("Failed to fetch blog");
     return response.json();
   },
-
+  getBlogDetail: (slug: string) => blogAPI.getBlogBySlug(slug),
   getCategories: async () => {
     // Matches: path('categories/list/', views.blog_categories)
     const response = await fetch(`${API_BASE}/blog/categories/list/`, {
@@ -60,10 +62,14 @@ export const blogAPI = {
 
   // ============= THERAPIST ENDPOINTS =============
   createBlog: async (blogData: any) => {
+    // FIX: Detect if we are sending FormData
+    const isFormData = blogData instanceof FormData;
+
     const response = await fetch(`${API_BASE}/blog/create/`, {
       method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(blogData),
+      headers: getAuthHeaders(isFormData),
+      // FIX: Do NOT stringify FormData. Send it as is.
+      body: isFormData ? blogData : JSON.stringify(blogData),
     });
 
     if (!response.ok) {
@@ -92,10 +98,11 @@ export const blogAPI = {
 
   updateBlog: async (slug: string, updates: any) => {
     // Matches: path('update/<slug:slug>/', views.update_blog_post)
+    const isFormData = updates instanceof FormData;
     const response = await fetch(`${API_BASE}/blog/update/${slug}/`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(updates),
+      headers: getAuthHeaders(isFormData),
+      body: isFormData ? updates : JSON.stringify(updates),
     });
     if (!response.ok) {
       const error = await response.json();
@@ -133,7 +140,7 @@ export const blogAPI = {
   reviewBlog: async (
     blogId: number,
     action: "approve" | "reject",
-    reason?: string
+    reason?: string,
   ) => {
     // Matches: path('approve/<int:blog_id>/', views.approve_reject_blog)
     const response = await fetch(`${API_BASE}/blog/approve/${blogId}/`, {
@@ -141,6 +148,46 @@ export const blogAPI = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ action, rejection_reason: reason }),
     });
+    return response.json();
+  },
+  toggleLike: async (slug: string) => {
+    // UPDATED: 'like' comes before the slug to match your Django urls.py
+    const response = await fetch(`${API_BASE}/blog/like/${slug}/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("401: Unauthorized");
+      throw new Error(`Failed to toggle like: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  addComment: async (slug: string, content: string) => {
+    // UPDATED: 'comment' comes before the slug to match your Django urls.py
+    const response = await fetch(`${API_BASE}/blog/comment/${slug}/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("401: Unauthorized");
+      throw new Error(`Failed to add comment: ${response.status}`);
+    }
+    return response.json();
+  },
+  // Add this inside the blogAPI object in lib/api/blog.ts
+  getRecommendations: async () => {
+    const response = await fetch(`${API_BASE}/blog/recommendations/`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      // If user is new or unauthorized, return empty array instead of crashing
+      return [];
+    }
     return response.json();
   },
 };

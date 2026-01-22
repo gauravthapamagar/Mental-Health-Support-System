@@ -1,16 +1,21 @@
-import { BlogPost } from "@/lib/blog";
-import ApprovalBadge from "./ApprovalBadge";
+// components/blog/HeroPost.tsx
+import Link from "next/link";
+import { BlogPost } from "@/lib/types/blog";
 import { CheckCircle2 } from "lucide-react";
 
 export default function HeroPost({ post }: { post: BlogPost }) {
   return (
-    <div className="relative h-[460px] rounded-xl overflow-hidden group cursor-pointer">
+    <Link
+      href={`/blog/${post.slug}`}
+      className="relative block h-[460px] rounded-xl overflow-hidden group cursor-pointer"
+    >
       {/* Background Image */}
       <img
         src={post.cover_image}
         alt={post.title}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
+
       {/* Dark Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
 
@@ -21,33 +26,43 @@ export default function HeroPost({ post }: { post: BlogPost }) {
             {post.category}
           </span>
         )}
+
         <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
           {post.title}
         </h2>
 
         <div className="flex flex-wrap items-center text-sm md:text-base gap-4 opacity-90">
           <div className="flex items-center">
-            {post.author.avatar && (
+            {post.author?.avatar && (
               <img
                 src={post.author.avatar}
                 alt={post.author.full_name}
                 className="w-6 h-6 rounded-full mr-2 border border-white/30"
               />
             )}
-            <span>Written by {post.author.full_name}</span>
+            <span>Written by {post.author?.full_name || "Unknown"}</span>
           </div>
+
           <span>•</span>
-          <time>Published on {post.published_at}</time>
-          {post.isApproved && (
+
+          <time>
+            {post.published_at
+              ? new Date(post.published_at).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "Recently"}
+          </time>
+
+          {(post.is_verified || post.isApproved) && (
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-1 text-white fill-green-500" />
-              <span className="text-sm">
-                Approved by {post.approved_by_name}
-              </span>
+              <span className="text-sm">Verified Post</span>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

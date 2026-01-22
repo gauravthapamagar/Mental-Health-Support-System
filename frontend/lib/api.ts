@@ -55,7 +55,7 @@ export interface AuthResponse {
 export const authAPI = {
   // Register Patient
   registerPatient: async (
-    data: PatientRegistrationData
+    data: PatientRegistrationData,
   ): Promise<AuthResponse> => {
     const response = await axiosInstance.post("/auth/register/patient/", data);
     return response.data;
@@ -63,11 +63,11 @@ export const authAPI = {
 
   // Register Therapist
   registerTherapist: async (
-    data: TherapistRegistrationData
+    data: TherapistRegistrationData,
   ): Promise<AuthResponse> => {
     const response = await axiosInstance.post(
       "/auth/register/therapist/",
-      data
+      data,
     );
     return response.data;
   },
@@ -113,7 +113,7 @@ export const patientAPI = {
   }) => {
     const response = await axiosInstance.patch(
       "/patient/profile/update/",
-      data
+      data,
     );
     return response.data;
   },
@@ -129,7 +129,7 @@ export const therapistAPI = {
   completeProfile: async (data: any) => {
     const response = await axiosInstance.post(
       "/therapist/profile/complete/",
-      data
+      data,
     );
     return response.data;
   },
@@ -138,7 +138,7 @@ export const therapistAPI = {
   updateProfile: async (data: any) => {
     const response = await axiosInstance.put(
       "/therapist/profile/update/",
-      data
+      data,
     );
     return response.data;
   },
@@ -151,32 +151,34 @@ export interface RecommendedBlog {
     category: string;
     excerpt: string;
     cover_image: string | null;
-    author_name: string;
-    published_at: string;
+    reading_time: number; // Added to match your model
   };
   reason: string;
-  type: string;
+  recommendation_type: string; // Matched to corrected backend
 }
+// lib/api.ts -> Update the blogAPI object
 export const blogAPI = {
-  // Get all published blogs with optional filters
   getBlogs: async (params?: any) => {
     const response = await axiosInstance.get("/blog/", { params });
     return response.data;
   },
 
-  // Get recommendations for the logged-in user
   getRecommendations: async (): Promise<RecommendedBlog[]> => {
     const response = await axiosInstance.get("/blog/recommendations/");
     return response.data;
   },
 
-  // Get a single blog detail
+  // Alias both names so your components don't break
   getBlogDetail: async (slug: string) => {
     const response = await axiosInstance.get(`/blog/${slug}/`);
     return response.data;
   },
 
-  // Like/Unlike a blog
+  getBlogBySlug: async (slug: string) => {
+    const response = await axiosInstance.get(`/blog/${slug}/`);
+    return response.data;
+  },
+
   toggleLike: async (slug: string) => {
     const response = await axiosInstance.post(`/blog/like/${slug}/`);
     return response.data;
@@ -184,32 +186,62 @@ export const blogAPI = {
 };
 export const bookingAPI = {
   // Get therapists for the booking list
-  listTherapists: async (params?: { specialization?: string; mode?: string; page?: number }) => {
-    const response = await axiosInstance.get("/booking/therapists/", { params });
+  listTherapists: async (params?: {
+    specialization?: string;
+    mode?: string;
+    page?: number;
+  }) => {
+    const response = await axiosInstance.get("/booking/therapists/", {
+      params,
+    });
     return response.data; // Returns { results: [], count: ... }
   },
 
   // Get slots for a specific therapist
   getAvailableSlots: async (therapistId: number) => {
-    const response = await axiosInstance.get(`/booking/therapists/${therapistId}/slots/`);
-    return response.data;
+    const response = await axiosInstance.get(
+      `/booking/therapists/${therapistId}/slots/`,
+    );
+    return response.data; // This returns the { therapist_id, therapist_name, slots } object
   },
 
   // Create the appointment
   createAppointment: async (data: any) => {
-    const response = await axiosInstance.post("/booking/appointments/create/", data);
+    const response = await axiosInstance.post(
+      "/booking/appointments/create/",
+      data,
+    );
+    return response.data;
+  },
+  cancelAppointment: async (id: number, reason: string) => {
+    const response = await axiosInstance.post(
+      `/booking/appointments/${id}/cancel/`,
+      {
+        cancellation_reason: reason,
+      },
+    );
     return response.data;
   },
 
   // Fetch appointments for the current user
   getMyAppointments: async (filterType: string) => {
-    // filterType will be 'upcoming', 'past', or 'cancelled'
+    // Ensure we send 'upcoming' or 'past' as the 'filter' parameter
     const response = await axiosInstance.get("/booking/appointments/my/", {
-      params: { filter: filterType }
+      params: { filter: filterType },
     });
-    return response.data; // This returns the paginated object
-  }
+    // This returns { count, next, previous, results: [...] }
+    return response.data;
+  },
+  rescheduleAppointment: async (
+    id: number,
+    data: { new_date: string; new_start_time: string; reason?: string },
+  ) => {
+    // Assuming you use a general update or specialized reschedule endpoint
+    const response = await axiosInstance.post(
+      `/booking/appointments/${id}/reschedule/`,
+      data,
+    );
+    return response.data;
+  },
 };
 export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI };
-
-
