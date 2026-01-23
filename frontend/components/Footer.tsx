@@ -74,14 +74,7 @@ const Footer = () => {
                   Home
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/how-it-works"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  How it Works
-                </Link>
-              </li>
+
               <li>
                 <Link
                   href="/find-therapist"
