@@ -125,7 +125,7 @@ export const therapistAPI = {
     return response.data;
   },
   getDashboardStats: async () => {
-    const response = await axiosInstance.get("/booking/stats/"); // Adjust path to your URL
+    const response = await axiosInstance.get("/booking/stats/");
     return response.data;
   },
 
@@ -138,11 +138,18 @@ export const therapistAPI = {
     return response.data;
   },
 
-  // Update Therapist Profile
-  updateProfile: async (data: any) => {
+  // Update Therapist Profile - Handle both JSON and FormData
+  updateProfile: async (data: FormData | any) => {
+    const isFormData = data instanceof FormData;
+    
     const response = await axiosInstance.put(
       "/therapist/profile/update/",
       data,
+      isFormData ? {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      } : {}
     );
     return response.data;
   },
