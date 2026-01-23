@@ -67,7 +67,6 @@ export default function Header() {
   const getMiddleLinks = () => {
     const base = [
       { label: "Home", href: homeHref },
-      { label: "How it works", href: "/how-it-works" },
       { label: "Blog", href: "/blog" },
     ];
 
@@ -85,6 +84,7 @@ export default function Header() {
         return [
           ...therapistBase,
           { label: "My Blogs", href: "/therapist/my-blogs" },
+          { label: "Blogs", href: "/blog" },
           { label: "Appointments", href: "/therapist/appointments" },
           { label: "Support", href: "/support" },
         ];

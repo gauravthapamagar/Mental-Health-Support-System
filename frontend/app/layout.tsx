@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import MentalHealthChatbot from "@/components/MentalHealthChatbot";
 import "./globals.css";
 
 // Fonts
@@ -47,7 +48,10 @@ export default function RootLayout({
           antialiased
         `}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <MentalHealthChatbot />
+        </AuthProvider>
       </body>
     </html>
   );
