@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import React from "react";
+
 import {
   User,
   Lock,
@@ -17,6 +19,8 @@ import {
   Globe,
   Clock,
   MapPin,
+  FileText,
+  Download,
 } from "lucide-react";
 import { therapistAPI } from "@/lib/api";
 
@@ -27,6 +31,10 @@ export default function TherapistProfile() {
   const [error, setError] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [existingCertificate, setExistingCertificate] = useState<string | null>(
+    null,
+  );
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -75,6 +83,11 @@ export default function TherapistProfile() {
         if (data.profile_picture) {
           setPreviewUrl(data.profile_picture);
         }
+
+        // Set existing certificate if it exists from backend
+        if (data.certificates) {
+          setExistingCertificate(data.certificates);
+        }
       } catch (err: any) {
         setError("Failed to load profile details.");
       } finally {
@@ -89,6 +102,13 @@ export default function TherapistProfile() {
       setProfilePicture(file);
       // Local preview for immediate feedback
       setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCertificateFile(file);
     }
   };
 
@@ -107,18 +127,17 @@ export default function TherapistProfile() {
     try {
       const dataToSend = new FormData();
 
-      // 1. Handle Profile Picture - ONLY append if it's a NEW File object
+      // Profile picture
       if (profilePicture instanceof File) {
-        console.log(
-          "✅ Appending new profile picture file:",
-          profilePicture.name,
-        );
         dataToSend.append("profile_picture", profilePicture);
-      } else {
-        console.log("ℹ️ No new profile picture to upload");
       }
 
-      // 2. Append Standard Fields
+      // Certificate
+      if (certificateFile instanceof File) {
+        dataToSend.append("certificates", certificateFile);
+      }
+
+      // Standard fields
       dataToSend.append("phone_number", formData.phone_number || "");
       dataToSend.append("license_id", formData.license_id || "");
       dataToSend.append(
@@ -132,7 +151,7 @@ export default function TherapistProfile() {
       );
       dataToSend.append("consultation_mode", formData.consultation_mode || "");
 
-      // 3. JSON stringify array fields
+      // Array fields
       dataToSend.append(
         "specialization_tags",
         JSON.stringify(formData.specialization_tags || []),
@@ -142,40 +161,20 @@ export default function TherapistProfile() {
         JSON.stringify(formData.languages_spoken || []),
       );
 
-      // 4. Use the 'schedule' state directly
+      // Schedule
       dataToSend.append("availability_slots", JSON.stringify(schedule || {}));
 
-      // Debug: Log all FormData entries
-      console.log("📦 FormData contents:");
-      for (let pair of dataToSend.entries()) {
-        console.log(`  ${pair[0]}:`, pair[1]);
-      }
-
-      // 5. API Call
-      console.log("🚀 Sending request...");
+      // API call
       const response = await therapistAPI.updateProfile(dataToSend);
-      console.log("✅ Response received:", response);
-
       alert("Profile updated successfully!");
       window.location.reload();
     } catch (err: any) {
-      console.error("❌ Full error object:", err);
-      console.error("❌ Error response:", err.response);
-      console.error("❌ Error response data:", err.response?.data);
-      console.error("❌ Error response status:", err.response?.status);
-      console.error("❌ Error message:", err.message);
-
-      const errorData = err.response?.data;
-
-      setError(
-        errorData && Object.keys(errorData).length > 0
-          ? JSON.stringify(errorData, null, 2)
-          : err.message || "Update failed. Please check your data.",
-      );
+      setError(err.message || "Update failed. Please check your data.");
     } finally {
       setSaving(false);
     }
   };
+
   const addItem = (type: "tags" | "langs") => {
     if (type === "tags" && newTag) {
       setFormData((prev) => ({
@@ -273,7 +272,7 @@ export default function TherapistProfile() {
                 <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold relative mb-4 overflow-hidden border-2 border-white shadow-sm">
                   {previewUrl ? (
                     <img
-                      src={previewUrl}
+                      src={previewUrl || "/placeholder.svg"}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
@@ -316,6 +315,11 @@ export default function TherapistProfile() {
                   id: "expertise",
                   label: "Expertise",
                   icon: <Globe className="w-4 h-4" />,
+                },
+                {
+                  id: "credentials",
+                  label: "Credentials",
+                  icon: <FileText className="w-4 h-4" />,
                 },
                 {
                   id: "availability",
@@ -611,6 +615,97 @@ export default function TherapistProfile() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "credentials" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Professional Credentials
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Upload your license, degree, and other professional documents
+                </p>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    Upload Certificate/License
+                  </label>
+                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
+                    {certificateFile ? (
+                      <div className="flex items-center justify-center gap-3 text-slate-700">
+                        <FileText className="w-6 h-6 text-blue-600" />
+                        <div className="text-left">
+                          <p className="font-semibold">
+                            {certificateFile.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {(certificateFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                    ) : existingCertificate ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-center gap-3 text-slate-700">
+                          <FileText className="w-6 h-6 text-green-600" />
+                          <div className="text-left">
+                            <p className="font-semibold">Document uploaded</p>
+                            <p className="text-xs text-slate-500">
+                              Click to replace
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={existingCertificate}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          <Download className="w-4 h-4" />
+                          View Current Document
+                        </a>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-slate-600 font-medium mb-2">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          PDF, DOC, DOCX or image files up to 10MB
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      onChange={handleCertificateChange}
+                      id="certificate-input"
+                    />
+                    <label
+                      htmlFor="certificate-input"
+                      className="mt-4 inline-block"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document.getElementById("certificate-input")?.click()
+                        }
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm"
+                      >
+                        {certificateFile || existingCertificate
+                          ? "Replace Document"
+                          : "Choose File"}
+                      </button>
+                    </label>
+                  </div>
+
+                  {certificateFile && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      New file selected. Click Save to upload.
+                    </p>
+                  )}
                 </div>
               </div>
             )}

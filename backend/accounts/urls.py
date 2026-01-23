@@ -20,4 +20,6 @@ urlpatterns = [
     path('public/therapists/', views.PublicTherapistListView.as_view(), name='public-therapist-list'),
     path('public/therapists/<int:pk>/', views.PublicTherapistDetailView.as_view(), name='therapist-detail'),
     path('therapists/<int:therapist_id>/unverify/', views.unverify_therapist, name='unverify-therapist'),
+    
+   
 ]

@@ -92,6 +92,12 @@ class TherapistProfile(models.Model):
         null=True, 
         blank=True
     )
+    certificates = models.FileField(
+        upload_to='media/therapist_certificates/',
+        null=True,
+        blank=True,
+        help_text="Upload your license, degree, or other credentials"
+    )
     CONSULTATION_MODE_CHOICES = [
         ('online', 'Online'),
         ('offline', 'Offline'),
@@ -141,6 +147,7 @@ class TherapistProfile(models.Model):
         limit_choices_to={'role': 'admin'}
     )
     
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -149,3 +156,8 @@ class TherapistProfile(models.Model):
 
     class Meta:
         db_table = 'therapist_profiles'
+        
+        
+
+
+        
