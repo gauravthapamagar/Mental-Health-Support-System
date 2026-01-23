@@ -4,6 +4,7 @@ from .models import User, PatientProfile, TherapistProfile
 from .models import TherapistProfile
 import json
 
+
 class PatientRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, 
@@ -163,7 +164,6 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
 class TherapistProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-
     class Meta:
         model = TherapistProfile
         fields = '__all__'
@@ -171,6 +171,7 @@ class TherapistProfileSerializer(serializers.ModelSerializer):
 
 
 class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = TherapistProfile
         fields = [
@@ -183,15 +184,19 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
             'profile_picture',
             'phone_number', 
             'license_id',    
-            'years_of_experience'
+            'years_of_experience',
+            'certificates',
+            
         ]
+        
 
     def to_internal_value(self, data):
         if hasattr(data, 'dict'):
             data = data.dict()
         else:
             data = data.copy()
-
+    
+   
     # Remove profile_picture if it's a string (URL) or empty
         if 'profile_picture' in data:
             if isinstance(data['profile_picture'], str):
@@ -223,8 +228,10 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # All your original features are preserved here
+                
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        
         
         # Original completion logic
         required_fields = [
@@ -277,3 +284,5 @@ class PatientProfileUpdateSerializer(serializers.ModelSerializer):
             'emergency_contact_phone',
             'basic_health_info',
         ]
+
+

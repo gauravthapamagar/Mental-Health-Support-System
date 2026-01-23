@@ -40,5 +40,5 @@ class PatientProfileAdmin(admin.ModelAdmin):
 class TherapistProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'profession_type', 'years_of_experience', 'profile_completed', 'created_at']
     search_fields = ['user__email', 'user__full_name', 'license_id']
-    list_filter = ['profession_type', 'profile_completed', 'consultation_mode', 'created_at']
+    list_filter = ['profession_type', 'profile_completed', 'consultation_mode', 'created_at', 'certificates']
     readonly_fields = ['created_at', 'updated_at']

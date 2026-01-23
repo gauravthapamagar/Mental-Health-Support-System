@@ -20,8 +20,6 @@ from .serializers import (
     TherapistProfileCompleteSerializer,
     PatientProfileSerializer,
     PatientProfileUpdateSerializer,
-    
-    
 )
 from .permissions import IsTherapist, IsPatient
 
@@ -419,3 +417,6 @@ def list_unverified_therapists(request):
         'count': len(therapists_data),
         'therapists': therapists_data
     }, status=status.HTTP_200_OK)
+ 
+ 
+
