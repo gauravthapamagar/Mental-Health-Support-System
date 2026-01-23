@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Header from "@/components/header";
+import Header from "@/components/Header";
 import {
   MessageSquare,
   Calendar,

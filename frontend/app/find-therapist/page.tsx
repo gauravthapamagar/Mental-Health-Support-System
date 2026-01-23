@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import Header from "@/components/header";
+import Header from "@/components/Header";
 import {
   Search,
   MessageSquare,
@@ -34,7 +34,7 @@ export default function FindTherapist() {
         setLoading(true);
         // Change this URL to your actual Django server address
         const response = await fetch(
-          "http://127.0.0.1:8000/api/public/therapists/"
+          "http://127.0.0.1:8000/api/public/therapists/",
         );
         const data = await response.json();
 
@@ -66,13 +66,13 @@ export default function FindTherapist() {
     const matchesSearch =
       name.includes(searchQuery.toLowerCase()) ||
       tags.some((tag: string) =>
-        tag.toLowerCase().includes(searchQuery.toLowerCase())
+        tag.toLowerCase().includes(searchQuery.toLowerCase()),
       );
 
     if (selectedFilter === "All") return matchesSearch;
 
     const matchesFilter = tags.some(
-      (tag: string) => tag.toLowerCase() === selectedFilter.toLowerCase()
+      (tag: string) => tag.toLowerCase() === selectedFilter.toLowerCase(),
     );
     return matchesSearch && matchesFilter;
   });
