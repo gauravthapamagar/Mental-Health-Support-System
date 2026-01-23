@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
 
 DEBUG = True
@@ -26,6 +30,7 @@ INSTALLED_APPS = [
     'surveys',
     'blogs',
     'booking',
+    'chatbot',
 ]
 
 MIDDLEWARE = [
