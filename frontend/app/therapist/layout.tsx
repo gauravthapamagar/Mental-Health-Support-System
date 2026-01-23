@@ -1,9 +1,10 @@
+// app/therapist/layout.tsx - UPDATED VERSION
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Header from "@/components/Header";
-import { authAPI } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function TherapistLayout({
   children,
@@ -12,29 +13,37 @@ export default function TherapistLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated, loading } = useAuth();
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
-    const verifyTherapist = async () => {
-      try {
-        const user = await authAPI.getCurrentUser();
+    // Wait for auth to load
+    if (loading) return;
 
-        if (user.role !== "therapist") {
-          router.push("/auth/login");
-          return;
-        }
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      router.replace("/auth/login?redirect=" + pathname);
+      return;
+    }
 
-        setLoading(false);
-      } catch (error) {
-        console.error("Authentication error:", error);
-        router.push("/auth/login");
+    // If authenticated but not a therapist, redirect to appropriate dashboard
+    if (user && user.role !== "therapist") {
+      if (user.role === "patient") {
+        router.replace("/patient");
+      } else if (user.role === "admin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/");
       }
-    };
+      return;
+    }
 
-    verifyTherapist();
-  }, [router]);
+    // User is verified as therapist
+    setIsVerified(true);
+  }, [user, isAuthenticated, loading, pathname, router]);
 
-  if (loading) {
+  // Show loading state
+  if (loading || !isVerified) {
     return (
       <>
         <Header />

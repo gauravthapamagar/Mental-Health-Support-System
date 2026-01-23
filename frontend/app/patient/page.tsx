@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import Footer from "@/components/Footer";
 import {
   Brain,
   Activity,
@@ -559,90 +560,7 @@ export default function PatientLandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="max-w-7xl mx-auto px-6 lg:px-8 py-12 border-t border-slate-200">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-900">CarePair</span>
-            </div>
-            <p className="text-slate-600">
-              Making mental health support accessible to everyone
-            </p>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 mb-4">Product</h4>
-            <ul className="space-y-2 text-slate-600">
-              <li>
-                <a
-                  href="#features"
-                  className="hover:text-slate-900 transition-colors"
-                >
-                  Features
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#pricing"
-                  className="hover:text-slate-900 transition-colors"
-                >
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  For Therapists
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 mb-4">Company</h4>
-            <ul className="space-y-2 text-slate-600">
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  Careers
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 mb-4">Legal</h4>
-            <ul className="space-y-2 text-slate-600">
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  Terms of Service
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">
-                  HIPAA Compliance
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="text-center text-slate-600 pt-8 border-t border-slate-200">
-          © 2025 CarePair. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

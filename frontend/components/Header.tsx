@@ -20,12 +20,16 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, loading } = useAuth();
   const userRole: UserRole = user?.role ?? null;
+
+  const [isMounted, setIsMounted] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setIsMounted(true);
+
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
 
@@ -47,6 +51,7 @@ export default function Header() {
 
   // Determine home/dashboard link
   const getHomeHref = () => {
+    if (!isMounted) return "/"; // Default for SSR
     if (!isAuthenticated) return "/";
     if (userRole === "patient") return "/patient/dashboard";
     if (userRole === "therapist") return "/therapist/dashboard";
@@ -56,6 +61,7 @@ export default function Header() {
   const homeHref = getHomeHref();
 
   const getProfileHref = () => {
+    if (!isMounted) return "/auth/login"; // Default for SSR
     if (userRole === "therapist") return "/therapist/profile";
     if (userRole === "patient") return "/patient/profile";
     return "/auth/login";
@@ -63,32 +69,40 @@ export default function Header() {
 
   const profileHref = getProfileHref();
 
-  // Middle nav links based on role
+  // ✅ KEY FIX: Always compute links for current state
+  // but render them consistently
+  // components/header.tsx
+
   const getMiddleLinks = () => {
+    // 1. Define the absolute base links (visible to everyone)
     const base = [
       { label: "Home", href: homeHref },
-      { label: "Blog", href: "/blog" },
+      { label: "Blogs", href: "/blog" },
     ];
 
-    if (isAuthenticated) {
-      if (userRole === "patient") {
-        return [
-          ...base,
-          { label: "Find a therapist", href: "/find-therapist" },
-          { label: "Support", href: "/support" },
-        ];
-      }
+    // 2. If not authenticated or still mounting, return base + support
+    if (!isMounted || !isAuthenticated) {
+      return [
+        { label: "Home", href: "/" },
+        { label: "Blogs", href: "/blog" },
+        { label: "Support", href: "/support" },
+      ];
+    }
 
-      if (userRole === "therapist") {
-        const therapistBase = base.filter((link) => link.label !== "Blog");
-        return [
-          ...therapistBase,
-          { label: "My Blogs", href: "/therapist/my-blogs" },
-          { label: "Blogs", href: "/blog" },
-          { label: "Appointments", href: "/therapist/appointments" },
-          { label: "Support", href: "/support" },
-        ];
-      }
+    // 3. Therapist Specific Links (Removed "Find Therapist" logic)
+    if (userRole === "therapist") {
+      return [
+        { label: "Home", href: homeHref },
+        { label: "My Blogs", href: "/therapist/my-blogs" },
+        { label: "Blogs", href: "/blog" },
+        { label: "Appointments", href: "/therapist/appointments" },
+        { label: "Support", href: "/support" },
+      ];
+    }
+
+    // 4. Patient Specific Links
+    if (userRole === "patient") {
+      return [...base, { label: "Support", href: "/support" }];
     }
 
     return [...base, { label: "Support", href: "/support" }];
@@ -106,6 +120,20 @@ export default function Header() {
     after:transition-transform after:duration-150
     hover:after:scale-x-100
   `;
+
+  // ✅ Determine what to show in right section for SSR
+  const showAuthButtons = !isMounted ? true : !isAuthenticated;
+  const showUserSection = isMounted && isAuthenticated;
+  if (!isMounted || loading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm h-20">
+        <div className="max-w-7xl mx-auto px-6 h-full flex items-center">
+          <span className="text-xl font-semibold text-gray-900">CarePair</span>
+          {/* You can put a simple loading spinner here or nothing at all */}
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header
@@ -141,7 +169,10 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div
+            className="hidden md:flex items-center space-x-8"
+            suppressHydrationWarning
+          >
             {navLinks.map((item) => (
               <Link key={item.label} href={item.href} className={linkClassName}>
                 {item.label}
@@ -150,8 +181,9 @@ export default function Header() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            {!isAuthenticated ? (
+          <div className="flex items-center gap-4" suppressHydrationWarning>
+            {/* Auth Buttons - show during SSR and when not authenticated */}
+            {showAuthButtons && (
               <div className="hidden md:flex items-center space-x-6">
                 <Link href="/auth/login" className={linkClassName}>
                   Login
@@ -163,7 +195,10 @@ export default function Header() {
                   Sign up
                 </Link>
               </div>
-            ) : (
+            )}
+
+            {/* User Section - only show after mount when authenticated */}
+            {showUserSection && (
               <div className="flex items-center gap-3 md:gap-5">
                 {/* Patient / Therapist Button */}
                 {userRole === "patient" && (
@@ -231,6 +266,7 @@ export default function Header() {
                       <Link
                         href={profileHref}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        onClick={() => setIsProfileOpen(false)}
                       >
                         <User className="w-4 h-4" /> My Profile
                       </Link>
@@ -238,11 +274,15 @@ export default function Header() {
                       <Link
                         href="/settings"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        onClick={() => setIsProfileOpen(false)}
                       >
                         <Settings className="w-4 h-4" /> Settings
                       </Link>
                       <button
-                        onClick={logout}
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          logout();
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors mt-1 border-t border-gray-50"
                       >
                         <LogOut className="w-4 h-4" /> Logout
@@ -305,17 +345,19 @@ export default function Header() {
               </Link>
             ))}
 
-            {!isAuthenticated ? (
+            {!isMounted || !isAuthenticated ? (
               <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                 <Link
                   href="/auth/login"
                   className="w-full py-3 text-center font-bold text-gray-700 bg-gray-50 rounded-xl"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Login
                 </Link>
                 <Link
                   href="/auth/signup"
                   className="w-full py-3 text-center font-bold text-white bg-blue-600 rounded-xl"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign up
                 </Link>
@@ -331,17 +373,28 @@ export default function Header() {
                 </Link>
 
                 {userRole === "patient" && (
-                  <Link href="/assessment" className="text-blue-600 font-bold">
+                  <Link
+                    href="/patient/assessment"
+                    className="text-blue-600 font-bold"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     Take Assessment
                   </Link>
                 )}
                 {userRole === "therapist" && (
-                  <Link href="/my-patients" className="text-blue-600 font-bold">
+                  <Link
+                    href="/my-patients"
+                    className="text-blue-600 font-bold"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     My Patients
                   </Link>
                 )}
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    logout();
+                  }}
                   className="flex items-center gap-3 font-bold text-red-600 text-left"
                 >
                   <LogOut className="w-4 h-4" /> Logout

@@ -1,26 +1,19 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+import axiosInstance from "../axios";
 
-export async function getTherapistProfile(token: string) {
-  const res = await fetch(`${API_BASE}/therapist/profile/me/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) throw new Error("Failed to fetch profile");
-  return res.json();
+// No need to pass 'token' anymore! Axios interceptor handles it.
+export async function getTherapistProfile() {
+  const res = await axiosInstance.get("/therapist/profile/me/");
+  return res.data;
 }
 
-export async function updateTherapistProfile(token: string, data: any) {
-  const res = await fetch(`${API_BASE}/therapist/profile/update/`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
+export async function updateTherapistProfile(data: any) {
+  // Use FormData if you are uploading a profile picture
+  const isMultipart = data.profile_picture instanceof File;
 
-  if (!res.ok) throw new Error("Failed to update profile");
-  return res.json();
+  const res = await axiosInstance.patch("/therapist/profile/update/", data, {
+    headers: {
+      "Content-Type": isMultipart ? "multipart/form-data" : "application/json",
+    },
+  });
+  return res.data;
 }

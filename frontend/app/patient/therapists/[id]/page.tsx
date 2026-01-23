@@ -18,25 +18,44 @@ export default function PatientTherapistProfilePage() {
   const router = useRouter();
   const [therapist, setTherapist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchTherapist() {
       try {
         setLoading(true);
-        // Using the same endpoint as your public profile page
+        setError(null);
+
+        console.log("🔍 Fetching therapist with ID:", id);
+
         const response = await fetch(
           `http://127.0.0.1:8000/api/public/therapists/${id}/`,
         );
+
+        console.log("📡 Response status:", response.status);
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch: ${response.status} ${response.statusText}`,
+          );
+        }
+
         const data = await response.json();
+        console.log("✅ Therapist data received:", data);
+
         setTherapist(data);
-      } catch (error) {
-        console.error("Error fetching therapist data:", error);
+      } catch (error: any) {
+        console.error("❌ Error fetching therapist data:", error);
+        setError(error.message || "Failed to load therapist profile");
       } finally {
         setLoading(false);
       }
     }
-    if (id) fetchTherapist();
+
+    if (id) {
+      fetchTherapist();
+    }
   }, [id]);
 
   if (loading) {
@@ -47,16 +66,41 @@ export default function PatientTherapistProfilePage() {
     );
   }
 
-  if (!therapist)
-    return <div className="p-10 text-center">Therapist not found.</div>;
+  if (error) {
+    return (
+      <div className="p-10 text-center">
+        <div className="text-red-600 mb-4">Error: {error}</div>
+        <Link
+          href="/patient/therapists"
+          className="text-blue-600 hover:underline"
+        >
+          Back to therapists
+        </Link>
+      </div>
+    );
+  }
 
-  /** * DATA MAPPING FIXES:
-   * We check multiple possible keys (specializations vs specialization_tags)
-   * to ensure data displays correctly regardless of minor backend changes.
-   */
+  if (!therapist) {
+    return (
+      <div className="p-10 text-center">
+        <div className="mb-4">Therapist not found.</div>
+        <Link
+          href="/patient/therapists"
+          className="text-blue-600 hover:underline"
+        >
+          Back to therapists
+        </Link>
+      </div>
+    );
+  }
+
+  // DATA MAPPING - Handle both possible response structures
   const specialties =
     therapist.specializations || therapist.specialization_tags || [];
-  const fullName = therapist.user?.full_name || "Therapist";
+
+  const fullName =
+    therapist.user?.full_name || therapist.full_name || "Therapist";
+
   const profilePic = therapist.profile_picture
     ? therapist.profile_picture.startsWith("http")
       ? therapist.profile_picture

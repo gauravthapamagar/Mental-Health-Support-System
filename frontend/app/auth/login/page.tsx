@@ -1,19 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
-import { authAPI } from "@/lib/api";
-import {
-  Mail,
-  Lock,
-  Heart,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  Key,
-} from "lucide-react";
+import { useAuth } from "@/context/AuthContext"; // FIXED: lowercase
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Key } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,7 +22,18 @@ export default function LoginPage() {
     if (errorMsg) setErrorMsg("");
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // Prevent default form behavior
+    if (e) {
+      e.preventDefault();
+    }
+
+    // Validation
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Please enter both email and password");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg("");
 
@@ -42,12 +42,18 @@ export default function LoginPage() {
         email: formData.email,
         password: formData.password,
       });
-      // ✅ redirect handled by AuthContext
+      // ✅ Redirect handled by AuthContext
     } catch (err: any) {
       const data = err.response?.data;
       setErrorMsg(data?.detail || "Invalid email or password");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !isLoading) {
+      handleSubmit();
     }
   };
 
@@ -104,15 +110,18 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="email"
                 name="email"
                 placeholder="Email Address"
+                value={formData.email}
                 onChange={handleInputChange}
-                className="w-full pl-12 pr-4 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="w-full pl-12 pr-4 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm disabled:opacity-50"
               />
             </div>
 
@@ -122,13 +131,17 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
+                value={formData.password}
                 onChange={handleInputChange}
-                className="w-full pl-12 pr-12 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="w-full pl-12 pr-12 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                disabled={isLoading}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -139,21 +152,30 @@ export default function LoginPage() {
             </div>
 
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
           <footer className="mt-10 pt-8 border-t border-slate-100">
             <div className="flex items-center gap-3 text-slate-400"></div>
           </footer>
         </div>
 
-        {/* RIGHT SIDE (UNCHANGED) */}
+        {/* RIGHT SIDE */}
         <div className="hidden lg:flex bg-gradient-to-br from-blue-600 to-indigo-700 p-16 flex-col justify-between relative overflow-hidden rounded-r-[2.5rem] -ml-[1px] border-l border-white/10">
           <div className="relative z-10">
             <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mb-8">
@@ -167,9 +189,8 @@ export default function LoginPage() {
           </div>
           <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20">
             <p className="text-white/90 italic text-lg mb-4">
-              {" "}
               "Healing takes courage, and we all have courage, even if we have
-              to dig a little to find it."{" "}
+              to dig a little to find it."
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-400" />

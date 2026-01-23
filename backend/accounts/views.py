@@ -253,10 +253,20 @@ class TherapistProfileDetailView(generics.RetrieveAPIView):
         return self.request.user.therapist_profile
 
 class PublicTherapistDetailView(generics.RetrieveAPIView):
-    """View for patients to see a specific therapist's public profile"""
-    queryset = TherapistProfile.objects.filter(is_verified=True, profile_completed=True)
+    """
+    View for patients to see a specific therapist's public profile.
+    Uses User ID (not TherapistProfile ID) for lookup.
+    """
     serializer_class = TherapistProfileSerializer
-    permission_classes = [AllowAny] # This is the key difference!
+    permission_classes = [AllowAny]
+    lookup_field = 'user_id'  # Changed from 'pk' to 'user_id'
+    lookup_url_kwarg = 'pk'    # URL still uses 'pk', but we map it to user_id
+    
+    def get_queryset(self):
+        return TherapistProfile.objects.filter(
+            is_verified=True, 
+            profile_completed=True
+        ).select_related('user')
 class TherapistProfileUpdateView(generics.UpdateAPIView):
     """Update therapist profile"""
     serializer_class = TherapistProfileCompleteSerializer

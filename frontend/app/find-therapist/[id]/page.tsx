@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { useAuth } from "@/context/AuthContext";
 import {
   MessageSquare,
   Calendar,
@@ -17,6 +18,8 @@ export default function TherapistProfilePage() {
   const { id } = useParams();
   const [therapist, setTherapist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // Initialize router
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     async function fetchTherapist() {
@@ -35,6 +38,17 @@ export default function TherapistProfilePage() {
     }
     if (id) fetchTherapist();
   }, [id]);
+  const handleBookSession = () => {
+    if (!isAuthenticated) {
+      // If user isn't logged in, send them to login
+      // We also pass the current path so they can return here later
+      router.push(`/auth/login?redirect=/therapist-profile/${id}`);
+    } else {
+      // If they are logged in, you can route them to the booking form
+      // router.push(`/patient/booking-form/${id}`);
+      console.log("User is authenticated, proceed to booking");
+    }
+  };
 
   if (loading) {
     return (
@@ -95,7 +109,10 @@ export default function TherapistProfilePage() {
                 </p>
 
                 <div className="pt-4">
-                  <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-200 flex items-center justify-center gap-2">
+                  <button
+                    onClick={handleBookSession} // Add this line
+                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-200 flex items-center justify-center gap-2"
+                  >
                     <MessageSquare className="w-5 h-5" /> Book Session
                   </button>
                 </div>

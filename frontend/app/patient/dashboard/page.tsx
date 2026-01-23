@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/authcontext"; // Adjust this path if your file name is different
+import { useAuth } from "@/context/AuthContext"; // Adjust this path if your file name is different
 import StatsGrid from "@/components/patient/dashboard/StatsGrid";
 import UpcomingSessions from "@/components/patient/dashboard/UpcomingSessions";
 import CarePlan from "@/components/patient/dashboard/CarePlan";

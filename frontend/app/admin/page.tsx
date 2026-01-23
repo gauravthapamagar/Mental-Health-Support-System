@@ -1,6 +1,9 @@
+// app/admin/page.tsx - UPDATED VERSION
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   Users,
   UserCheck,
@@ -12,7 +15,7 @@ import {
 } from "lucide-react";
 import { adminApiCall } from "@/lib/adminapi";
 
-// Import our Tab Components (We will create these next)
+// Import Tab Components
 import OverviewTab from "@/components/admin/OverviewTab";
 import UsersTab from "@/components/admin/UsersTab";
 import TherapistsTab from "@/components/admin/TherapistsTab";
@@ -21,9 +24,11 @@ import SurveysTab from "@/components/admin/SurveysTab";
 import SettingsTab from "@/components/admin/SettingsTab";
 
 const AdminDashboard = () => {
+  const router = useRouter();
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalPatients: 0,
@@ -36,51 +41,69 @@ const AdminDashboard = () => {
     totalSurveys: 0,
   });
 
-  // 1. Existing Effect for Auth
+  // Verify admin access
   useEffect(() => {
-    const initDashboard = async () => {
-      const result = await adminApiCall("/auth/me/");
-      if (
-        result?.ok &&
-        (result.data?.role === "admin" || result.data?.is_staff)
-      ) {
-        setCurrentUser(result.data);
-        setLoading(false);
-      } else {
-        window.location.href = "/auth/login";
-      }
-    };
-    initDashboard();
-  }, []);
+    const verifyAdmin = async () => {
+      // Wait for auth context to load
+      if (authLoading) return;
 
-  // 2. NEW Effect to fetch Stats
+      // If not authenticated, redirect to login
+      if (!isAuthenticated) {
+        router.replace("/auth/login?redirect=/admin");
+        return;
+      }
+
+      // If authenticated but not admin, redirect to appropriate dashboard
+      if (user && user.role !== "admin") {
+        if (user.role === "patient") {
+          router.replace("/patient");
+        } else if (user.role === "therapist") {
+          router.replace("/therapist/dashboard");
+        } else {
+          router.replace("/");
+        }
+        return;
+      }
+
+      // User is verified as admin
+      setIsVerified(true);
+      setLoading(false);
+    };
+
+    verifyAdmin();
+  }, [user, isAuthenticated, authLoading, router]);
+
+  // Fetch stats when verified
   useEffect(() => {
     const fetchStats = async () => {
-      // Use the adminApiCall helper to hit the admin_stats view we created in Django
+      if (!isVerified) return;
+
       const result = await adminApiCall("/admin/stats/");
       if (result?.ok) {
         setStats(result.data);
       }
     };
 
-    // Fetch immediately on load, then maybe every time the tab changes to keep it fresh
-    if (!loading) {
+    if (isVerified) {
       fetchStats();
     }
-  }, [loading, activeTab]);
+  }, [isVerified, activeTab]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("access_token"); // Match the key in AuthContext
-    localStorage.removeItem("refresh_token");
-    window.location.href = "/auth/login"; // Match your actual route
+  const handleLogout = async () => {
+    await logout();
   };
 
-  if (loading)
+  // Show loading state
+  if (loading || authLoading || !isVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Verifying admin access...</p>
+        </div>
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -93,6 +116,7 @@ const AdminDashboard = () => {
             </div>
             <h1 className="text-xl font-bold text-gray-900">CarePair</h1>
           </div>
+          <p className="text-xs text-gray-500 mt-2">Admin Portal</p>
         </div>
 
         <nav className="p-4 space-y-2">
@@ -120,7 +144,7 @@ const AdminDashboard = () => {
             label="Blogs"
             active={activeTab === "blogs"}
             onClick={() => setActiveTab("blogs")}
-            badge={stats.pendingBlogs} // This will now show the real number of blogs needing approval
+            badge={stats.pendingBlogs}
           />
           <NavItem
             icon={<ClipboardList size={20} />}
@@ -137,6 +161,12 @@ const AdminDashboard = () => {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+          <div className="mb-3 px-2">
+            <p className="text-xs text-gray-400 font-medium">Signed in as</p>
+            <p className="text-sm font-bold text-gray-900 truncate">
+              {user?.full_name || user?.email}
+            </p>
+          </div>
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
@@ -149,6 +179,17 @@ const AdminDashboard = () => {
       {/* Content Area */}
       <main className="ml-64 p-8">
         <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Welcome back, {user?.full_name?.split(" ")[0]}
+            </h2>
+            <p className="text-gray-600">
+              Manage your platform from this admin dashboard
+            </p>
+          </div>
+
+          {/* Tabs Content */}
           {activeTab === "overview" && <OverviewTab stats={stats} />}
           {activeTab === "users" && <UsersTab />}
           {activeTab === "therapists" && <TherapistsTab />}

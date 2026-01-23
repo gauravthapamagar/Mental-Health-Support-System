@@ -60,7 +60,7 @@ export default function TherapistProfile() {
           license_id: data.license_id || "",
           years_of_experience: data.years_of_experience || 0,
           bio: data.bio || "",
-          consultation_fees: data.consultation_fees || "",
+          consultation_fees: data.consultation_fees || "negotiable",
           consultation_mode: data.consultation_mode || "online",
           specialization_tags: data.specialization_tags || [],
           languages_spoken: data.languages_spoken || [],
@@ -101,78 +101,81 @@ export default function TherapistProfile() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-    const handleSave = async () => {
-  setSaving(true);
-  setError(null);
-  try {
-    const dataToSend = new FormData();
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const dataToSend = new FormData();
 
-    // 1. Handle Profile Picture - ONLY append if it's a NEW File object
-    if (profilePicture instanceof File) {
-      console.log("✅ Appending new profile picture file:", profilePicture.name);
-      dataToSend.append("profile_picture", profilePicture);
-    } else {
-      console.log("ℹ️ No new profile picture to upload");
+      // 1. Handle Profile Picture - ONLY append if it's a NEW File object
+      if (profilePicture instanceof File) {
+        console.log(
+          "✅ Appending new profile picture file:",
+          profilePicture.name,
+        );
+        dataToSend.append("profile_picture", profilePicture);
+      } else {
+        console.log("ℹ️ No new profile picture to upload");
+      }
+
+      // 2. Append Standard Fields
+      dataToSend.append("phone_number", formData.phone_number || "");
+      dataToSend.append("license_id", formData.license_id || "");
+      dataToSend.append(
+        "years_of_experience",
+        String(formData.years_of_experience || 0),
+      );
+      dataToSend.append("bio", formData.bio || "");
+      dataToSend.append(
+        "consultation_fees",
+        String(formData.consultation_fees || 0),
+      );
+      dataToSend.append("consultation_mode", formData.consultation_mode || "");
+
+      // 3. JSON stringify array fields
+      dataToSend.append(
+        "specialization_tags",
+        JSON.stringify(formData.specialization_tags || []),
+      );
+      dataToSend.append(
+        "languages_spoken",
+        JSON.stringify(formData.languages_spoken || []),
+      );
+
+      // 4. Use the 'schedule' state directly
+      dataToSend.append("availability_slots", JSON.stringify(schedule || {}));
+
+      // Debug: Log all FormData entries
+      console.log("📦 FormData contents:");
+      for (let pair of dataToSend.entries()) {
+        console.log(`  ${pair[0]}:`, pair[1]);
+      }
+
+      // 5. API Call
+      console.log("🚀 Sending request...");
+      const response = await therapistAPI.updateProfile(dataToSend);
+      console.log("✅ Response received:", response);
+
+      alert("Profile updated successfully!");
+      window.location.reload();
+    } catch (err: any) {
+      console.error("❌ Full error object:", err);
+      console.error("❌ Error response:", err.response);
+      console.error("❌ Error response data:", err.response?.data);
+      console.error("❌ Error response status:", err.response?.status);
+      console.error("❌ Error message:", err.message);
+
+      const errorData = err.response?.data;
+
+      setError(
+        errorData && Object.keys(errorData).length > 0
+          ? JSON.stringify(errorData, null, 2)
+          : err.message || "Update failed. Please check your data.",
+      );
+    } finally {
+      setSaving(false);
     }
-
-    // 2. Append Standard Fields
-    dataToSend.append("phone_number", formData.phone_number || "");
-    dataToSend.append("license_id", formData.license_id || "");
-    dataToSend.append(
-      "years_of_experience",
-      String(formData.years_of_experience || 0),
-    );
-    dataToSend.append("bio", formData.bio || "");
-    dataToSend.append(
-      "consultation_fees",
-      String(formData.consultation_fees || 0),
-    );
-    dataToSend.append("consultation_mode", formData.consultation_mode || "");
-
-    // 3. JSON stringify array fields
-    dataToSend.append(
-      "specialization_tags",
-      JSON.stringify(formData.specialization_tags || []),
-    );
-    dataToSend.append(
-      "languages_spoken",
-      JSON.stringify(formData.languages_spoken || []),
-    );
-
-    // 4. Use the 'schedule' state directly
-    dataToSend.append("availability_slots", JSON.stringify(schedule || {}));
-
-    // Debug: Log all FormData entries
-    console.log("📦 FormData contents:");
-    for (let pair of dataToSend.entries()) {
-      console.log(`  ${pair[0]}:`, pair[1]);
-    }
-
-    // 5. API Call
-    console.log("🚀 Sending request...");
-    const response = await therapistAPI.updateProfile(dataToSend);
-    console.log("✅ Response received:", response);
-    
-    alert("Profile updated successfully!");
-    window.location.reload();
-  } catch (err: any) {
-    console.error("❌ Full error object:", err);
-    console.error("❌ Error response:", err.response);
-    console.error("❌ Error response data:", err.response?.data);
-    console.error("❌ Error response status:", err.response?.status);
-    console.error("❌ Error message:", err.message);
-    
-    const errorData = err.response?.data;
-    
-    setError(
-      errorData && Object.keys(errorData).length > 0
-        ? JSON.stringify(errorData, null, 2)
-        : err.message || "Update failed. Please check your data.",
-    );
-  } finally {
-    setSaving(false);
-  }
-};
+  };
   const addItem = (type: "tags" | "langs") => {
     if (type === "tags" && newTag) {
       setFormData((prev) => ({
