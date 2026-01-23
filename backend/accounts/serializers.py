@@ -30,6 +30,14 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
             'emergency_contact_phone', 'basic_health_info', 'terms_accepted'
         ]
 
+    def validate_email(self, value):
+        """Check if email already exists"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "This email is already registered. Please use a different email or log in."
+            )
+        return value
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
@@ -40,26 +48,49 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # Extract profile-specific data BEFORE creating user
         validated_data.pop('password2')
         emergency_contact_name = validated_data.pop('emergency_contact_name')
         emergency_contact_phone = validated_data.pop('emergency_contact_phone')
         basic_health_info = validated_data.pop('basic_health_info', '')
         terms_accepted = validated_data.pop('terms_accepted')
 
-        user = User.objects.create_user(
-            role='patient',
-            **validated_data
-        )
+        # Use atomic transaction - if ANY part fails, EVERYTHING rolls back
+        try:
+            with transaction.atomic():
+                # Create the User
+                user = User.objects.create_user(
+                    role='patient',
+                    **validated_data
+                )
 
-        PatientProfile.objects.create(
-            user=user,
-            emergency_contact_name=emergency_contact_name,
-            emergency_contact_phone=emergency_contact_phone,
-            basic_health_info=basic_health_info,
-            terms_accepted=terms_accepted
-        )
+                # Create or get the patient profile
+                profile, created = PatientProfile.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'emergency_contact_name': emergency_contact_name,
+                        'emergency_contact_phone': emergency_contact_phone,
+                        'basic_health_info': basic_health_info,
+                        'terms_accepted': terms_accepted
+                    }
+                )
 
-        return user
+                # If profile already existed, update it
+                if not created:
+                    profile.emergency_contact_name = emergency_contact_name
+                    profile.emergency_contact_phone = emergency_contact_phone
+                    profile.basic_health_info = basic_health_info
+                    profile.terms_accepted = terms_accepted
+                    profile.save()
+
+                return user
+                
+        except Exception as e:
+            # If anything goes wrong, the transaction rolls back automatically
+            # Re-raise with a clear message
+            raise serializers.ValidationError({
+                "error": f"Registration failed: {str(e)}"
+            })
 
 
 # serializers.py
