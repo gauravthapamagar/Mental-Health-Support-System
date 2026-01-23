@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, PatientProfile, TherapistProfile
-
+from .models import TherapistProfile
+import json
 
 class PatientRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -60,6 +61,11 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+# serializers.py
+from django.db import transaction
+
+# accounts/serializers.py
+
 class TherapistRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, 
@@ -72,43 +78,70 @@ class TherapistRegistrationSerializer(serializers.ModelSerializer):
         required=True,
         style={'input_type': 'password'}
     )
-    profession_type = serializers.CharField(required=True)
-    license_id = serializers.CharField(required=False, allow_blank=True)
-    years_of_experience = serializers.IntegerField(required=False, allow_null=True)
+    profession_type = serializers.ChoiceField(
+        choices=TherapistProfile.PROFESSION_CHOICES, 
+        required=True
+    )
+    license_id = serializers.CharField(required=True)
+    years_of_experience = serializers.IntegerField(required=True, min_value=0)
 
     class Meta:
         model = User
         fields = [
             'email', 'password', 'password2', 'full_name', 'phone_number',
-            'date_of_birth', 'gender', 'profession_type', 'license_id',
+            'date_of_birth', 'gender', 'profession_type', 'license_id', 
             'years_of_experience'
         ]
 
+    def validate_email(self, value):
+        """Check if email already exists"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "This email is already registered. Please use a different email or log in."
+            )
+        return value
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
+            raise serializers.ValidationError({
+                "password": "Password fields didn't match."
+            })
         return attrs
 
     def create(self, validated_data):
+        # Extract profile-specific data BEFORE creating user
         validated_data.pop('password2')
         profession_type = validated_data.pop('profession_type')
-        license_id = validated_data.pop('license_id', None)
-        years_of_experience = validated_data.pop('years_of_experience', None)
+        license_id = validated_data.pop('license_id')
+        years_of_experience = validated_data.pop('years_of_experience')
+        user_phone = validated_data.get('phone_number')
 
-        user = User.objects.create_user(
-            role='therapist',
-            **validated_data
-        )
+        # Use atomic transaction - if ANY part fails, EVERYTHING rolls back
+        try:
+            with transaction.atomic():
+                # Create the User
+                user = User.objects.create_user(
+                    role='therapist',
+                    **validated_data
+                )
 
-        TherapistProfile.objects.create(
-            user=user,
-            profession_type=profession_type,
-            license_id=license_id,
-            years_of_experience=years_of_experience
-        )
+                # The profile is automatically created by a signal when the user is created.
+                # We need to update that existing profile instead of creating a new one.
+                profile, created = TherapistProfile.objects.get_or_create(user=user)
+                profile.profession_type = profession_type
+                profile.license_id = license_id
+                profile.years_of_experience = years_of_experience
+                profile.phone_number = user_phone
+                profile.save()
 
-        return user
-
+                return user
+                
+        except Exception as e:
+            # If anything goes wrong, the transaction rolls back automatically
+            # Re-raise with a clear message
+            raise serializers.ValidationError({
+                "error": f"Registration failed: {str(e)}"
+            })
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -141,12 +174,50 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = TherapistProfile
         fields = [
-            'specialization_tags', 'languages_spoken', 'consultation_mode',
-            'consultation_fees', 'availability_slots', 'bio','profile_picture','profile_picture',
+            'specialization_tags', 
+            'languages_spoken', 
+            'consultation_mode',
+            'consultation_fees', 
+            'availability_slots', 
+            'bio', 
+            'profile_picture',
             'phone_number', 
             'license_id',    
             'years_of_experience'
         ]
+
+    def to_internal_value(self, data):
+        """
+        Modified to safely ignore string URLs in profile_picture
+        and parse JSON strings from FormData.
+        """
+        # Convert to a standard dictionary to allow modification
+        if hasattr(data, 'dict'):
+            data = data.dict()
+        else:
+            data = data.copy()
+
+        # THE CRITICAL FIX: 
+        # If profile_picture is a string (which is the URL sent by frontend), 
+        # we REMOVE it from the data so Django doesn't try to validate it as a file.
+        if 'profile_picture' in data:
+            if isinstance(data['profile_picture'], str):
+                data.pop('profile_picture')
+            # If it's an empty string or "null" string, also remove it
+            elif data['profile_picture'] in [None, '', 'null', 'undefined']:
+                data.pop('profile_picture')
+
+        # Handle JSON strings for other fields
+        json_fields = ['specialization_tags', 'languages_spoken', 'availability_slots']
+        for field in json_fields:
+            value = data.get(field)
+            if isinstance(value, str) and value:
+                try:
+                    data[field] = json.loads(value)
+                except (ValueError, TypeError):
+                    data[field] = [] # Default to empty list if malformed
+        
+        return super().to_internal_value(data)
 
     def validate_specialization_tags(self, value):
         if not isinstance(value, list):
@@ -159,16 +230,21 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
+        # All your original features are preserved here
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        if all([
+        # Original completion logic
+        required_fields = [
             instance.specialization_tags,
             instance.languages_spoken,
             instance.consultation_mode,
             instance.consultation_fees is not None,
-            instance.bio
-        ]):
+            instance.bio,
+            instance.profile_picture 
+        ]
+
+        if all(required_fields):
             instance.profile_completed = True
         
         instance.save()

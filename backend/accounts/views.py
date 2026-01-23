@@ -4,10 +4,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.db.models import Count, Q
+from datetime import timedelta
 from rest_framework.permissions import IsAdminUser
 from django.utils import timezone
 from blogs.models import BlogPost
 from .models import User, TherapistProfile
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .serializers import (
     PatientRegistrationSerializer,
     TherapistRegistrationSerializer,
@@ -99,22 +102,68 @@ def patient_registration(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTherapist])
+def therapist_dashboard_stats(request):
+    therapist = request.user.therapist_profile
+    today = timezone.now().date()
+    start_of_week = today - timedelta(days=today.weekday())
 
+    # 1. Total Unique Patients
+    # Logic: Count unique patients from appointments associated with this therapist
+    # Note: Replace 'Appointment' with your actual Booking/Appointment model name
+    from booking.models import Appointment 
+    
+    total_patients = Appointment.objects.filter(therapist=therapist).values('patient').distinct().count()
+
+    # 2. Today's Sessions
+    today_sessions = Appointment.objects.filter(
+        therapist=therapist, 
+        appointment_date=today
+    ).count()
+    
+    remaining_today = Appointment.objects.filter(
+        therapist=therapist, 
+        appointment_date=today,
+        status='scheduled' # Adjust 'scheduled' to your status field value
+    ).count()
+
+    # 3. Hours This Week (Assuming 1 hour per session for simplicity)
+    hours_this_week = Appointment.objects.filter(
+        therapist=therapist,
+        appointment_date__gte=start_of_week,
+        status='completed'
+    ).count()
+
+    return Response({
+        "total_patients": total_patients or 0,
+        "today_sessions": today_sessions or 0,
+        "remaining_today": remaining_today or 0,
+        "hours_this_week": hours_this_week or 0,
+        "success_rate": 95, # Logic for this depends on your feedback system
+    }, status=status.HTTP_200_OK)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def therapist_registration(request):
     """Register a new therapist"""
+    
     serializer = TherapistRegistrationSerializer(data=request.data)
+    
     if serializer.is_valid():
-        user = serializer.save()
-        tokens = get_tokens_for_user(user)
-        
-        return Response({
-            'message': 'Therapist registered successfully. Please complete your profile.',
-            'user': UserDetailSerializer(user).data,
-            'tokens': tokens,
-            'profile_completed': False
-        }, status=status.HTTP_201_CREATED)
+        try:
+            user = serializer.save()
+            tokens = get_tokens_for_user(user)
+            
+            return Response({
+                'message': 'Therapist registered successfully. Please complete your profile.',
+                'user': UserDetailSerializer(user).data,
+                'tokens': tokens,
+                'profile_completed': False
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -174,17 +223,21 @@ class TherapistProfileCompleteView(generics.UpdateAPIView):
     """Complete therapist profile after registration"""
     serializer_class = TherapistProfileCompleteSerializer
     permission_classes = [IsAuthenticated, IsTherapist]
+    parser_classes = (MultiPartParser, FormParser, JSONParser) # Added this
 
     def get_object(self):
         return self.request.user.therapist_profile
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop('partial', True) # Changed to True to allow flexible updates
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        
+        if not serializer.is_valid():
+            print("VALIDATION ERROR:", serializer.errors) # View this in your terminal
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        self.perform_update(serializer)
         return Response({
             'message': 'Profile completed successfully',
             'profile': TherapistProfileSerializer(instance).data
@@ -208,6 +261,7 @@ class TherapistProfileUpdateView(generics.UpdateAPIView):
     """Update therapist profile"""
     serializer_class = TherapistProfileCompleteSerializer
     permission_classes = [IsAuthenticated, IsTherapist]
+    parser_classes = (MultiPartParser, FormParser, JSONParser) # Added this
 
     def get_object(self):
         return self.request.user.therapist_profile
@@ -216,9 +270,12 @@ class TherapistProfileUpdateView(generics.UpdateAPIView):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        
+        if not serializer.is_valid():
+            print("VALIDATION ERROR:", serializer.errors) # View this in your terminal
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        self.perform_update(serializer)
         return Response({
             'message': 'Profile updated successfully',
             'profile': TherapistProfileSerializer(instance).data

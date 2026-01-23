@@ -108,57 +108,73 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             'appointment_type', 'reason_for_visit', 'patient_notes',
             'contact_phone', 'contact_email', 'session_mode'
         ]
-    
+        # Make contact info optional in request, we fill it from user profile if missing
+        extra_kwargs = {
+            'contact_phone': {'required': False},
+            'contact_email': {'required': False}
+        }
+
     def validate_appointment_date(self, value):
-        """Ensure appointment is not in the past"""
         if value < timezone.now().date():
             raise serializers.ValidationError("Cannot book appointments in the past")
         return value
-    
+
     def validate_therapist(self, value):
-        """Ensure therapist exists and is verified"""
         if value.role != 'therapist':
             raise serializers.ValidationError("Selected user is not a therapist")
-        
         if not hasattr(value, 'therapist_profile'):
             raise serializers.ValidationError("Therapist profile not found")
-        
-        # You can optionally require verification
-        # if not value.therapist_profile.is_verified:
-        #     raise serializers.ValidationError("Therapist is not verified")
-        
         return value
-    
+
     def validate(self, attrs):
-        """Validate appointment slot availability"""
         therapist = attrs['therapist']
         appointment_date = attrs['appointment_date']
         start_time = attrs['start_time']
         duration = attrs.get('duration_minutes', 60)
         
-        # Calculate end time
+        # 1. Calculate end time
         start_datetime = datetime.combine(appointment_date, start_time)
         end_datetime = start_datetime + timedelta(minutes=duration)
         end_time = end_datetime.time()
         
-        # Check if therapist is available on this day/time
-        day_name = appointment_date.strftime('%A').lower()
+        # 2. Check Availability from JSON (Source used by the Slot Generator)
+        day_name = appointment_date.strftime('%A') # e.g., "Monday"
+        profile = therapist.therapist_profile
+        availability_json = profile.availability_slots or {}
         
-        # Check availability slots
-        available_slot = TherapistAvailability.objects.filter(
-            therapist=therapist,
-            day_of_week=day_name,
-            is_active=True,
-            start_time__lte=start_time,
-            end_time__gte=end_time
-        ).exists()
+        is_available = False
         
-        if not available_slot:
+        # Check if the day exists in JSON
+        if day_name in availability_json:
+            time_ranges = availability_json[day_name]
+            for time_range in time_ranges:
+                try:
+                    range_start_str, range_end_str = time_range.split(' - ')
+                    range_start = datetime.strptime(range_start_str.strip(), '%H:%M').time()
+                    range_end = datetime.strptime(range_end_str.strip(), '%H:%M').time()
+                    
+                    if start_time >= range_start and end_time <= range_end:
+                        is_available = True
+                        break
+                except:
+                    continue
+
+        # If not found in JSON, fallback check in the database Table (lowercase day)
+        if not is_available:
+            is_available = TherapistAvailability.objects.filter(
+                therapist=therapist,
+                day_of_week=day_name.lower(),
+                is_active=True,
+                start_time__lte=start_time,
+                end_time__gte=end_time
+            ).exists()
+
+        if not is_available:
             raise serializers.ValidationError({
-                'start_time': f"Therapist is not available at this time on {day_name}"
+                'start_time': f"Therapist is not available at {start_time} on {day_name}."
             })
-        
-        # Check for time-off periods
+
+        # 3. Check for Time-Off
         time_off = TimeOffPeriod.objects.filter(
             therapist=therapist,
             start_date__lte=appointment_date,
@@ -166,11 +182,9 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         ).exists()
         
         if time_off:
-            raise serializers.ValidationError({
-                'appointment_date': "Therapist is not available on this date"
-            })
-        
-        # Check for conflicting appointments
+            raise serializers.ValidationError({'appointment_date': "Therapist is on leave."})
+
+        # 4. Check for Conflicts
         conflicting = Appointment.objects.filter(
             therapist=therapist,
             appointment_date=appointment_date,
@@ -180,39 +194,36 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         ).exists()
         
         if conflicting:
-            raise serializers.ValidationError({
-                'start_time': "This time slot is already booked"
-            })
+            raise serializers.ValidationError({'start_time': "This time slot is already booked."})
         
         return attrs
-    
+
     def create(self, validated_data):
-        # Set patient from request context
         request = self.context.get('request')
-        validated_data['patient'] = request.user
+        user = request.user
         
-        # Calculate end time
-        start_datetime = datetime.combine(
-            validated_data['appointment_date'],
-            validated_data['start_time']
-        )
-        end_datetime = start_datetime + timedelta(
-            minutes=validated_data.get('duration_minutes', 60)
-        )
+        # Auto-fill missing fields
+        validated_data['patient'] = user
+        if not validated_data.get('contact_phone'):
+            validated_data['contact_phone'] = user.phone_number or "0000000000"
+        if not validated_data.get('contact_email'):
+            validated_data['contact_email'] = user.email
+
+        # Calculate end_time for database storage
+        start_datetime = datetime.combine(validated_data['appointment_date'], validated_data['start_time'])
+        end_datetime = start_datetime + timedelta(minutes=validated_data.get('duration_minutes', 60))
         validated_data['end_time'] = end_datetime.time()
-        
-        # Create appointment
+
         appointment = Appointment.objects.create(**validated_data)
-        
-        # Create history entry
+
+        # Log History
         AppointmentHistory.objects.create(
             appointment=appointment,
-            changed_by=request.user,
+            changed_by=user,
             action='created',
             new_status='pending',
             notes='Appointment created by patient'
         )
-        
         return appointment
 
 

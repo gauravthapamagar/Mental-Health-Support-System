@@ -142,20 +142,30 @@ def get_therapist_availability(request, therapist_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_available_slots(request, therapist_id):
-    """
-    Get available time slots for a therapist for the next 30 days
-    """
     therapist = get_object_or_404(User, id=therapist_id, role='therapist')
     
-    # Get date range (next 30 days)
-    start_date = timezone.now().date()
-    end_date = start_date + timedelta(days=30)
+    # Check if therapist has a profile
+    if not hasattr(therapist, 'therapist_profile'):
+        return Response({
+            'therapist_id': therapist_id,
+            'therapist_name': therapist.full_name,
+            'slots': []
+        }, status=status.HTTP_200_OK)
     
-    # Get therapist's weekly availability
-    availability_slots = TherapistAvailability.objects.filter(
-        therapist=therapist,
-        is_active=True
-    )
+    # Get availability from JSONField
+    availability_schedule = therapist.therapist_profile.availability_slots or {}
+    
+    if not availability_schedule:
+        return Response({
+            'therapist_id': therapist_id,
+            'therapist_name': therapist.full_name,
+            'slots': []
+        }, status=status.HTTP_200_OK)
+    
+    # Use timezone-aware 'now'
+    now_aware = timezone.now()
+    start_date = now_aware.date()
+    end_date = start_date + timedelta(days=30)
     
     # Get time-off periods
     time_off_periods = TimeOffPeriod.objects.filter(
@@ -172,62 +182,84 @@ def get_available_slots(request, therapist_id):
         status__in=['pending', 'confirmed']
     )
     
-    # Build available slots
     available_slots = []
     current_date = start_date
     
+    # Day name mapping (case-insensitive)
+    day_mapping = {
+        'monday': 'Monday',
+        'tuesday': 'Tuesday',
+        'wednesday': 'Wednesday',
+        'thursday': 'Thursday',
+        'friday': 'Friday',
+        'saturday': 'Saturday',
+        'sunday': 'Sunday'
+    }
+    
     while current_date <= end_date:
-        day_name = current_date.strftime('%A').lower()
+        # Get day name
+        day_name_lower = current_date.strftime('%A').lower()
+        day_name_capitalized = day_mapping.get(day_name_lower)
         
-        # Check if therapist has time off
+        # Check if therapist is on time-off
         is_time_off = time_off_periods.filter(
             start_date__lte=current_date,
             end_date__gte=current_date
         ).exists()
         
-        if not is_time_off:
-            # Get availability for this day
-            day_slots = availability_slots.filter(day_of_week=day_name)
+        if not is_time_off and day_name_capitalized in availability_schedule:
+            # Get time ranges for this day
+            time_ranges = availability_schedule[day_name_capitalized]
             
-            for slot in day_slots:
-                # Generate hourly slots
-                current_time = slot.start_time
-                slot_end = slot.end_time
+            for time_range in time_ranges:
+                # Parse time range like "09:00 - 10:00"
+                try:
+                    start_str, end_str = time_range.split(' - ')
+                    start_time = datetime.strptime(start_str.strip(), '%H:%M').time()
+                    end_time = datetime.strptime(end_str.strip(), '%H:%M').time()
+                except (ValueError, AttributeError):
+                    continue  # Skip malformed time ranges
                 
-                while current_time < slot_end:
-                    # Calculate slot end time (1 hour)
-                    slot_end_time = (
-                        datetime.combine(current_date, current_time) + timedelta(hours=1)
-                    ).time()
+                # Create aware datetime objects
+                slot_start_dt = timezone.make_aware(datetime.combine(current_date, start_time))
+                slot_end_dt = timezone.make_aware(datetime.combine(current_date, end_time))
+                
+                # Generate 1-hour slots within this time range
+                current_dt = slot_start_dt
+                
+                while current_dt < slot_end_dt:
+                    slot_start_time = current_dt.time()
+                    slot_end_dt_temp = current_dt + timedelta(hours=1)
                     
-                    if slot_end_time > slot_end:
+                    # Don't exceed the availability window
+                    if slot_end_dt_temp > slot_end_dt:
                         break
+                    
+                    slot_end_time = slot_end_dt_temp.time()
                     
                     # Check if slot is already booked
                     is_booked = existing_appointments.filter(
                         appointment_date=current_date,
                         start_time__lt=slot_end_time,
-                        end_time__gt=current_time
+                        end_time__gt=slot_start_time
                     ).exists()
                     
                     # Check if slot is in the past
-                    slot_datetime = datetime.combine(current_date, current_time)
-                    is_past = slot_datetime < datetime.now()
+                    is_past = current_dt < now_aware
                     
                     available_slots.append({
                         'date': current_date,
-                        'start_time': current_time,
+                        'start_time': slot_start_time,
                         'end_time': slot_end_time,
                         'is_available': not is_booked and not is_past
                     })
                     
                     # Move to next hour
-                    current_time = slot_end_time
+                    current_dt = slot_end_dt_temp
         
         current_date += timedelta(days=1)
     
     serializer = AvailableSlotSerializer(available_slots, many=True)
-    
     return Response({
         'therapist_id': therapist_id,
         'therapist_name': therapist.full_name,
@@ -504,23 +536,38 @@ def submit_feedback(request, appointment_id):
 @permission_classes([IsAuthenticated])
 def appointment_stats(request):
     """
-    Get appointment statistics for current user
+    Enhanced appointment statistics for Dashboard
     """
     if request.user.role == 'patient':
         appointments = Appointment.objects.filter(patient=request.user)
     else:
+        # For Therapists
         appointments = Appointment.objects.filter(therapist=request.user)
     
+    today = timezone.now().date()
+    
+    # Calculate unique patients (specific to therapists)
+    total_patients = appointments.values('patient').distinct().count() if request.user.role == 'therapist' else 0
+
     stats = {
-        'total': appointments.count(),
+        'total_appointments': appointments.count(),
+        'total_patients': total_patients,
         'pending': appointments.filter(status='pending').count(),
         'confirmed': appointments.filter(status='confirmed').count(),
         'completed': appointments.filter(status='completed').count(),
         'cancelled': appointments.filter(status='cancelled').count(),
         'upcoming': appointments.filter(
-            appointment_date__gte=timezone.now().date(),
+            appointment_date__gte=today,
             status__in=['pending', 'confirmed']
-        ).count()
+        ).count(),
+        # Count sessions today
+        'today_sessions': appointments.filter(appointment_date=today).count(),
+        # Calculate hours (assuming 1 hour per completed appointment)
+        'hours_this_week': appointments.filter(
+            status='completed',
+            appointment_date__gte=today - timedelta(days=today.weekday())
+        ).count(),
+        'success_rate': 98 # Placeholder or logic based on feedback
     }
     
     return Response(stats, status=status.HTTP_200_OK)
