@@ -187,27 +187,19 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         ]
 
     def to_internal_value(self, data):
-        """
-        Modified to safely ignore string URLs in profile_picture
-        and parse JSON strings from FormData.
-        """
-        # Convert to a standard dictionary to allow modification
         if hasattr(data, 'dict'):
             data = data.dict()
         else:
             data = data.copy()
 
-        # THE CRITICAL FIX: 
-        # If profile_picture is a string (which is the URL sent by frontend), 
-        # we REMOVE it from the data so Django doesn't try to validate it as a file.
+    # Remove profile_picture if it's a string (URL) or empty
         if 'profile_picture' in data:
             if isinstance(data['profile_picture'], str):
                 data.pop('profile_picture')
-            # If it's an empty string or "null" string, also remove it
             elif data['profile_picture'] in [None, '', 'null', 'undefined']:
                 data.pop('profile_picture')
 
-        # Handle JSON strings for other fields
+    # Handle JSON strings for other fields
         json_fields = ['specialization_tags', 'languages_spoken', 'availability_slots']
         for field in json_fields:
             value = data.get(field)
@@ -215,8 +207,8 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
                 try:
                     data[field] = json.loads(value)
                 except (ValueError, TypeError):
-                    data[field] = [] # Default to empty list if malformed
-        
+                    data[field] = []
+    
         return super().to_internal_value(data)
 
     def validate_specialization_tags(self, value):
