@@ -88,10 +88,42 @@ export default function SignupPage() {
     if (errorMsg) setErrorMsg("");
   };
 
+  // Update just the handleSubmit function in your signup page
+
+  // Update just the handleSubmit function in your signup page
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.gender || !formData.date_of_birth) {
+      setErrorMsg(
+        "Please fill in all required fields (Gender and Date of Birth).",
+      );
+      return;
+    }
+
+    // Additional validation for therapist
+    if (role === "therapist") {
+      if (!formData.profession_type) {
+        setErrorMsg("Please select a profession type.");
+        return;
+      }
+      if (!formData.license_id) {
+        setErrorMsg("Please enter your license ID.");
+        return;
+      }
+      if (
+        !formData.years_of_experience ||
+        Number(formData.years_of_experience) < 0
+      ) {
+        setErrorMsg("Please enter valid years of experience.");
+        return;
+      }
+    }
+
     setIsLoading(true);
-    setErrorMsg("");
+    setErrorMsg(""); // Clear previous errors
 
     const payload: any = {
       email: formData.email,
@@ -106,7 +138,7 @@ export default function SignupPage() {
     if (role === "patient") {
       payload.emergency_contact_name = formData.emergency_contact_name;
       payload.emergency_contact_phone = formData.emergency_contact_phone;
-      payload.basic_health_info = formData.basic_health_info;
+      payload.basic_health_info = formData.basic_health_info || "";
       payload.terms_accepted = formData.terms_accepted;
     } else {
       payload.profession_type = formData.profession_type;
@@ -114,18 +146,66 @@ export default function SignupPage() {
       payload.years_of_experience = Number(formData.years_of_experience);
     }
 
+    console.log("Sending payload:", payload); // Debug log
+
     try {
       await register(role, payload);
       router.push(
         role === "therapist" ? "/therapist/dashboard" : "/patient/dashboard",
       );
     } catch (err: any) {
+      console.log("Full error:", err);
+      console.log("Error response:", err.response);
+      console.log("Error data:", err.response?.data);
+
       const data = err.response?.data;
+
       if (data) {
-        const firstKey = Object.keys(data)[0];
-        setErrorMsg(`${firstKey}: ${data[firstKey][0]}`);
+        // Check if it's an object with error fields
+        if (typeof data === "object") {
+          // Try to find the first error message
+          let errorMessage = "";
+
+          // Priority order: error, email, then other fields
+          if (data.error) {
+            errorMessage = Array.isArray(data.error)
+              ? data.error[0]
+              : data.error;
+          } else if (data.email) {
+            errorMessage = Array.isArray(data.email)
+              ? data.email[0]
+              : data.email;
+          } else if (data.password) {
+            const pwdError = Array.isArray(data.password)
+              ? data.password[0]
+              : data.password;
+            errorMessage = `Password: ${pwdError}`;
+          } else {
+            // Get first available error
+            const firstKey = Object.keys(data)[0];
+            if (firstKey) {
+              const errorValue = data[firstKey];
+              const msg = Array.isArray(errorValue)
+                ? errorValue[0]
+                : errorValue;
+              const fieldName = firstKey
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+              errorMessage = `${fieldName}: ${msg}`;
+            }
+          }
+
+          setErrorMsg(
+            errorMessage ||
+              "Registration failed. Please check your information.",
+          );
+        } else if (typeof data === "string") {
+          setErrorMsg(data);
+        }
       } else {
-        setErrorMsg("Registration failed. Please try again.");
+        setErrorMsg(
+          "Registration failed. Please check your information and try again.",
+        );
       }
     } finally {
       setIsLoading(false);

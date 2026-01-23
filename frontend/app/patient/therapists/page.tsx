@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import TherapistCard from "@/components/patient/therapists/TherapistCard";
-import BookAppointmentModal from "@/components/patient/BookAppointmentModal"; // We'll create this next
+import BookAppointmentModal from "@/components/patient/BookAppointmentModal/page"; // We'll create this next
 import { Search, Loader2 } from "lucide-react";
 import { bookingAPI } from "@/lib/api";
 

@@ -25,9 +25,11 @@ export default function BookAppointmentModal({
     appointment_date: "",
     start_time: "",
     reason_for_visit: "",
-    appointment_type: "consultation",
+    appointment_type: "initial", // FIXED: Changed from "consultation" to "initial"
     session_mode: "online",
     duration_minutes: 60,
+    contact_phone: "", // FIXED: Will be populated from user data
+    contact_email: "", // FIXED: Will be populated from user data
   });
 
   useEffect(() => {
@@ -36,12 +38,10 @@ export default function BookAppointmentModal({
       try {
         setLoadingSlots(true);
         setError(null);
-        // Ensure ID is a number
         const id =
           typeof therapistId === "string" ? parseInt(therapistId) : therapistId;
         const res = await bookingAPI.getAvailableSlots(id);
 
-        // Handle the nested { slots: [] } structure from your API
         const availableSlots = res.slots
           ? res.slots.filter((s: any) => s.is_available)
           : [];
@@ -56,22 +56,53 @@ export default function BookAppointmentModal({
     loadSlots();
   }, [therapistId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // FIXED: Get user info from localStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setFormData((prev) => ({
+          ...prev,
+          contact_email: user.email || "",
+          contact_phone: user.phone_number || "",
+        }));
+      } catch (e) {
+        console.error("Failed to parse user data", e);
+      }
+    }
+  }, []);
+
+  const handleSubmit = async () => {
     if (!formData.appointment_date || !formData.start_time) {
       alert("Please select a time slot.");
       return;
     }
 
+    if (!formData.reason_for_visit) {
+      alert("Please provide a reason for visit.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await bookingAPI.createAppointment({
+      // Force get the latest user data right before sending
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : {};
+
+      const payload = {
         ...formData,
         therapist: parseInt(therapistId),
-      });
+        // Fallback: if formData state is empty, use user object directly
+        contact_email: formData.contact_email || user.email,
+        contact_phone:
+          formData.contact_phone || user.phone_number || user.phone,
+      };
+
+      await bookingAPI.createAppointment(payload);
       onSuccess();
     } catch (err: any) {
-      alert(err.response?.data?.message || "This slot is no longer available.");
+      // ... error handling ...
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +124,7 @@ export default function BookAppointmentModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <div className="p-8 space-y-6">
           {error ? (
             <div className="flex items-center gap-3 p-4 bg-red-50 text-red-700 rounded-2xl text-sm">
               <AlertCircle size={18} />
@@ -118,7 +149,11 @@ export default function BookAppointmentModal({
                 </div>
               ) : slots.length > 0 ? (
                 <select
-                  required
+                  value={
+                    formData.appointment_date && formData.start_time
+                      ? `${formData.appointment_date}|${formData.start_time}`
+                      : ""
+                  }
                   className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-700 font-medium"
                   onChange={(e) => {
                     const [date, time] = e.target.value.split("|");
@@ -157,7 +192,7 @@ export default function BookAppointmentModal({
               Reason for Visit
             </label>
             <textarea
-              required
+              value={formData.reason_for_visit}
               placeholder="Tell us briefly why you're seeking therapy..."
               className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl h-32 focus:border-blue-500 focus:bg-white outline-none transition-all resize-none"
               onChange={(e) =>
@@ -167,6 +202,7 @@ export default function BookAppointmentModal({
           </div>
 
           <button
+            onClick={handleSubmit}
             disabled={submitting || !formData.start_time || loadingSlots}
             className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:grayscale transition-all flex justify-center items-center gap-2 shadow-lg shadow-blue-200"
           >
@@ -177,7 +213,7 @@ export default function BookAppointmentModal({
             )}
             {submitting ? "Booking..." : "Confirm Appointment"}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -1,36 +1,107 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { User, Stethoscope, ShieldCheck, Brain } from "lucide-react";
 
-const targetAudience = [
+const userJourneys = [
   {
-    category: "Individuals",
-    title: "Seeking Support",
+    icon: User,
+    category: "For Patients",
+    title: "Your Wellness Journey",
     description:
-      "People navigating life's challenges who need a safe space to talk and professional guidance to find their peace.",
-    imageUrl: "/images/home/doc1.jpeg",
-    badge: "Patient",
+      "From personalized assessments and AI-guided support to connecting with licensed therapists—track your progress and access tools designed for your mental health.",
+    features: [
+      "Complete initial mental health assessment",
+      "Chat with AI assistant for immediate support",
+      "Search and book sessions with therapists",
+      "Access recommended articles and quizzes",
+      "Write and track your personal journal",
+    ],
+    color: "blue",
+    badge: "User",
   },
   {
-    category: "Specialists",
-    title: "Health Professionals",
+    icon: Stethoscope,
+    category: "For Therapists",
+    title: "Professional Practice Tools",
     description:
-      "Licensed therapists looking to expand their practice, manage appointments, and connect with patients seamlessly.",
-    imageUrl: "/images/home/doc1.jpeg",
+      "Expand your reach, manage appointments seamlessly, and leverage AI validation to ensure quality care—all while maintaining full control of your practice.",
+    features: [
+      "Manage availability and booking calendar",
+      "Conduct secure therapy sessions",
+      "Create and manage blog articles",
+      "Review and validate AI-generated content",
+      "View patient history and session notes",
+    ],
+    color: "emerald",
     badge: "Therapist",
   },
   {
-    category: "Corporate",
-    title: "Busy Professionals",
+    icon: ShieldCheck,
+    category: "Platform Admin",
+    title: "Quality & Compliance",
     description:
-      "High-performers dealing with stress, burnout, or work-life balance who require flexible, remote mental health support.",
-    imageUrl: "/images/home/doc1.jpeg",
-    badge: "Workplace",
+      "Oversee platform integrity with comprehensive admin tools—approve therapists, moderate content, and ensure compliance across all user interactions.",
+    features: [
+      "Approve and validate new therapists",
+      "Manage user accounts and access",
+      "Moderate therapist-generated content",
+      "Review compliance and safety reports",
+      "Oversee blogs, quizzes, and appointments",
+    ],
+    color: "violet",
+    badge: "Admin",
+  },
+  {
+    icon: Brain,
+    category: "AI Component",
+    title: "Intelligent Support",
+    description:
+      "Our AI enhances the platform by providing personalized recommendations, generating insights, and supporting both patients and therapists throughout their journey.",
+    features: [
+      "Suggest optimal user-therapist matches",
+      "Generate quiz questions and flashcards",
+      "Recommend relevant mental health articles",
+      "Provide session summaries and insights",
+      "Respond to user queries 24/7",
+    ],
+    color: "amber",
+    badge: "AI-Powered",
   },
 ];
 
-export default function WhoIsItFor() {
+const colorClasses = {
+  blue: {
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    hover: "group-hover:bg-blue-600",
+    border: "border-blue-200",
+    gradient: "from-blue-500/10 to-blue-600/10",
+  },
+  emerald: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+    hover: "group-hover:bg-emerald-600",
+    border: "border-emerald-200",
+    gradient: "from-emerald-500/10 to-emerald-600/10",
+  },
+  violet: {
+    bg: "bg-violet-50",
+    text: "text-violet-600",
+    hover: "group-hover:bg-violet-600",
+    border: "border-violet-200",
+    gradient: "from-violet-500/10 to-violet-600/10",
+  },
+  amber: {
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    hover: "group-hover:bg-amber-600",
+    border: "border-amber-200",
+    gradient: "from-amber-500/10 to-amber-600/10",
+  },
+};
+
+export default function UserJourneys() {
   const [visibleItems, setVisibleItems] = useState([]);
   const itemRefs = useRef([]);
 
@@ -54,9 +125,9 @@ export default function WhoIsItFor() {
           });
         },
         {
-          threshold: 0.15, // Triggers when 15% of the card is visible
+          threshold: 0.15,
           rootMargin: "0px 0px -50px 0px",
-        }
+        },
       );
 
       observer.observe(ref);
@@ -69,67 +140,106 @@ export default function WhoIsItFor() {
   }, []);
 
   return (
-    <section className="py-24 bg-white overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-widest">
-            Audience
+            Platform Overview
           </span>
           <h2 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
-            Who is MentalSathi For?
+            How CarePair Works
           </h2>
           <p className="mt-6 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Whether you're looking for guidance or providing it—MentalSathi
-            meets you where you are with professional tools and compassionate
-            care.
+            A comprehensive mental health platform connecting patients,
+            therapists, and AI-powered tools in one seamless experience.
           </p>
         </div>
 
-        {/* Audience Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {targetAudience.map((item, index) => (
-            <div
-              key={index}
-              ref={(el) => (itemRefs.current[index] = el)}
-              className={`group relative flex flex-col transition-all duration-1000 ease-out ${
-                visibleItems.includes(index)
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-16"
-              }`}
-              style={{ transitionDelay: `${index * 150}ms` }}
-            >
-              {/* Image Container */}
-              <div className="relative h-72 w-full overflow-hidden rounded-3xl mb-6 shadow-sm group-hover:shadow-xl transition-all duration-500 bg-slate-100">
-                <Image
-                  src={item.imageUrl}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  priority={index === 0} // Optional: Prioritize the first image
-                />
-                {/* Subtle Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent pointer-events-none" />
-              </div>
+        {/* Journey Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {userJourneys.map((journey, index) => {
+            const Icon = journey.icon;
+            const colors = colorClasses[journey.color];
 
-              {/* Content */}
-              <div className="flex flex-col flex-grow">
-                <span className="text-blue-600 text-xs font-black uppercase tracking-wider mb-2">
-                  {item.badge}
-                </span>
-                <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
-                  {item.title}
-                </h3>
-                <p className="text-slate-600 leading-relaxed text-[15px]">
-                  {item.description}
-                </p>
-              </div>
+            return (
+              <div
+                key={index}
+                ref={(el) => (itemRefs.current[index] = el)}
+                className={`group relative transition-all duration-1000 ease-out ${
+                  visibleItems.includes(index)
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-16"
+                }`}
+                style={{ transitionDelay: `${index * 100}ms` }}
+              >
+                <div
+                  className={`relative bg-white rounded-2xl p-8 shadow-sm border ${colors.border} hover:shadow-xl transition-all duration-500`}
+                >
+                  {/* Icon & Badge */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div
+                      className={`p-3 rounded-xl ${colors.bg} ${colors.hover} transition-colors duration-300`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 ${colors.text} group-hover:text-white transition-colors duration-300`}
+                      />
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full ${colors.bg} ${colors.text} text-xs font-bold uppercase tracking-wider`}
+                    >
+                      {journey.badge}
+                    </span>
+                  </div>
 
-              {/* Decorative line on hover */}
-              <div className="mt-6 h-1 w-0 bg-blue-600 transition-all duration-300 group-hover:w-12 rounded-full" />
-            </div>
-          ))}
+                  {/* Content */}
+                  <div className="mb-6">
+                    <p
+                      className={`${colors.text} text-xs font-black uppercase tracking-wider mb-2`}
+                    >
+                      {journey.category}
+                    </p>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                      {journey.title}
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed text-[15px]">
+                      {journey.description}
+                    </p>
+                  </div>
+
+                  {/* Features List */}
+                  <div className="space-y-2.5">
+                    {journey.features.map((feature, fIndex) => (
+                      <div
+                        key={fIndex}
+                        className="flex items-start gap-3 text-sm text-slate-700"
+                      >
+                        <div
+                          className={`mt-1 w-1.5 h-1.5 rounded-full ${colors.bg} ${colors.text} flex-shrink-0`}
+                        />
+                        <span className="leading-relaxed">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Decorative gradient */}
+                  <div
+                    className={`absolute -bottom-px left-0 right-0 h-1 bg-gradient-to-r ${colors.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-2xl`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-16 text-center">
+          <p className="text-slate-600 mb-4">
+            Ready to start your journey with CarePair?
+          </p>
+          <button className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl">
+            Get Started Today
+          </button>
         </div>
       </div>
     </section>

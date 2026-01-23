@@ -124,6 +124,10 @@ export const therapistAPI = {
     const response = await axiosInstance.get("/therapist/profile/me/");
     return response.data;
   },
+  getDashboardStats: async () => {
+    const response = await axiosInstance.get("/booking/stats/"); // Adjust path to your URL
+    return response.data;
+  },
 
   // Complete Therapist Profile
   completeProfile: async (data: any) => {
@@ -202,7 +206,7 @@ export const bookingAPI = {
     const response = await axiosInstance.get(
       `/booking/therapists/${therapistId}/slots/`,
     );
-    return response.data; // This returns the { therapist_id, therapist_name, slots } object
+    return response.data; // Returns { therapist_id, therapist_name, slots }
   },
 
   // Create the appointment
@@ -213,6 +217,37 @@ export const bookingAPI = {
     );
     return response.data;
   },
+
+  // Fetch appointments for the current user (Patient perspective)
+  getMyAppointments: async (filterType: string) => {
+    const response = await axiosInstance.get("/booking/appointments/my/", {
+      params: { filter: filterType },
+    });
+    return response.data; // Returns { count, results: [...] }
+  },
+
+  // NEW: Fetch appointments for the therapist dashboard
+  // lib/api/index.ts
+  getTherapistAppointments: async (filterType: string) => {
+    const response = await axiosInstance.get(
+      "/booking/therapist/appointments/",
+      { params: { filter: filterType } }, // This sends ?filter=upcoming to Django
+    );
+    return response.data;
+  },
+
+  // NEW: Confirm an appointment (Therapist action)
+  confirmAppointment: async (
+    id: number,
+    data: { meeting_link: string; therapist_notes: string },
+  ) => {
+    const response = await axiosInstance.post(
+      `/booking/therapist/appointments/${id}/confirm/`,
+      data,
+    );
+    return response.data;
+  },
+
   cancelAppointment: async (id: number, reason: string) => {
     const response = await axiosInstance.post(
       `/booking/appointments/${id}/cancel/`,
@@ -223,20 +258,10 @@ export const bookingAPI = {
     return response.data;
   },
 
-  // Fetch appointments for the current user
-  getMyAppointments: async (filterType: string) => {
-    // Ensure we send 'upcoming' or 'past' as the 'filter' parameter
-    const response = await axiosInstance.get("/booking/appointments/my/", {
-      params: { filter: filterType },
-    });
-    // This returns { count, next, previous, results: [...] }
-    return response.data;
-  },
   rescheduleAppointment: async (
     id: number,
     data: { new_date: string; new_start_time: string; reason?: string },
   ) => {
-    // Assuming you use a general update or specialized reschedule endpoint
     const response = await axiosInstance.post(
       `/booking/appointments/${id}/reschedule/`,
       data,

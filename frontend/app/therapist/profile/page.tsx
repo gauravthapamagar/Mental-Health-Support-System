@@ -25,6 +25,8 @@ export default function TherapistProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -68,6 +70,11 @@ export default function TherapistProfile() {
               : JSON.stringify(data.availability_slots, null, 2),
           is_verified: data.is_verified || false,
         });
+
+        // Set profile picture preview if it exists from backend
+        if (data.profile_picture) {
+          setPreviewUrl(data.profile_picture);
+        }
       } catch (err: any) {
         setError("Failed to load profile details.");
       } finally {
@@ -76,6 +83,14 @@ export default function TherapistProfile() {
     };
     fetchProfile();
   }, []);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePicture(file);
+      // Local preview for immediate feedback
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -90,34 +105,61 @@ export default function TherapistProfile() {
     setSaving(true);
     setError(null);
     try {
-      // Parse availability back to JSON if it's a string, otherwise send as is
-      let availability = formData.availability_slots;
-      try {
-        availability = JSON.parse(formData.availability_slots);
-      } catch (e) {
-        // if not valid JSON, send as string or handle error
+      const dataToSend = new FormData();
+
+      // 1. Handle Profile Picture (Only append if it's a new File)
+      if (profilePicture instanceof File) {
+        dataToSend.append("profile_picture", profilePicture);
       }
 
-      await therapistAPI.updateProfile({
-        phone_number: formData.phone_number,
-        profession_type: formData.profession_type,
-        license_id: formData.license_id,
-        years_of_experience: formData.years_of_experience,
-        bio: formData.bio,
-        consultation_fees: formData.consultation_fees,
-        consultation_mode: formData.consultation_mode,
-        specialization_tags: formData.specialization_tags,
-        languages_spoken: formData.languages_spoken,
-        availability_slots: availability,
-      });
+      // 2. Append Standard Fields
+      dataToSend.append("phone_number", formData.phone_number || "");
+      dataToSend.append("profession_type", formData.profession_type || "");
+      dataToSend.append("license_id", formData.license_id || "");
+      dataToSend.append(
+        "years_of_experience",
+        String(formData.years_of_experience || 0),
+      );
+      dataToSend.append("bio", formData.bio || "");
+      dataToSend.append(
+        "consultation_fees",
+        String(formData.consultation_fees || 0),
+      );
+      dataToSend.append("consultation_mode", formData.consultation_mode || "");
+
+      // 3. JSON stringify array fields
+      dataToSend.append(
+        "specialization_tags",
+        JSON.stringify(formData.specialization_tags || []),
+      );
+      dataToSend.append(
+        "languages_spoken",
+        JSON.stringify(formData.languages_spoken || []),
+      );
+
+      // 4. FIXED: Use the 'schedule' state directly
+      // This avoids the parsing errors and ensures clean JSON
+      dataToSend.append("availability_slots", JSON.stringify(schedule || {}));
+
+      // 5. API Call
+      await therapistAPI.updateProfile(dataToSend);
       alert("Profile updated successfully!");
+      window.location.reload();
     } catch (err: any) {
-      setError("Update failed. Check your data format.");
+      // Capture exactly what the backend is complaining about
+      const errorData = err.response?.data;
+      console.error("Update error detail:", errorData || err.message);
+
+      // If the backend sent a specific error message, show it
+      setError(
+        errorData
+          ? JSON.stringify(errorData)
+          : "Update failed. Please check your data.",
+      );
     } finally {
       setSaving(false);
     }
   };
-
   const addItem = (type: "tags" | "langs") => {
     if (type === "tags" && newTag) {
       setFormData((prev) => ({
@@ -211,11 +253,30 @@ export default function TherapistProfile() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-6">
             <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200">
-              <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold relative mb-4">
-                {formData.full_name?.charAt(0)}
-                {formData.is_verified && (
-                  <BadgeCheck className="absolute -top-1 -right-1 w-6 h-6 text-blue-500 fill-white" />
-                )}
+              <div className="relative group">
+                <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold relative mb-4 overflow-hidden border-2 border-white shadow-sm">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    formData.full_name?.charAt(0)
+                  )}
+                  {formData.is_verified && (
+                    <BadgeCheck className="absolute top-0 right-0 w-5 h-5 text-blue-500 fill-white z-10" />
+                  )}
+                </div>
+                <label className="absolute bottom-4 -right-1 p-1.5 bg-white rounded-full shadow-md border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <Camera className="w-4 h-4 text-slate-600" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </label>
               </div>
               <h3 className="font-bold text-slate-900">{formData.full_name}</h3>
               <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">

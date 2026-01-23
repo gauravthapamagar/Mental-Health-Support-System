@@ -10,6 +10,7 @@ import TherapistsSection from "@/components/landingpage/TherapistSection";
 import Header from "@/components/Header";
 import WhoIsItFor from "@/components/landingpage/WhoisFor";
 import AudienceSection from "@/components/landingpage/Options";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -223,6 +224,7 @@ export default function Home() {
         <WhoIsItFor />
         <TherapistsSection />
         <WhyUs />
+        <Footer />
       </main>
     </div>
   );
