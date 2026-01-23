@@ -120,7 +120,7 @@ export const patientAPI = {
 };
 export const therapistAPI = {
   // Get Therapist Profile
-  getProfile: async () => {
+  async getProfile(): Promise<TherapistProfile> {
     const response = await axiosInstance.get("/therapist/profile/me/");
     return response.data;
   },
@@ -153,6 +153,19 @@ export const therapistAPI = {
     );
     return response.data;
   },
+  async updateProfile(formData: FormData): Promise<TherapistProfile> {
+    const response = await axiosInstance.put(
+      "/therapist/profile/update/",
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+  
 };
 export interface RecommendedBlog {
   blog: {
