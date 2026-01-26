@@ -1,3 +1,6 @@
+from django.core.mail import send_mail, EmailMessage
+from django.conf import settings
+
 from django.db.models import Q
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
@@ -348,41 +351,35 @@ def appointment_detail(request, appointment_id):
     serializer = AppointmentDetailSerializer(appointment)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+from .email_utils import send_email_async
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def cancel_appointment(request, appointment_id):
-    """
-    Cancel an appointment (both patient and therapist can cancel)
-    """
+    """Cancel an appointment (both patient and therapist can cancel)"""
+    
     appointment = get_object_or_404(Appointment, id=appointment_id)
     
-    # Check permissions
+    # Permissions
     if request.user.role == 'patient' and appointment.patient != request.user:
-        return Response({
-            'error': 'You do not have permission to cancel this appointment'
-        }, status=status.HTTP_403_FORBIDDEN)
-    
+        return Response({'error': 'You do not have permission to cancel this appointment'}, status=403)
     if request.user.role == 'therapist' and appointment.therapist != request.user:
-        return Response({
-            'error': 'You do not have permission to cancel this appointment'
-        }, status=status.HTTP_403_FORBIDDEN)
+        return Response({'error': 'You do not have permission to cancel this appointment'}, status=403)
     
-    # Check if already cancelled
+    # Already cancelled
     if appointment.status == 'cancelled':
-        return Response({
-            'error': 'Appointment is already cancelled'
-        }, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Appointment is already cancelled'}, status=400)
     
-    # Check if can cancel (24 hours before)
+    # Can cancel 24 hours before
     if not appointment.can_cancel:
-        return Response({
-            'error': 'Cannot cancel appointment less than 24 hours before scheduled time'
-        }, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Cannot cancel appointment less than 24 hours before scheduled time'}, status=400)
     
+    # Serializer validation
     serializer = CancelAppointmentSerializer(data=request.data)
     if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
     
     # Update appointment
     old_status = appointment.status
@@ -400,6 +397,116 @@ def cancel_appointment(request, appointment_id):
         old_status=old_status,
         new_status='cancelled',
         notes=serializer.validated_data['cancellation_reason']
+    )
+    
+    # Prepare email details
+    patient_email = appointment.patient.email
+    therapist_email = appointment.therapist.email
+    cancel_reason = serializer.validated_data['cancellation_reason']
+    
+    # Combine appointment date and time (timezone-aware)
+    appointment_datetime = datetime.combine(appointment.appointment_date, appointment.start_time)
+    appointment_datetime = timezone.make_aware(appointment_datetime)  # ensure timezone aware
+    appointment_time_str = appointment_datetime.strftime("%Y-%m-%d %H:%M")
+    
+    appointment_datetime = timezone.localtime(
+        timezone.make_aware(
+            datetime.combine(appointment.appointment_date, appointment.start_time)
+        )
+    )
+    dt_str = appointment_datetime.strftime("%A, %B %d, %Y at %I:%M %p")
+    tz_name = appointment_datetime.tzname() or "local time"
+
+    reason = serializer.validated_data['cancellation_reason'].strip()
+    reason_text = f"Reason: {reason}" if reason else "No reason was provided."
+
+    common_context = {
+        'appointment_datetime': dt_str,
+        'timezone': tz_name,
+        'reason': reason if reason else None,
+        'system_name': "Your Therapy Platform",     # ← change this
+        'support_email': settings.DEFAULT_FROM_EMAIL,
+        'support_phone': "+977-9841XXXXXX",         # ← optional
+        'platform_url': "https://yourdomain.com/dashboard/appointments",
+    }
+
+    # Decide who is who
+    if request.user.role == 'patient':
+        to_other_email   = appointment.therapist.email
+        to_other_name    = appointment.therapist.full_name
+        to_self_email    = appointment.patient.email
+        to_self_name     = appointment.patient.full_name
+
+        subject_other = f"Appointment Cancelled by {appointment.patient.full_name}"
+        subject_self  = "Your Appointment Has Been Cancelled"
+
+        other_context = {
+            **common_context,
+            'greeting_name': to_other_name,
+            'other_party_name': appointment.patient.full_name,
+            'other_party_role': "patient",
+            'cancelled_by_you': False,
+        }
+        self_context = {
+            **common_context,
+            'greeting_name': to_self_name,
+            'other_party_name': appointment.therapist.full_name,
+            'other_party_role': "therapist",
+            'cancelled_by_you': True,
+        }
+
+    else:  # therapist cancelled
+        to_other_email   = appointment.patient.email
+        to_other_name    = appointment.patient.full_name
+        to_self_email    = appointment.therapist.email
+        to_self_name     = appointment.therapist.full_name
+
+        subject_other = f"Appointment Cancelled by {appointment.therapist.full_name}"
+        subject_self  = "You Cancelled an Appointment"
+
+        other_context = {
+            **common_context,
+            'greeting_name': to_other_name,
+            'other_party_name': appointment.therapist.full_name,
+            'other_party_role': "therapist",
+            'cancelled_by_you': False,
+        }
+        self_context = {
+            **common_context,
+            'greeting_name': to_self_name,
+            'other_party_name': appointment.patient.full_name,
+            'other_party_role': "patient",
+            'cancelled_by_you': True,
+        }
+
+    # ── Render emails ──────────────────────────────────────────────
+
+    # To the other person (the one who didn't cancel)
+    html_other = render_to_string(
+        'emails/appointment_cancelled_to_other.html',
+        other_context
+    )
+    plain_other = strip_tags(html_other)   # simple fallback
+
+    send_email_async(
+        subject=subject_other,
+        message=plain_other,
+        html_message=html_other,
+        recipient_list=[to_other_email]
+    )
+
+    # Confirmation to the person who cancelled
+    html_self = render_to_string(
+        'emails/appointment_cancelled_by_self.html',
+        self_context
+    )
+    plain_self = strip_tags(html_self)
+
+    send_email_async(
+        subject=subject_self,
+        message=plain_self,
+        html_message=html_self,
+        recipient_list=[to_self_email]
     )
     
     return Response({

@@ -191,3 +191,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Quiz Generation Settings
 QUESTIONS_PER_QUIZ = 5  # Number of questions to generate per blog
 VERIFICATION_POINTS_THRESHOLD = 100  # Points needed for auto-verification
+
+from decouple import config  # type: ignore
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+print("EMAIL USER:", EMAIL_HOST_USER)
+print("PASSWORD LENGTH:", len(EMAIL_HOST_PASSWORD))
+EMAIL_TIMEOUT = 10

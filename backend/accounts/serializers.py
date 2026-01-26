@@ -48,14 +48,13 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Extract profile-specific data BEFORE creating user
+    # Extract profile-specific data BEFORE creating user
         validated_data.pop('password2')
         emergency_contact_name = validated_data.pop('emergency_contact_name')
         emergency_contact_phone = validated_data.pop('emergency_contact_phone')
         basic_health_info = validated_data.pop('basic_health_info', '')
         terms_accepted = validated_data.pop('terms_accepted')
 
-        # Use atomic transaction - if ANY part fails, EVERYTHING rolls back
         try:
             with transaction.atomic():
                 # Create the User
@@ -64,7 +63,7 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
                     **validated_data
                 )
 
-                # Create or get the patient profile
+                # Create or update Patient Profile
                 profile, created = PatientProfile.objects.get_or_create(
                     user=user,
                     defaults={
@@ -75,7 +74,7 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
                     }
                 )
 
-                # If profile already existed, update it
+                # If profile already exists, update it
                 if not created:
                     profile.emergency_contact_name = emergency_contact_name
                     profile.emergency_contact_phone = emergency_contact_phone
@@ -84,10 +83,8 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
                     profile.save()
 
                 return user
-                
+
         except Exception as e:
-            # If anything goes wrong, the transaction rolls back automatically
-            # Re-raise with a clear message
             raise serializers.ValidationError({
                 "error": f"Registration failed: {str(e)}"
             })
