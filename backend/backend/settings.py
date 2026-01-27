@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'blogs',
     'booking',
     'chatbot',
+    'journal',
 ]
 
 MIDDLEWARE = [
@@ -201,6 +202,5 @@ EMAIL_PORT = config('EMAIL_PORT', cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-print("EMAIL USER:", EMAIL_HOST_USER)
-print("PASSWORD LENGTH:", len(EMAIL_HOST_PASSWORD))
+
 EMAIL_TIMEOUT = 10

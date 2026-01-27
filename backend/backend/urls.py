@@ -10,6 +10,8 @@ urlpatterns = [
     path('api/survey/', include('surveys.urls')),
     path('api/booking/', include('booking.urls')),
     path('api/chat/', include('chatbot.urls')),
+    path('api/journal/', include('journal.urls')),
+    
     
 ]
 if settings.DEBUG:
