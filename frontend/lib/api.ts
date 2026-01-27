@@ -98,6 +98,7 @@ export const authAPI = {
     localStorage.removeItem("refresh_token");
   },
 };
+
 export const patientAPI = {
   // Get Patient Profile (Matches your Django path: patient/profile/me/)
   getProfile: async () => {
@@ -118,6 +119,11 @@ export const patientAPI = {
     return response.data;
   },
 };
+
+export interface TherapistProfile {
+  [key: string]: any;
+}
+
 export const therapistAPI = {
   // Get Therapist Profile
   async getProfile(): Promise<TherapistProfile> {
@@ -141,32 +147,22 @@ export const therapistAPI = {
   // Update Therapist Profile - Handle both JSON and FormData
   updateProfile: async (data: FormData | any) => {
     const isFormData = data instanceof FormData;
-    
+
     const response = await axiosInstance.put(
       "/therapist/profile/update/",
       data,
-      isFormData ? {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      } : {}
+      isFormData
+        ? {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        : {},
     );
     return response.data;
   },
-  async updateProfile(formData: FormData): Promise<TherapistProfile> {
-    const response = await axiosInstance.put(
-      "/therapist/profile/update/",
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-    return response.data;
-  },
-  
 };
+
 export interface RecommendedBlog {
   blog: {
     id: number;
@@ -175,12 +171,12 @@ export interface RecommendedBlog {
     category: string;
     excerpt: string;
     cover_image: string | null;
-    reading_time: number; // Added to match your model
+    reading_time: number;
   };
   reason: string;
-  recommendation_type: string; // Matched to corrected backend
+  recommendation_type: string;
 }
-// lib/api.ts -> Update the blogAPI object
+
 export const blogAPI = {
   getBlogs: async (params?: any) => {
     const response = await axiosInstance.get("/blog/", { params });
@@ -192,7 +188,6 @@ export const blogAPI = {
     return response.data;
   },
 
-  // Alias both names so your components don't break
   getBlogDetail: async (slug: string) => {
     const response = await axiosInstance.get(`/blog/${slug}/`);
     return response.data;
@@ -208,6 +203,7 @@ export const blogAPI = {
     return response.data;
   },
 };
+
 export const bookingAPI = {
   // Get therapists for the booking list
   listTherapists: async (params?: {
@@ -218,7 +214,7 @@ export const bookingAPI = {
     const response = await axiosInstance.get("/booking/therapists/", {
       params,
     });
-    return response.data; // Returns { results: [], count: ... }
+    return response.data;
   },
 
   // Get slots for a specific therapist
@@ -226,7 +222,7 @@ export const bookingAPI = {
     const response = await axiosInstance.get(
       `/booking/therapists/${therapistId}/slots/`,
     );
-    return response.data; // Returns { therapist_id, therapist_name, slots }
+    return response.data;
   },
 
   // Create the appointment
@@ -243,20 +239,19 @@ export const bookingAPI = {
     const response = await axiosInstance.get("/booking/appointments/my/", {
       params: { filter: filterType },
     });
-    return response.data; // Returns { count, results: [...] }
+    return response.data;
   },
 
-  // NEW: Fetch appointments for the therapist dashboard
-  // lib/api/index.ts
+  // Fetch appointments for the therapist dashboard
   getTherapistAppointments: async (filterType: string) => {
     const response = await axiosInstance.get(
       "/booking/therapist/appointments/",
-      { params: { filter: filterType } }, // This sends ?filter=upcoming to Django
+      { params: { filter: filterType } },
     );
     return response.data;
   },
 
-  // NEW: Confirm an appointment (Therapist action)
+  // Confirm an appointment (Therapist action)
   confirmAppointment: async (
     id: number,
     data: { meeting_link: string; therapist_notes: string },
@@ -268,16 +263,54 @@ export const bookingAPI = {
     return response.data;
   },
 
+  // Cancel an appointment
   cancelAppointment: async (id: number, reason: string) => {
-    const response = await axiosInstance.post(
-      `/booking/appointments/${id}/cancel/`,
-      {
-        cancellation_reason: reason,
-      },
-    );
-    return response.data;
+    try {
+      console.log("[v0] Cancelling appointment:", id);
+      console.log("[v0] Cancellation reason:", reason);
+
+      const response = await axiosInstance.post(
+        `/booking/appointments/${id}/cancel/`,
+        {
+          cancellation_reason: reason,
+        },
+      );
+
+      console.log("[v0] Cancel response status:", response.status);
+      console.log("[v0] Cancel response data:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.log("[v0] Cancel error status:", error.response?.status);
+      console.log("[v0] Cancel error data:", error.response?.data);
+      console.log("[v0] Cancel error message:", error.message);
+
+      // If 204 No Content (success with no response body)
+      if (error.response?.status === 204) {
+        console.log("[v0] Appointment cancelled successfully (204 response)");
+        return { success: true };
+      }
+
+      throw error;
+    }
+  },
+  getAppointmentDetail: async (appointmentId: string): Promise<any> => {
+    try {
+      if (!appointmentId) {
+        throw new Error('Appointment ID is required');
+      }
+      console.log('[v0] Fetching appointment details:', appointmentId);
+      const response = await axiosInstance.get(
+        `/booking/appointments/${appointmentId}/`
+      );
+      console.log('[v0] Appointment details fetched successfully');
+      return response.data;
+    } catch (error) {
+      console.error('[v0] Error fetching appointment details:', error);
+      throw error;
+    }
   },
 
+  // Reschedule an appointment
   rescheduleAppointment: async (
     id: number,
     data: { new_date: string; new_start_time: string; reason?: string },
@@ -289,4 +322,5 @@ export const bookingAPI = {
     return response.data;
   },
 };
+
 export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI };

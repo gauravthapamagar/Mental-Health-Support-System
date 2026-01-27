@@ -9,10 +9,12 @@ import {
   Calendar,
   Clock,
   Loader2,
+  Eye,
 } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { bookingAPI } from "@/lib/api";
+
+import AppointmentDetailsModal from "./AppointmentDetailsModal";
 
 interface AppointmentCardProps {
   id: string;
@@ -25,7 +27,7 @@ interface AppointmentCardProps {
   sentiment?: string;
   status?: "upcoming" | "completed" | "cancelled";
   notes?: string;
-  onRefresh?: () => void; // Added to refresh parent list
+  onRefresh?: () => void;
 }
 
 export default function AppointmentCard({
@@ -43,6 +45,7 @@ export default function AppointmentCard({
 }: AppointmentCardProps) {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Form states
@@ -54,13 +57,41 @@ export default function AppointmentCard({
   });
 
   const handleCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert("Please provide a cancellation reason.");
+      return;
+    }
+
+    if (cancelReason.trim().length < 10) {
+      alert("Cancellation reason must be at least 10 characters.");
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log("[v0] Sending cancel request with reason:", cancelReason);
       await bookingAPI.cancelAppointment(parseInt(id), cancelReason);
+      console.log("[v0] Cancel successful");
       setShowCancelModal(false);
+      setCancelReason("");
       if (onRefresh) onRefresh();
-    } catch (err) {
-      alert("Failed to cancel appointment. Please try again.");
+    } catch (err: any) {
+      console.log("[v0] Cancel error:", err.response?.status, err.response?.data);
+
+      let errorMsg = "Failed to cancel appointment. Please try again.";
+      const responseData = err.response?.data;
+
+      if (responseData?.cancellation_reason) {
+        errorMsg = Array.isArray(responseData.cancellation_reason)
+          ? responseData.cancellation_reason[0]
+          : responseData.cancellation_reason;
+      } else if (responseData?.error) {
+        errorMsg = responseData.error;
+      } else if (responseData?.detail) {
+        errorMsg = responseData.detail;
+      }
+
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -73,10 +104,8 @@ export default function AppointmentCard({
     }
     setLoading(true);
     try {
-      // Logic would go here to bookingAPI.reschedule (requires backend endpoint)
-      alert(
-        `Request sent for ${rescheduleData.date} at ${rescheduleData.time}`,
-      );
+      // TODO: real reschedule API call when implemented
+      alert(`Request sent for ${rescheduleData.date} at ${rescheduleData.time}`);
       setShowRescheduleModal(false);
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -98,11 +127,7 @@ export default function AppointmentCard({
   };
 
   const getFormatLabel = () =>
-    format === "video"
-      ? "Video Call"
-      : format === "phone"
-        ? "Phone Call"
-        : "In-Person";
+    format === "video" ? "Video Call" : format === "phone" ? "Phone Call" : "In-Person";
 
   const getFormatColor = () => {
     switch (format) {
@@ -146,8 +171,8 @@ export default function AppointmentCard({
                     status === "completed"
                       ? "bg-green-100 text-green-700"
                       : status === "cancelled"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-blue-100 text-blue-700"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   {status}
@@ -158,20 +183,18 @@ export default function AppointmentCard({
 
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1.5">
-                  <Calendar size={16} />{" "}
+                  <Calendar size={16} />
                   <span className="font-medium">{date}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Clock size={16} />{" "}
+                  <Clock size={16} />
                   <span className="font-medium">{time}</span>
                 </div>
                 <div
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border ${getFormatColor()}`}
                 >
-                  {getFormatIcon()}{" "}
-                  <span className="font-medium text-xs">
-                    {getFormatLabel()}
-                  </span>
+                  {getFormatIcon()}
+                  <span className="font-medium text-xs">{getFormatLabel()}</span>
                 </div>
               </div>
             </div>
@@ -185,22 +208,27 @@ export default function AppointmentCard({
                   <button
                     onClick={() => setShowRescheduleModal(true)}
                     className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                    title="Reschedule"
                   >
                     <RefreshCw size={20} />
                   </button>
                   <button
                     onClick={() => setShowCancelModal(true)}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Cancel"
                   >
                     <X size={20} />
                   </button>
                 </div>
-                <Link
-                  href={`/patient/appointments/${id}`}
-                  className="w-full lg:w-auto px-6 py-2 bg-black text-white rounded-lg text-sm font-medium"
+
+                <button
+                  onClick={() => setShowDetailsModal(true)}
+                  className="w-full lg:w-auto px-6 py-2 bg-black text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5"
                 >
+                  <Eye size={16} />
                   Details
-                </Link>
+                </button>
+
                 {format === "video" && (
                   <button className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">
                     <Video size={16} /> Join Call
@@ -208,21 +236,23 @@ export default function AppointmentCard({
                 )}
               </>
             )}
+
             {status === "completed" && (
-              <Link
-                href={`/patient/appointments/${id}`}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-sm"
+              <button
+                onClick={() => setShowDetailsModal(true)}
+                className="w-full lg:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
               >
                 Review
-              </Link>
+              </button>
             )}
+
             {status === "cancelled" && (
-              <Link
-                href="/patient/therapists"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm"
+              <button
+                onClick={() => setShowDetailsModal(true)}
+                className="w-full lg:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
               >
-                Rebook
-              </Link>
+                View Details
+              </button>
             )}
           </div>
         </div>
@@ -237,6 +267,7 @@ export default function AppointmentCard({
               <input
                 type="date"
                 className="w-full p-3 border rounded-lg"
+                value={rescheduleData.date}
                 onChange={(e) =>
                   setRescheduleData({ ...rescheduleData, date: e.target.value })
                 }
@@ -244,35 +275,34 @@ export default function AppointmentCard({
               <input
                 type="time"
                 className="w-full p-3 border rounded-lg"
+                value={rescheduleData.time}
                 onChange={(e) =>
                   setRescheduleData({ ...rescheduleData, time: e.target.value })
                 }
               />
               <textarea
-                placeholder="Reason..."
+                placeholder="Reason for rescheduling..."
                 className="w-full p-3 border rounded-lg"
                 rows={3}
+                value={rescheduleData.reason}
                 onChange={(e) =>
-                  setRescheduleData({
-                    ...rescheduleData,
-                    reason: e.target.value,
-                  })
+                  setRescheduleData({ ...rescheduleData, reason: e.target.value })
                 }
               />
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRescheduleModal(false)}
-                className="flex-1 py-3 border rounded-lg"
+                className="flex-1 py-3 border rounded-lg hover:bg-gray-50"
               >
-                Back
+                Cancel
               </button>
               <button
                 onClick={handleReschedule}
                 disabled={loading}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-lg flex justify-center"
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg flex justify-center items-center gap-2 disabled:opacity-50"
               >
-                {loading ? <Loader2 className="animate-spin" /> : "Confirm"}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : "Confirm Reschedule"}
               </button>
             </div>
           </div>
@@ -283,40 +313,66 @@ export default function AppointmentCard({
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-red-600 mb-2">
-              Cancel Appointment?
-            </h3>
+            <h3 className="text-xl font-bold text-red-600 mb-2">Cancel Appointment?</h3>
             <p className="text-gray-600 mb-4 text-sm">
-              This action cannot be undone.
+              This action cannot be undone. Please provide a reason for cancellation.
             </p>
-            <textarea
-              placeholder="Why are you cancelling? (Optional)"
-              className="w-full p-3 border rounded-lg mb-4"
-              rows={3}
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-            />
+            <div className="mb-4">
+              <textarea
+                placeholder="Why are you cancelling? (minimum 10 characters)"
+                className="w-full p-3 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+              <p
+                className={`text-xs font-medium ${
+                  cancelReason.trim().length < 10 && cancelReason.length > 0
+                    ? "text-red-600"
+                    : "text-gray-500"
+                }`}
+              >
+                {cancelReason.trim().length}/10 characters minimum
+              </p>
+            </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setShowCancelModal(false)}
-                className="flex-1 py-3 border rounded-lg"
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason("");
+                }}
+                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Keep it
               </button>
               <button
                 onClick={handleCancel}
-                disabled={loading}
-                className="flex-1 py-3 bg-red-600 text-white rounded-lg flex justify-center"
+                disabled={loading || cancelReason.trim().length < 10}
+                className="flex-1 py-3 bg-red-600 text-white rounded-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 font-medium"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  "Cancel Session"
-                )}
+                {loading ? <Loader2 className="animate-spin" size={18} /> : "Cancel Session"}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && (
+        <AppointmentDetailsModal
+          appointmentId={id}
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          therapistName={therapist}
+          // You can add more props if your modal already supports / needs them:
+          // title={title}
+          // date={date}
+          // time={time}
+          // format={format}
+          // status={status}
+          // matchScore={matchScore}
+          // notes={notes}
+        />
       )}
     </>
   );

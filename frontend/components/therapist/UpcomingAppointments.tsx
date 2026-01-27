@@ -1,185 +1,185 @@
-import React, { useState } from "react";
-import { Clock, Video, MapPin, MoreVertical, Phone } from "lucide-react";
+"use client";
+import React, { useEffect, useState } from "react";
+import { bookingAPI } from "@/lib/api";
+import Header from "@/components/Header"; // Import your header
+import {
+  CheckCircle,
+  XCircle,
+  Video,
+  Clock,
+  Calendar,
+  MoreVertical,
+  Plus,
+} from "lucide-react";
 
-interface UpcomingAppointmentsProps {
-  therapistId?: number;
-}
+const TherapistAppointments = () => {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("upcoming");
 
-const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
-  therapistId,
-}) => {
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  // 1. Add activeTab to the dependency array so it re-fetches when you click tabs
+  useEffect(() => {
+    fetchAppointments();
+  }, [activeTab]);
 
-  const appointments = [
-    {
-      id: 1,
-      patient: "John Doe",
-      time: "10:00 AM",
-      duration: "50 min",
-      type: "online",
-      status: "confirmed",
-      avatar: "JD",
-      condition: "Anxiety",
-      sessionNumber: 5,
-    },
-    {
-      id: 2,
-      patient: "Jane Smith",
-      time: "11:30 AM",
-      duration: "50 min",
-      type: "offline",
-      status: "confirmed",
-      avatar: "JS",
-      condition: "Depression",
-      sessionNumber: 12,
-    },
-    {
-      id: 3,
-      patient: "Mike Johnson",
-      time: "2:00 PM",
-      duration: "50 min",
-      type: "online",
-      status: "pending",
-      avatar: "MJ",
-      condition: "PTSD",
-      sessionNumber: 3,
-    },
-  ];
+  const fetchAppointments = async () => {
+    setLoading(true); // Start loading
+    try {
+      // 2. Pass the activeTab as a filter to your backend
+      const data = await bookingAPI.getTherapistAppointments(activeTab);
 
-  const getStatusBadge = (status: string) => {
-    if (status === "confirmed") {
-      return (
-        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-          Confirmed
-        </span>
-      );
+      // 3. Access .results because the backend is paginated
+      setAppointments(data.results || []);
+    } catch (error) {
+      console.error("Error fetching appointments", error);
+    } finally {
+      setLoading(false); // 4. CRITICAL: Turn off loading state
     }
-    return (
-      <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">
-        Pending
-      </span>
-    );
+  };
+
+  const handleConfirm = async (id: number) => {
+    const meeting_link = `https://meet.carepair.com/${Math.random().toString(36).substring(7)}`;
+    try {
+      await bookingAPI.confirmAppointment(id, {
+        meeting_link,
+        therapist_notes: "Looking forward to our session.",
+      });
+      fetchAppointments();
+    } catch (error) {
+      console.error("Confirmation failed", error);
+    }
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">
-          Upcoming Appointments
-        </h2>
-        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-          View all
-        </button>
-      </div>
-      <div className="space-y-4">
-        {appointments.map((appointment) => (
-          <div
-            key={appointment.id}
-            className="group relative flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-center gap-4 flex-1">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
-                  {appointment.avatar}
-                </div>
-                <div
-                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                    appointment.status === "confirmed"
-                      ? "bg-green-500"
-                      : "bg-yellow-500"
-                  }`}
-                ></div>
-              </div>
+    <>
+      <Header />
+      {/* pt-20 pushes content down from the fixed header */}
+      <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* Header Section */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                Session Management
+              </h1>
+              <p className="text-slate-600">
+                Review and manage your upcoming patient sessions
+              </p>
+            </div>
+            <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all">
+              <Plus className="w-5 h-5" />
+              Set Availability
+            </button>
+          </div>
 
-              {/* Patient Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-gray-900">
-                    {appointment.patient}
-                  </h3>
-                  {getStatusBadge(appointment.status)}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {appointment.time}
-                  </span>
-                  <span>•</span>
-                  <span>{appointment.duration}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    {appointment.type === "online" ? (
+          {/* Filter Tabs - Matches Blog Dashboard Style */}
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+            {["upcoming", "pending", "history"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-8 py-2.5 rounded-full font-semibold whitespace-nowrap transition-all ${
+                  activeTab === tab
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                    : "bg-white text-slate-700 border-2 border-slate-200 hover:border-blue-300"
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Content Area */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+              <p className="mt-4 text-slate-600">Loading your schedule...</p>
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-300">
+              <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                No appointments found
+              </h3>
+              <p className="text-slate-600">
+                Your schedule for this section is currently empty.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {appointments.map((apt: any) => (
+                <div
+                  key={apt.id}
+                  className="bg-white p-6 rounded-2xl border border-slate-200 hover:shadow-lg transition-all flex items-center justify-between"
+                >
+                  <div className="flex items-center space-x-6">
+                    {/* Patient Avatar Initials */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-100">
+                      {apt.patient?.full_name?.charAt(0) || "P"}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-bold text-slate-900 text-xl">
+                          {apt.patient?.full_name || "Anonymous Patient"}
+                        </h3>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                            apt.status === "confirmed"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {apt.status_label || apt.status}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-6 text-sm font-medium text-slate-500">
+                        <span className="flex items-center gap-2">
+                          <Calendar size={16} className="text-blue-600" />
+                          {apt.appointment_date}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Clock size={16} className="text-blue-600" />
+                          {apt.start_time}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    {apt.status === "pending" && (
                       <>
-                        <Video className="w-4 h-4" /> Online
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="w-4 h-4" /> In-person
+                        <button
+                          onClick={() => handleConfirm(apt.id)}
+                          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-100"
+                        >
+                          <CheckCircle size={18} className="mr-2" /> Confirm
+                        </button>
+                        <button className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition border border-slate-200">
+                          <XCircle size={22} />
+                        </button>
                       </>
                     )}
-                  </span>
+
+                    {apt.status === "confirmed" && (
+                      <button className="flex items-center px-6 py-3 bg-green-500 text-white rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-lg shadow-green-100">
+                        <Video size={18} className="mr-2" /> Start Session
+                      </button>
+                    )}
+
+                    <button className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl transition border border-slate-200">
+                      <MoreVertical size={22} />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {appointment.condition} • Session #{appointment.sessionNumber}
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              {appointment.type === "online" && (
-                <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                  <Phone className="w-4 h-4" />
-                </button>
-              )}
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md">
-                Start Session
-              </button>
-              <button
-                onClick={() =>
-                  setActiveMenu(
-                    activeMenu === appointment.id ? null : appointment.id,
-                  )
-                }
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {activeMenu === appointment.id && (
-                <div className="absolute right-4 top-16 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-10">
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                    View Details
-                  </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                    Reschedule
-                  </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State (if no appointments) */}
-      {appointments.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-gray-500 font-medium">No appointments today</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Your schedule is clear for today
-          </p>
+          )}
         </div>
-      )}
-    </div>
+      </main>
+    </>
   );
 };
 
-export default UpcomingAppointments;
+export default TherapistAppointments;
