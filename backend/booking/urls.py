@@ -20,4 +20,7 @@ urlpatterns = [
     
     # Statistics
     path('stats/', views.appointment_stats, name='appointment-stats'),
+    path('therapist/activity/', views.therapist_recent_activity, name='therapist-activity'),
+    path('therapist/patients/', views.get_therapist_patients, name='therapist-patients'),
+    path('patient/dashboard-stats/', views.patient_dashboard_stats, name='patient-dashboard-stats'),
 ]

@@ -571,3 +571,168 @@ def appointment_stats(request):
     }
     
     return Response(stats, status=status.HTTP_200_OK)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTherapist])
+def therapist_recent_activity(request):
+    """
+    Get recent activity for therapist dashboard
+    Returns last 10 appointment history entries
+    """
+    from .models import AppointmentHistory
+    
+    # Get appointment histories for this therapist's appointments
+    activities = AppointmentHistory.objects.filter(
+        appointment__therapist=request.user
+    ).select_related(
+        'appointment',
+        'appointment__patient',
+        'changed_by'
+    ).order_by('-created_at')[:10]
+    
+    activity_data = []
+    for history in activities:
+        activity_data.append({
+            'id': history.id,
+            'action': history.action,
+            'appointment_id': history.appointment.id,
+            'patient_name': history.appointment.patient.full_name,
+            'notes': history.notes or '',
+            'created_at': history.created_at.isoformat(),
+            'old_status': history.old_status,
+            'new_status': history.new_status,
+        })
+    
+    return Response(activity_data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTherapist])
+def get_therapist_patients(request):
+    """
+    Get all patients for the logged-in therapist with their statistics
+    """
+    from django.db.models import Count, Q, Max, Min
+    from datetime import date
+    
+    # Get all unique patients who have appointments with this therapist
+    patients_data = []
+    
+    # Get distinct patients
+    patient_ids = Appointment.objects.filter(
+        therapist=request.user
+    ).values_list('patient_id', distinct=True)
+    
+    for patient_id_tuple in patient_ids:
+        patient_id = patient_id_tuple[0]
+        patient = User.objects.get(id=patient_id)
+        
+        # Get appointment statistics
+        appointments = Appointment.objects.filter(
+            therapist=request.user,
+            patient=patient
+        )
+        
+        total_appointments = appointments.count()
+        completed = appointments.filter(status='completed').count()
+        upcoming = appointments.filter(
+            appointment_date__gte=timezone.now().date(),
+            status__in=['pending', 'confirmed']
+        ).count()
+        cancelled = appointments.filter(status='cancelled').count()
+        
+        # Get last and next appointment dates
+        last_appointment = appointments.filter(
+            status='completed'
+        ).order_by('-appointment_date', '-start_time').first()
+        
+        next_appointment = appointments.filter(
+            appointment_date__gte=timezone.now().date(),
+            status__in=['pending', 'confirmed']
+        ).order_by('appointment_date', 'start_time').first()
+        
+        # Get first appointment date (when patient joined)
+        first_appointment = appointments.order_by('created_at').first()
+        
+        # Calculate age from date_of_birth
+        age = None
+        if hasattr(patient, 'patient_profile') and patient.patient_profile.date_of_birth:
+            dob = patient.patient_profile.date_of_birth
+            today = date.today()
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        
+        patients_data.append({
+            'id': patient.id,
+            'full_name': patient.full_name,
+            'email': patient.email,
+            'phone_number': patient.phone_number or '',
+            'gender': patient.patient_profile.gender if hasattr(patient, 'patient_profile') else 'N/A',
+            'date_of_birth': str(patient.patient_profile.date_of_birth) if hasattr(patient, 'patient_profile') and patient.patient_profile.date_of_birth else None,
+            'age': age,
+            'total_appointments': total_appointments,
+            'completed_sessions': completed,
+            'upcoming_sessions': upcoming,
+            'cancelled_sessions': cancelled,
+            'last_appointment_date': last_appointment.appointment_date.isoformat() if last_appointment else None,
+            'next_appointment_date': next_appointment.appointment_date.isoformat() if next_appointment else None,
+            'joined_date': first_appointment.created_at.isoformat() if first_appointment else None,
+        })
+    
+    # Sort by most recent activity
+    patients_data.sort(key=lambda x: x['last_appointment_date'] or '', reverse=True)
+    
+    return Response(patients_data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsPatient])
+def patient_dashboard_stats(request):
+    """
+    Get dashboard statistics for the logged-in patient
+    """
+    from django.db.models import Count, Q
+    
+    appointments = Appointment.objects.filter(patient=request.user)
+    
+    # Get next upcoming appointment
+    next_appointment = appointments.filter(
+        appointment_date__gte=timezone.now().date(),
+        status__in=['pending', 'confirmed']
+    ).select_related('therapist').order_by('appointment_date', 'start_time').first()
+    
+    # Get total appointments
+    total_appointments = appointments.count()
+    
+    # Get completed sessions
+    completed_sessions = appointments.filter(status='completed').count()
+    
+    # Get upcoming sessions
+    upcoming_sessions = appointments.filter(
+        appointment_date__gte=timezone.now().date(),
+        status__in=['pending', 'confirmed']
+    ).count()
+    
+    # Get cancelled sessions
+    cancelled_sessions = appointments.filter(status='cancelled').count()
+    
+    # Calculate completion rate
+    completion_rate = 0
+    if total_appointments > 0:
+        completion_rate = round((completed_sessions / total_appointments) * 100)
+    
+    # Format next appointment data
+    next_appointment_data = None
+    if next_appointment:
+        next_appointment_data = {
+            'id': next_appointment.id,
+            'date': next_appointment.appointment_date.isoformat(),
+            'start_time': next_appointment.start_time.strftime('%I:%M %p'),
+            'therapist_name': next_appointment.therapist.full_name,
+            'therapist_id': next_appointment.therapist.id,
+            'session_mode': next_appointment.session_mode,
+            'appointment_type': next_appointment.get_appointment_type_display(),
+        }
+    
+    return Response({
+        'total_appointments': total_appointments,
+        'completed_sessions': completed_sessions,
+        'upcoming_sessions': upcoming_sessions,
+        'cancelled_sessions': cancelled_sessions,
+        'completion_rate': completion_rate,
+        'next_appointment': next_appointment_data,
+    }, status=status.HTTP_200_OK)

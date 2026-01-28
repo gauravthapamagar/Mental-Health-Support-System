@@ -141,15 +141,17 @@ export const therapistAPI = {
   // Update Therapist Profile - Handle both JSON and FormData
   updateProfile: async (data: FormData | any) => {
     const isFormData = data instanceof FormData;
-    
+
     const response = await axiosInstance.put(
       "/therapist/profile/update/",
       data,
-      isFormData ? {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      } : {}
+      isFormData
+        ? {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        : {},
     );
     return response.data;
   },
@@ -159,13 +161,29 @@ export const therapistAPI = {
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
     return response.data;
   },
-  
+};
+export const publicAPI = {
+  // List all therapists (public, no auth required)
+  listTherapists: async (params?: {
+    specialization?: string;
+    search?: string;
+    page?: number;
+  }) => {
+    const response = await axiosInstance.get("/public/therapists/", { params });
+    return response.data;
+  },
+
+  // Get single therapist detail (public, no auth required)
+  getTherapistDetail: async (id: number) => {
+    const response = await axiosInstance.get(`/public/therapists/${id}/`);
+    return response.data;
+  },
 };
 export interface RecommendedBlog {
   blog: {
@@ -288,5 +306,26 @@ export const bookingAPI = {
     );
     return response.data;
   },
+  getRecentActivity: async () => {
+    const response = await axiosInstance.get("/booking/therapist/activity/");
+    return response.data;
+  },
+  getMyPatients: async () => {
+    const response = await axiosInstance.get("/booking/therapist/patients/");
+    return response.data;
+  },
+  getPatientDashboardStats: async () => {
+    const response = await axiosInstance.get(
+      "/booking/patient/dashboard-stats/",
+    );
+    return response.data;
+  },
 };
-export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI };
+export default {
+  authAPI,
+  therapistAPI,
+  patientAPI,
+  blogAPI,
+  bookingAPI,
+  publicAPI,
+};

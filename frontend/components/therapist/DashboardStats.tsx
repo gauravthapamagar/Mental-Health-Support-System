@@ -1,48 +1,56 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Users, Calendar, Clock, TrendingUp } from "lucide-react";
 
 interface DashboardStatsProps {
   data: {
     total_patients?: number;
-    total_appointments?: number; // Changed from today_sessions
-    upcoming?: number; // We'll use this for the "remaining" label
+    total_appointments?: number;
+    upcoming?: number;
     hours_this_week?: number;
     success_rate?: number;
   } | null;
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ data }) => {
+  // Use local state to ensure re-render when props change
+  const [statsData, setStatsData] = useState(data);
+
+  useEffect(() => {
+    console.log("DashboardStats received data:", data);
+    setStatsData(data);
+  }, [data]);
+
   const stats = [
     {
       title: "Total Patients",
-      value: data?.total_patients ?? 0,
+      value: statsData?.total_patients ?? 0,
       change: "Lifetime",
-      changeType: "positive",
+      changeType: "positive" as const,
       icon: Users,
       color: "bg-blue-500",
     },
     {
-      title: "Appointments", // Changed label
-      value: data?.total_appointments ?? 0, // Using total count
-      change: `${data?.upcoming ?? 0} upcoming`, // Shows how many are next
-      changeType: "neutral",
+      title: "Appointments",
+      value: statsData?.total_appointments ?? 0,
+      change: `${statsData?.upcoming ?? 0} upcoming`,
+      changeType: "neutral" as const,
       icon: Calendar,
       color: "bg-purple-500",
     },
     {
       title: "Hours This Week",
-      value: data?.hours_this_week ?? 0,
+      value: statsData?.hours_this_week ?? 0,
       change: "Completed",
-      changeType: "positive",
+      changeType: "positive" as const,
       icon: Clock,
       color: "bg-green-500",
     },
     {
       title: "Success Rate",
-      value: `${data?.success_rate ?? 0}%`,
+      value: `${statsData?.success_rate ?? 0}%`,
       change: "Stable",
-      changeType: "positive",
+      changeType: "positive" as const,
       icon: TrendingUp,
       color: "bg-orange-500",
     },

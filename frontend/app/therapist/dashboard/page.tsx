@@ -12,9 +12,24 @@ interface User {
   role: string;
 }
 
+interface DashboardStatsData {
+  total_patients: number;
+  total_appointments: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  upcoming: number;
+  today_sessions: number;
+  hours_this_week: number;
+  success_rate: number;
+}
+
 const TherapistDashboard = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [statsData, setStatsData] = useState<DashboardStatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     const loadTherapist = async () => {
@@ -39,6 +54,26 @@ const TherapistDashboard = () => {
     loadTherapist();
   }, []);
 
+  // Fetch dashboard stats
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true);
+        const stats = await therapistAPI.getDashboardStats();
+        setStatsData(stats);
+      } catch (error) {
+        console.error("Failed to load dashboard stats", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    // Only fetch stats after user is loaded
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
+
   if (loading) {
     return (
       <main className="pt-20 flex items-center justify-center min-h-screen">
@@ -58,7 +93,7 @@ const TherapistDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, {user?.full_name || "Gaurav Thapa"}
+                Welcome back, {user?.full_name || "Doctor"}
               </h1>
               <p className="text-gray-600">
                 Here's what's happening with your practice today.
@@ -80,7 +115,27 @@ const TherapistDashboard = () => {
         </div>
 
         {/* Stats Section */}
-        <DashboardStats therapistId={user?.id} />
+        {statsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                  <div className="w-16 h-6 bg-gray-200 rounded-full"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-20 h-8 bg-gray-200 rounded"></div>
+                  <div className="w-32 h-4 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <DashboardStats data={statsData} />
+        )}
 
         {/* Quick Actions */}
         <div className="mt-8">

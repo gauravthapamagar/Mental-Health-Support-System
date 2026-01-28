@@ -12,13 +12,6 @@ import {
 const QuickActions = () => {
   const actions = [
     {
-      title: "Schedule Appointment",
-      description: "Add new session",
-      icon: Calendar,
-      href: "/therapist/appointments/new",
-      color: "bg-blue-500 hover:bg-blue-600",
-    },
-    {
       title: "My Patients",
       description: "View all patients",
       icon: Users,
@@ -31,27 +24,6 @@ const QuickActions = () => {
       icon: BookOpen,
       href: "/therapist/my-blogs",
       color: "bg-green-500 hover:bg-green-600",
-    },
-    {
-      title: "Messages",
-      description: "Chat with patients",
-      icon: MessageSquare,
-      href: "/therapist/messages",
-      color: "bg-orange-500 hover:bg-orange-600",
-    },
-    {
-      title: "Reports",
-      description: "View analytics",
-      icon: FileText,
-      href: "/therapist/reports",
-      color: "bg-pink-500 hover:bg-pink-600",
-    },
-    {
-      title: "Settings",
-      description: "Manage profile",
-      icon: Settings,
-      href: "/therapist/profile",
-      color: "bg-indigo-500 hover:bg-indigo-600",
     },
   ];
 
