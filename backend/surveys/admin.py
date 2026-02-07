@@ -1,67 +1,79 @@
 from django.contrib import admin
-from .models import Survey, Question, Response, DynamicQuestionHistory
+from .models import Survey, SurveyQuestion, SurveyQuestionOption, SurveyResponse, SurveyAnswer
+
+
+class SurveyQuestionOptionInline(admin.TabularInline):
+    model = SurveyQuestionOption
+    extra = 1
+    fields = ['option_text', 'option_value', 'order', 'score']
+
+
+class SurveyQuestionInline(admin.TabularInline):
+    model = SurveyQuestion
+    extra = 1
+    fields = ['question_text', 'question_type', 'order', 'is_required']
 
 
 @admin.register(Survey)
 class SurveyAdmin(admin.ModelAdmin):
-    list_display = ['id', 'patient', 'status', 'risk_level', 'started_at', 'completed_at']
-    list_filter = ['status', 'risk_level', 'started_at']
-    search_fields = ['patient__email', 'patient__full_name']
-    readonly_fields = ['started_at', 'completed_at']
-    
-    fieldsets = (
-        ('Survey Info', {
-            'fields': ('patient', 'status', 'started_at', 'completed_at')
-        }),
-        ('Analysis', {
-            'fields': ('analysis_summary', 'risk_level')
-        }),
-    )
+    list_display = ['title', 'assessment_type', 'is_active', 'created']
+    list_filter = ['assessment_type', 'is_active', 'created']
+    search_fields = ['title', 'description']
+    inlines = [SurveyQuestionInline]
+    date_hierarchy = 'created'
 
 
-@admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'order', 'question_type', 'response_type', 'is_active', 'question_text_short']
-    list_filter = ['question_type', 'response_type', 'is_active']
-    search_fields = ['question_text']
-    ordering = ['order']
-    
-    def question_text_short(self, obj):
-        return obj.question_text[:50] + '...' if len(obj.question_text) > 50 else obj.question_text
-    question_text_short.short_description = 'Question'
+@admin.register(SurveyQuestion)
+class SurveyQuestionAdmin(admin.ModelAdmin):
+    list_display = ['question_text', 'survey', 'question_type', 'order', 'is_required']
+    list_filter = ['survey', 'question_type', 'is_required']
+    search_fields = ['question_text', 'survey__title']
+    inlines = [SurveyQuestionOptionInline]
+    ordering = ['survey', 'order']
 
 
-@admin.register(Response)
-class ResponseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'survey', 'question_order', 'question_short', 'answer_short', 'created_at']
-    list_filter = ['created_at', 'question__question_type']
-    search_fields = ['survey__patient__email', 'answer']
-    readonly_fields = ['created_at']
-    
-    def question_order(self, obj):
-        return obj.question.order
-    question_order.short_description = 'Q#'
-    
-    def question_short(self, obj):
-        return obj.question.question_text[:40] + '...'
-    question_short.short_description = 'Question'
-    
-    def answer_short(self, obj):
-        return obj.answer[:50] + '...' if len(obj.answer) > 50 else obj.answer
-    answer_short.short_description = 'Answer'
+@admin.register(SurveyQuestionOption)
+class SurveyQuestionOptionAdmin(admin.ModelAdmin):
+    list_display = ['option_text', 'question', 'order', 'score']
+    list_filter = ['question__survey', 'question']
+    search_fields = ['option_text', 'question__question_text']
+    ordering = ['question', 'order']
 
 
-@admin.register(DynamicQuestionHistory)
-class DynamicQuestionHistoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'survey', 'question_short', 'answer_short', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['survey__patient__email', 'question_text', 'answer']
-    readonly_fields = ['created_at']
+@admin.register(SurveyResponse)
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ['patient', 'survey', 'status', 'created', 'completed_at', 'total_score']
+    list_filter = ['survey', 'status', 'created']
+    search_fields = ['patient__username', 'patient__email', 'survey__title']
+    readonly_fields = ['patient', 'survey', 'created', 'total_score']
+    date_hierarchy = 'created'
     
-    def question_short(self, obj):
-        return obj.question_text[:50] + '...'
-    question_short.short_description = 'Dynamic Question'
+    def has_add_permission(self, request):
+        return False
     
-    def answer_short(self, obj):
-        return obj.answer[:50] + '...' if len(obj.answer) > 50 else obj.answer
-    answer_short.short_description = 'Answer'
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+@admin.register(SurveyAnswer)
+class SurveyAnswerAdmin(admin.ModelAdmin):
+    list_display = ['response', 'question', 'answer_summary']
+    list_filter = ['response__survey', 'question__question_type', 'response__created']
+    search_fields = ['response__patient__username', 'question__question_text']
+    readonly_fields = ['response', 'question']
+    date_hierarchy = 'created'
+    
+    def answer_summary(self, obj):
+        if obj.answer_text:
+            return obj.answer_text[:50]
+        elif obj.answer_option:
+            return obj.answer_option.option_text
+        elif obj.answer_rating is not None:
+            return f"Rating: {obj.answer_rating}"
+        elif obj.answer_yes_no is not None:
+            return "Yes" if obj.answer_yes_no else "No"
+        return "-"
+    answer_summary.short_description = "Answer"
+    
+    def has_add_permission(self, request):
+        return False

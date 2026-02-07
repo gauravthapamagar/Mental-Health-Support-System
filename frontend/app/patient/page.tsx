@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+
 import {
   Brain,
   Activity,
@@ -56,157 +58,7 @@ export default function PatientLandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex justify-between items-center py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-              <svg
-                className="w-6 h-6 text-white"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path
-                  d="M12 2v20M2 12h20"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-slate-900">CarePair</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-6">
-            <a
-              href="#features"
-              className="text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              How It Works
-            </a>
-            <a
-              href="#pricing"
-              className="text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              Pricing
-            </a>
-
-            {/* Notifications Icon */}
-            <button className="relative p-2 hover:bg-slate-100 rounded-xl transition-colors">
-              <Bell className="w-5 h-5 text-slate-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-
-            {/* Profile Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-1 group"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-100 border-2 border-transparent group-hover:border-blue-600 transition-all flex items-center justify-center text-blue-700 shadow-sm">
-                  <User className="w-5 h-5" />
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                    isProfileOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 animate-in fade-in zoom-in-95 origin-top-right z-50">
-                  <div className="px-4 py-3 border-b border-slate-100 mb-1">
-                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">
-                      Signed in as
-                    </p>
-                    <p className="text-sm font-bold text-slate-900 truncate mt-1">
-                      {user?.full_name || user?.email}
-                    </p>
-                  </div>
-                  <Link
-                    href="/patient/profile"
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsProfileOpen(false)}
-                  >
-                    <User className="w-4 h-4" /> My Profile
-                  </Link>
-
-                  <Link
-                    href="/patient/settings"
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsProfileOpen(false)}
-                  >
-                    <Settings className="w-4 h-4" /> Settings
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors mt-1 border-t border-slate-100"
-                  >
-                    <LogOut className="w-4 h-4" /> Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <button
-            className="md:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top duration-300">
-            <a
-              href="#features"
-              className="text-slate-600 hover:text-slate-900 py-2"
-            >
-              Features
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-slate-600 hover:text-slate-900 py-2"
-            >
-              How It Works
-            </a>
-            <a
-              href="#pricing"
-              className="text-slate-600 hover:text-slate-900 py-2"
-            >
-              Pricing
-            </a>
-            <button
-              onClick={() => router.push("/patient/dashboard")}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all font-semibold w-full"
-            >
-              Go to Dashboard
-            </button>
-            <button
-              onClick={logout}
-              className="px-6 py-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition-all font-semibold w-full"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-      </nav>
+      <Header />
 
       {/* Hero Section - Personalized Welcome */}
       <section className="max-w-7xl mx-auto px-6 lg:px-8 py-20">
@@ -366,6 +218,16 @@ export default function PatientLandingPage() {
               bgColor: "bg-pink-50",
               borderColor: "border-pink-100",
               hoverBorder: "hover:border-pink-300",
+            },
+            {
+              icon: Brain,
+              title: "Assessment",
+              desc: "Take Assesment",
+              route: "/patient/surveys",
+              color: "indigo",
+              bgColor: "bg-indigo-50",
+              borderColor: "border-indigo-100",
+              hoverBorder: "hover:border-indigo-300",
             },
           ].map((card, i) => (
             <div

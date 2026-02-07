@@ -7,10 +7,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/blog/', include('blogs.urls')),
     path('api/', include('accounts.urls')),
-    path('api/survey/', include('surveys.urls')),
+    path('api/surveys/', include('surveys.urls')),
     path('api/booking/', include('booking.urls')),
     path('api/chat/', include('chatbot.urls')),
     path('api/journal/', include('journal.urls')),
+    path('api/matching/', include('matching.urls')),
     
     
 ]

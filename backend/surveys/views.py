@@ -1,342 +1,263 @@
-from rest_framework import status, generics
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from django.db import transaction
-from accounts.permissions import IsPatient
-from .models import Survey, Question, Response as SurveyResponse, DynamicQuestionHistory
+from django.db.models import Q, F
+from .models import Survey, SurveyQuestion, SurveyResponse, SurveyAnswer
 from .serializers import (
-    SurveySerializer,
     SurveyListSerializer,
-    QuestionSerializer,
-    ResponseCreateSerializer,
-    DynamicQuestionRequestSerializer,
-    DynamicQuestionResponseSerializer,
-    SubmitDynamicAnswerSerializer,
-    CompleteSurveySerializer
+    SurveyDetailSerializer,
+    SurveyResponseSerializer,
+    SurveyAnswerSerializer,
 )
-from .llama_service import LlamaService
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPatient])
-def start_survey(request):
-    """Start a new survey for the patient"""
+class SurveyViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for therapist matching survey"""
+    queryset = Survey.objects.filter(is_active=True)
+    permission_classes = [IsAuthenticated]
     
-    # Check if patient has an incomplete survey
-    existing_survey = Survey.objects.filter(
-        patient=request.user,
-        status='in_progress'
-    ).first()
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return SurveyDetailSerializer
+        return SurveyListSerializer
     
-    if existing_survey:
-        return Response({
-            'message': 'You already have an incomplete survey',
-            'survey': SurveySerializer(existing_survey).data
-        }, status=status.HTTP_200_OK)
-    
-    # Create new survey
-    survey = Survey.objects.create(patient=request.user)
-    
-    return Response({
-        'message': 'Survey started successfully',
-        'survey': SurveySerializer(survey).data
-    }, status=status.HTTP_201_CREATED)
+    @action(detail=False, methods=['get'])
+    def active_survey(self, request):
+        """Get the active therapist matching survey"""
+        survey = self.queryset.first()
+        if not survey:
+            return Response(
+                {'detail': 'No active survey found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = SurveyDetailSerializer(survey)
+        return Response(serializer.data)
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPatient])
-def get_static_questions(request):
-    """Get all static questions for the survey"""
+class SurveyResponseViewSet(viewsets.ModelViewSet):
+    """ViewSet for patient survey responses"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = SurveyResponseSerializer
     
-    questions = Question.objects.filter(
-        question_type='static',
-        is_active=True
-    ).order_by('order')
+    def get_queryset(self):
+        """Only return responses for the current user"""
+        return SurveyResponse.objects.filter(patient=self.request.user)
     
-    serializer = QuestionSerializer(questions, many=True)
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()  # this already filters by patient=user
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except SurveyResponse.DoesNotExist:
+            return Response(
+                {'detail': 'Not found or not owned by you'},
+                status=status.HTTP_404_NOT_FOUND
+            )
     
-    return Response({
-        'count': questions.count(),
-        'questions': serializer.data
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPatient])
-def submit_static_responses(request):
-    """Submit responses to static questions"""
+    def retrieve(self, request, *args, **kwargs):
+        """Get a specific response by ID (only if it belongs to the user)"""
+        try:
+            response_obj = SurveyResponse.objects.get(
+                id=kwargs.get('pk'),
+                patient=request.user
+            )
+            serializer = self.get_serializer(response_obj)
+            return Response(serializer.data)
+        except SurveyResponse.DoesNotExist:
+            return Response(
+                {'detail': 'Response not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
     
-    survey_id = request.data.get('survey_id')
-    responses = request.data.get('responses', [])
+    @action(detail=False, methods=['post'])
+    def start_assessment(self, request):
+        """Start or continue the therapist matching assessment"""
+        # Get the active survey
+        survey = Survey.objects.filter(is_active=True).first()
+        if not survey:
+            return Response(
+                {'detail': 'No active survey found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if patient has an in-progress response
+        response = SurveyResponse.objects.filter(
+            patient=request.user,
+            survey=survey,
+            status='in_progress'
+        ).first()
+        
+        if not response:
+            # Mark old responses as not latest
+            SurveyResponse.objects.filter(
+                patient=request.user,
+                survey=survey,
+                is_latest=True
+            ).update(is_latest=False)
+            
+            # Get retake count
+            retake_count = SurveyResponse.objects.filter(
+                patient=request.user,
+                survey=survey
+            ).count()
+            
+            # Create new response
+            response = SurveyResponse.objects.create(
+                patient=request.user,
+                survey=survey,
+                status='in_progress',
+                retake_count=retake_count,
+                is_latest=True
+            )
+        
+        serializer = SurveyResponseSerializer(response)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    if not survey_id:
+    @action(detail=False, methods=['get'])
+    def current_assessment(self, request):
+        """Get the current in-progress or latest assessment"""
+        survey = Survey.objects.filter(is_active=True).first()
+        
+        # First, try to get in-progress response
+        response = SurveyResponse.objects.filter(
+            patient=request.user,
+            survey=survey,
+            status='in_progress'
+        ).first()
+        
+        # If no in-progress, get the latest completed
+        if not response:
+            response = SurveyResponse.objects.filter(
+                patient=request.user,
+                survey=survey,
+                is_latest=True
+            ).first()
+        
+        if not response:
+            return Response(
+                {'detail': 'No assessment found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = SurveyResponseSerializer(response)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def assessment_history(self, request):
+        """Get all completed assessments for the patient"""
+        survey = Survey.objects.filter(is_active=True).first()
+        responses = SurveyResponse.objects.filter(
+            patient=request.user,
+            survey=survey,
+            status__in=['submitted', 'reviewed']
+        ).order_by('-completed_at')
+        
+        serializer = SurveyResponseSerializer(responses, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def save_answer(self, request):
+        """Save a single answer and return any triggered dynamic questions"""
+        response_id = request.data.get('response_id')
+        question_id = request.data.get('question_id')
+        answer_data = request.data.get('answer')
+        
+        try:
+            response = SurveyResponse.objects.get(
+                id=response_id,
+                patient=request.user,
+                status='in_progress'
+            )
+            question = SurveyQuestion.objects.get(id=question_id)
+        except (SurveyResponse.DoesNotExist, SurveyQuestion.DoesNotExist):
+            return Response(
+                {'detail': 'Invalid response or question'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Save or update the answer
+        answer, created = SurveyAnswer.objects.update_or_create(
+            response=response,
+            question=question,
+            defaults={
+                'answer_text': answer_data.get('text', ''),
+                'answer_option_id': answer_data.get('option_id'),
+                'answer_rating': answer_data.get('rating'),
+                'answer_yes_no': answer_data.get('yes_no'),
+            }
+        )
+        
+        # Find triggered dynamic questions
+        triggered_questions = []
+        trigger_value = (
+            answer_data.get('option_id') or
+            answer_data.get('rating') or
+            answer_data.get('yes_no')
+        )
+        
+        if trigger_value:
+            dynamic_qs = SurveyQuestion.objects.filter(
+                parent_question=question,
+                trigger_condition=str(trigger_value),
+                question_level='dynamic'
+            )
+            triggered_questions = [
+                {
+                    'id': q.id,
+                    'question_text': q.question_text,
+                    'question_type': q.question_type,
+                    'is_required': q.is_required,
+                    'options': list(q.options.values()) if q.options.exists() else [],
+                }
+                for q in dynamic_qs
+            ]
+        
         return Response({
-            'error': 'survey_id is required'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    if not responses:
-        return Response({
-            'error': 'responses are required'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        survey = Survey.objects.get(id=survey_id, patient=request.user)
-    except Survey.DoesNotExist:
-        return Response({
-            'error': 'Survey not found'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    if survey.status == 'completed':
-        return Response({
-            'error': 'Survey is already completed'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Validate and save responses
-    saved_responses = []
-    errors = []
-    
-    with transaction.atomic():
-        for resp_data in responses:
-            serializer = ResponseCreateSerializer(data=resp_data)
-            if serializer.is_valid():
-                question_id = serializer.validated_data['question_id']
-                answer = serializer.validated_data['answer']
-                
-                try:
-                    question = Question.objects.get(id=question_id, question_type='static')
-                    
-                    # Create or update response
-                    response_obj, created = SurveyResponse.objects.update_or_create(
-                        survey=survey,
-                        question=question,
-                        defaults={'answer': answer}
-                    )
-                    
-                    saved_responses.append({
-                        'question_id': question_id,
-                        'question': question.question_text,
-                        'answer': answer
-                    })
-                    
-                except Question.DoesNotExist:
-                    errors.append(f"Question {question_id} not found")
-            else:
-                errors.append(serializer.errors)
-    
-    if errors:
-        return Response({
-            'error': 'Some responses could not be saved',
-            'details': errors,
-            'saved': saved_responses
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    return Response({
-        'message': 'Static responses submitted successfully',
-        'saved_responses': saved_responses,
-        'next_step': 'dynamic_questions'
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPatient])
-def get_next_dynamic_question(request):
-    """Get next dynamic question based on previous responses"""
-    
-    serializer = DynamicQuestionRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    survey_id = serializer.validated_data['survey_id']
-    
-    try:
-        survey = Survey.objects.get(id=survey_id, patient=request.user)
-    except Survey.DoesNotExist:
-        return Response({
-            'error': 'Survey not found'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    # Check max dynamic questions limit
-    max_questions = 5  # Can be moved to settings
-    dynamic_count = DynamicQuestionHistory.objects.filter(survey=survey).count()
-    
-    if dynamic_count >= max_questions:
-        return Response({
-            'message': 'Maximum dynamic questions reached',
-            'is_final': True
-        }, status=status.HTTP_200_OK)
-    
-    # Get all previous responses for context
-    static_responses = []
-    for resp in survey.responses.filter(question__question_type='static'):
-        static_responses.append({
-            'question': resp.question.question_text,
-            'answer': resp.answer
+            'status': 'saved',
+            'triggered_questions': triggered_questions,
         })
     
-    # Get previous dynamic Q&A
-    previous_dynamic = []
-    for dyn in survey.dynamic_questions.all():
-        previous_dynamic.append({
-            'question': dyn.question_text,
-            'answer': dyn.answer
+    @action(detail=False, methods=['post'])
+    def submit_assessment(self, request):
+        """Submit the completed assessment"""
+        response_id = request.data.get('response_id')
+        
+        try:
+            response = SurveyResponse.objects.get(
+                id=response_id,
+                patient=request.user,
+                status='in_progress'
+            )
+        except SurveyResponse.DoesNotExist:
+            return Response(
+                {'detail': 'Assessment not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Mark as submitted
+        response.status = 'submitted'
+        response.completed_at = timezone.now()
+        response.is_latest = True
+        response.save()
+        
+        serializer = SurveyResponseSerializer(response)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def can_retake(self, request):
+        """Check if patient can retake the assessment"""
+        survey = Survey.objects.filter(is_active=True).first()
+        
+        latest = SurveyResponse.objects.filter(
+            patient=request.user,
+            survey=survey,
+            is_latest=True
+        ).first()
+        
+        return Response({
+            'can_retake': True,  # Always allow retakes
+            'latest_completed': latest.completed_at if latest else None,
         })
-    
-    # Generate dynamic question using Llama
-    llama_service = LlamaService()
-    question_text = llama_service.generate_dynamic_question(
-        static_responses=static_responses,
-        previous_dynamic_qa=previous_dynamic,
-        question_count=dynamic_count
-    )
-    
-    if not question_text:
-        return Response({
-    'message': 'No further dynamic questions',
-    'is_final': True
-}, status=status.HTTP_200_OK)
-
-    
-    return Response({
-        'question_text': question_text,
-        'question_number': dynamic_count + 1,
-        'is_final': False
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPatient])
-def submit_dynamic_answer(request):
-    """Submit answer to a dynamic question"""
-    
-    serializer = SubmitDynamicAnswerSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    survey_id = serializer.validated_data['survey_id']
-    answer = serializer.validated_data['answer']
-    question_text = request.data.get('question_text', '')
-    
-    if not question_text:
-        return Response({
-            'error': 'question_text is required'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        survey = Survey.objects.get(id=survey_id, patient=request.user)
-    except Survey.DoesNotExist:
-        return Response({
-            'error': 'Survey not found'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    # Build context from previous responses
-    context_parts = []
-    for resp in survey.responses.all():
-        context_parts.append(f"Q: {resp.question.question_text} A: {resp.answer}")
-    
-    context = "\n".join(context_parts)
-    
-    # Save dynamic question and answer
-    DynamicQuestionHistory.objects.create(
-        survey=survey,
-        question_text=question_text,
-        answer=answer,
-        context_used=context
-    )
-    
-    return Response({
-        'message': 'Answer submitted successfully'
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsPatient])
-def complete_survey(request):
-    """Complete the survey and generate analysis"""
-    
-    serializer = CompleteSurveySerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    survey_id = serializer.validated_data['survey_id']
-    
-    try:
-        survey = Survey.objects.get(id=survey_id, patient=request.user)
-    except Survey.DoesNotExist:
-        return Response({
-            'error': 'Survey not found'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    if survey.status == 'completed':
-        return Response({
-            'error': 'Survey is already completed'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Gather all responses for analysis
-    all_responses = []
-    
-    # Static responses
-    for resp in survey.responses.all():
-        all_responses.append({
-            'question': resp.question.question_text,
-            'answer': resp.answer
-        })
-    
-    # Dynamic responses
-    for dyn in survey.dynamic_questions.all():
-        all_responses.append({
-            'question': dyn.question_text,
-            'answer': dyn.answer
-        })
-    
-    # Generate summary using Llama
-    llama_service = LlamaService()
-    analysis = llama_service.generate_summary(all_responses)
-    
-    # Update survey
-    survey.status = 'completed'
-    survey.completed_at = timezone.now()
-    survey.analysis_summary = analysis.get('summary', '')
-    survey.risk_level = analysis.get('risk_level', 'medium')
-    survey.save()
-    
-    return Response({
-        'message': 'Survey completed successfully',
-        'survey': SurveySerializer(survey).data,
-        'analysis': {
-            'summary': survey.analysis_summary,
-            'risk_level': survey.risk_level
-        }
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPatient])
-def get_survey_history(request):
-    """Get patient's survey history"""
-    
-    surveys = Survey.objects.filter(patient=request.user).order_by('-started_at')
-    serializer = SurveyListSerializer(surveys, many=True)
-    
-    return Response({
-        'count': surveys.count(),
-        'surveys': serializer.data
-    }, status=status.HTTP_200_OK)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsPatient])
-def get_survey_detail(request, survey_id):
-    """Get detailed survey information"""
-    
-    try:
-        survey = Survey.objects.get(id=survey_id, patient=request.user)
-    except Survey.DoesNotExist:
-        return Response({
-            'error': 'Survey not found'
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    serializer = SurveySerializer(survey)
-    
-    return Response(serializer.data, status=status.HTTP_200_OK)

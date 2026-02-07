@@ -5,7 +5,8 @@ import { useAuth } from "@/context/AuthContext"; // Adjust this path if your fil
 import StatsGrid from "@/components/patient/dashboard/StatsGrid";
 import UpcomingSessions from "@/components/patient/dashboard/UpcomingSessions";
 import CarePlan from "@/components/patient/dashboard/CarePlan";
-
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 export default function DashboardPage() {
   const { user } = useAuth();
   const [greeting, setGreeting] = useState("Good morning");
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
+    
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">

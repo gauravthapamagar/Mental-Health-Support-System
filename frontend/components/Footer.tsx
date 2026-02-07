@@ -6,6 +6,23 @@ import { Instagram, Twitter, Linkedin } from "lucide-react";
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  // Read user role directly from cookie (client-side)
+  // This matches how your middleware sets/stores it
+  const getUserRole = () => {
+    if (typeof window === "undefined") return null;
+    const role = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("user_role="))
+      ?.split("=")[1];
+    return role || null;
+  };
+
+  const userRole = getUserRole();
+
+  // Decide the correct link based on login state and role
+  const findTherapistHref =
+    userRole === "patient" ? "/patient/therapists" : "/find-therapist";
+
   return (
     <footer className="bg-[#e0e9f5] pt-16 pb-8 text-slate-700">
       <div className="max-w-7xl mx-auto px-6">
@@ -77,12 +94,13 @@ const Footer = () => {
 
               <li>
                 <Link
-                  href="/find-therapist"
+                  href={findTherapistHref}
                   className="hover:text-blue-600 transition-colors"
                 >
                   Find a Therapist
                 </Link>
               </li>
+
               <li>
                 <Link
                   href="/support"

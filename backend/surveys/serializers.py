@@ -1,114 +1,130 @@
 from rest_framework import serializers
-from .models import Survey, Question, Response, DynamicQuestionHistory
+from .models import (
+    Survey,
+    SurveyQuestion,
+    SurveyQuestionOption,
+    SurveyResponse,
+    SurveyAnswer,
+)
 
 
-class QuestionSerializer(serializers.ModelSerializer):
+class SurveyQuestionOptionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Question
-        fields = ['id', 'question_text', 'question_type', 'response_type', 'order', 'options']
+        model = SurveyQuestionOption
+        fields = ['id', 'option_text', 'option_value', 'order', 'score']
 
 
-class ResponseSerializer(serializers.ModelSerializer):
+class SurveyAnswerSerializer(serializers.ModelSerializer):
     question_text = serializers.CharField(source='question.question_text', read_only=True)
     question_type = serializers.CharField(source='question.question_type', read_only=True)
+    answer_option_text = serializers.SerializerMethodField()
     
     class Meta:
-        model = Response
-        fields = ['id', 'question', 'question_text', 'question_type', 'answer', 'dynamic_question_text', 'created_at']
-        read_only_fields = ['created_at']
-
-
-class ResponseCreateSerializer(serializers.Serializer):
-    question_id = serializers.IntegerField(required=True)
-    answer = serializers.CharField(required=True, allow_blank=False)
-    
-    def validate_answer(self, value):
-        # Basic validation - can be extended based on question type
-        if not value or value.strip() == '':
-            raise serializers.ValidationError("Answer cannot be empty")
-        return value
-
-
-class SurveySerializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(source='patient.full_name', read_only=True)
-    responses = ResponseSerializer(many=True, read_only=True)
-    total_responses = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Survey
+        model = SurveyAnswer
         fields = [
-            'id', 'patient', 'patient_name', 'status', 'started_at', 
-            'completed_at', 'analysis_summary', 'risk_level', 
-            'responses', 'total_responses'
+            'id',
+            'question',
+            'question_text',
+            'question_type',
+            'answer_text',
+            'answer_option',
+            'answer_option_text',
+            'answer_rating',
+            'answer_yes_no',
         ]
-        read_only_fields = ['patient', 'started_at', 'completed_at', 'analysis_summary', 'risk_level']
     
-    def get_total_responses(self, obj):
-        return obj.responses.count()
+    def get_answer_option_text(self, obj):
+        """Get option text if answer_option exists"""
+        if obj.answer_option:
+            return obj.answer_option.option_text
+        return None
+
+
+class SurveyQuestionSerializer(serializers.ModelSerializer):
+    options = SurveyQuestionOptionSerializer(many=True, read_only=True)
+    child_questions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SurveyQuestion
+        fields = [
+            'id',
+            'question_text',
+            'question_type',
+            'question_level',
+            'order',
+            'is_required',
+            'help_text',
+            'rating_min',
+            'rating_max',
+            'rating_min_label',
+            'rating_max_label',
+            'options',
+            'parent_question',
+            'trigger_condition',
+            'child_questions',
+        ]
+    
+    def get_child_questions(self, obj):
+        """Get all child questions that depend on this question"""
+        child_qs = obj.child_questions.all()
+        return SurveyQuestionSerializer(child_qs, many=True, read_only=True).data
 
 
 class SurveyListSerializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(source='patient.full_name', read_only=True)
-    total_responses = serializers.SerializerMethodField()
+    questions_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Survey
         fields = [
-            'id', 'patient', 'patient_name', 'status', 'started_at', 
-            'completed_at', 'risk_level', 'total_responses'
+            'id',
+            'title',
+            'description',
+            'assessment_type',
+            'is_active',
+            'questions_count',
+            'created',
         ]
     
-    def get_total_responses(self, obj):
-        return obj.responses.count()
+    def get_questions_count(self, obj):
+        return obj.questions.filter(question_level='static').count()
 
 
-class DynamicQuestionRequestSerializer(serializers.Serializer):
-    """Serializer for requesting next dynamic question"""
-    survey_id = serializers.IntegerField(required=True)
+class SurveyDetailSerializer(serializers.ModelSerializer):
+    questions = serializers.SerializerMethodField()
     
-    def validate_survey_id(self, value):
-        try:
-            survey = Survey.objects.get(id=value)
-            if survey.status == 'completed':
-                raise serializers.ValidationError("Survey is already completed")
-        except Survey.DoesNotExist:
-            raise serializers.ValidationError("Survey not found")
-        return value
-
-
-class DynamicQuestionResponseSerializer(serializers.Serializer):
-    """Serializer for dynamic question response"""
-    question_text = serializers.CharField(read_only=True)
-    question_id = serializers.IntegerField(read_only=True)
-    is_final = serializers.BooleanField(read_only=True)
-    
-
-class SubmitDynamicAnswerSerializer(serializers.Serializer):
-    """Serializer for submitting answer to dynamic question"""
-    survey_id = serializers.IntegerField(required=True)
-    answer = serializers.CharField(required=True, allow_blank=False)
-    
-    def validate_answer(self, value):
-        if not value or value.strip() == '':
-            raise serializers.ValidationError("Answer cannot be empty")
-        return value
-
-
-class CompleteSurveySerializer(serializers.Serializer):
-    """Serializer for completing a survey"""
-    survey_id = serializers.IntegerField(required=True)
-    
-    def validate_survey_id(self, value):
-        try:
-            survey = Survey.objects.get(id=value)
-            if survey.status == 'completed':
-                raise serializers.ValidationError("Survey is already completed")
-        except Survey.DoesNotExist:
-            raise serializers.ValidationError("Survey not found")
-        return value
-
-
-class DynamicQuestionHistorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = DynamicQuestionHistory
-        fields = ['id', 'question_text', 'answer', 'created_at']
+        model = Survey
+        fields = [
+            'id',
+            'title',
+            'description',
+            'assessment_type',
+            'is_active',
+            'questions',
+            'created',
+        ]
+    
+    def get_questions(self, obj):
+        """Get all questions (static and dynamic) ordered by order field"""
+        all_questions = obj.questions.all().order_by('order')
+        return SurveyQuestionSerializer(all_questions, many=True).data
+
+
+class SurveyResponseSerializer(serializers.ModelSerializer):
+    answers = SurveyAnswerSerializer(many=True, read_only=True)
+    survey_title = serializers.CharField(source='survey.title', read_only=True)
+    
+    class Meta:
+        model = SurveyResponse
+        fields = [
+            'id',
+            'survey',
+            'survey_title',
+            'status',
+            'created',
+            'completed_at',
+            'total_score',
+            'retake_count',
+            'is_latest',
+            'answers',
+        ]

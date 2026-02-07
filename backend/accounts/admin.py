@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, PatientProfile, TherapistProfile
 
-
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = ['email', 'full_name', 'role', 'is_active', 'is_staff', 'created_at']
@@ -42,3 +41,5 @@ class TherapistProfileAdmin(admin.ModelAdmin):
     search_fields = ['user__email', 'user__full_name', 'license_id']
     list_filter = ['profession_type', 'profile_completed', 'consultation_mode', 'created_at', 'certificates']
     readonly_fields = ['created_at', 'updated_at']
+    
+

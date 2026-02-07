@@ -1,453 +1,345 @@
-"use client";
-import { useState, useEffect } from "react";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { surveyAPI, Survey, SurveyResponse } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import SurveyQuestion from '../components/SurveyQuestion';
 import {
-  CheckCircle2,
-  Circle,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
   AlertCircle,
-} from "lucide-react";
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 
-// This would come from your API
-const API_BASE = "http://localhost:8000/api";
+export default function AssessmentPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, isAuthenticated } = useAuth();
+  const surveyId = searchParams.get('survey_id');
 
-export default function PatientAssessment() {
-  const [currentStep, setCurrentStep] = useState("loading"); // loading, static, dynamic, completed
-  const [surveyId, setSurveyId] = useState(null);
-  const [staticQuestions, setStaticQuestions] = useState([]);
+  const [survey, setSurvey] = useState<Survey | null>(null);
+  const [response, setResponse] = useState<SurveyResponse | null>(null);
+  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [dynamicQuestion, setDynamicQuestion] = useState(null);
-  const [dynamicQuestionNumber, setDynamicQuestionNumber] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Initialize survey on mount
   useEffect(() => {
-    initializeSurvey();
-  }, []);
-
-  const initializeSurvey = async () => {
-    try {
-      setCurrentStep("loading");
-
-      // Step 1: Start survey
-      const surveyResponse = await fetch(`${API_BASE}/survey/start/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!surveyResponse.ok) throw new Error("Failed to start survey");
-      const surveyData = await surveyResponse.json();
-      setSurveyId(surveyData.survey.id);
-
-      // Step 2: Get static questions
-      const questionsResponse = await fetch(
-        `${API_BASE}/survey/questions/static/`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        }
-      );
-
-      if (!questionsResponse.ok) throw new Error("Failed to load questions");
-      const questionsData = await questionsResponse.json();
-      setStaticQuestions(questionsData.questions);
-
-      setCurrentStep("static");
-    } catch (err) {
-      setError(err.message);
-      console.error("Error initializing survey:", err);
+    // Redirect to login if not authenticated
+    if (!isAuthenticated || !user) {
+      router.push('/auth/login');
+      return;
     }
-  };
 
-  const handleStaticAnswer = (questionId, answer) => {
+    // Redirect if user is not a patient
+    if (user.role !== 'patient') {
+      router.push('/');
+      return;
+    }
+
+    const loadSurvey = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!surveyId) {
+          setError('No survey selected. Please go back and select a survey.');
+          setLoading(false);
+          return;
+        }
+
+        // Get survey details
+        const surveyData = await surveyAPI.getSurveyDetail(parseInt(surveyId));
+        setSurvey(surveyData);
+
+        // Try to get existing in-progress response
+        try {
+          const existingResponse = await surveyAPI.startSurvey(parseInt(surveyId));
+          setResponse(existingResponse);
+
+          // Load existing answers
+          const answersMap: Record<number, any> = {};
+          existingResponse.answers.forEach((answer) => {
+            if (answer.answer_option) {
+              answersMap[answer.question] = answer.answer_option;
+            } else if (answer.answer_rating !== null) {
+              answersMap[answer.question] = answer.answer_rating;
+            } else if (answer.answer_yes_no !== null) {
+              answersMap[answer.question] = answer.answer_yes_no;
+            } else if (answer.answer_text) {
+              answersMap[answer.question] = answer.answer_text;
+            }
+          });
+          setAnswers(answersMap);
+        } catch (err) {
+          // If no existing response, create a new one
+          const newResponse = await surveyAPI.startSurvey(parseInt(surveyId));
+          setResponse(newResponse);
+        }
+      } catch (err) {
+        console.error('[v0] Error loading survey:', err);
+        setError('Failed to load the survey. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSurvey();
+  }, [surveyId, user, router]);
+
+  const handleAnswerChange = (questionId: number, value: any) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: answer,
+      [questionId]: value,
     }));
   };
 
-  const goToNextQuestion = () => {
-    if (currentQuestionIndex < staticQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
+  const handleSaveAnswer = async (questionId: number) => {
+    if (!response) return;
 
-  const goToPreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const submitStaticResponses = async () => {
     try {
-      setIsSubmitting(true);
+      const question = survey?.questions.find((q) => q.id === questionId);
+      if (!question) return;
 
-      const responses = Object.entries(answers).map(([questionId, answer]) => ({
-        question_id: parseInt(questionId),
-        answer: answer,
-      }));
+      let answerData: any = {};
 
-      const response = await fetch(`${API_BASE}/survey/responses/static/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          survey_id: surveyId,
-          responses: responses,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to submit responses");
-
-      // Move to dynamic questions
-      await fetchNextDynamicQuestion();
-      setCurrentStep("dynamic");
-    } catch (err) {
-      setError(err.message);
-      console.error("Error submitting responses:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const fetchNextDynamicQuestion = async () => {
-    try {
-      setIsSubmitting(true);
-
-      const response = await fetch(`${API_BASE}/survey/questions/dynamic/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          survey_id: surveyId,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to get dynamic question");
-      const data = await response.json();
-
-      if (data.is_final) {
-        // No more questions, complete survey
-        await completeSurvey();
-      } else {
-        setDynamicQuestion(data.question_text);
-        setDynamicQuestionNumber(data.question_number);
-        setAnswers({ dynamicAnswer: "" }); // Reset for new question
+      if (question.question_type === 'multiple_choice') {
+        answerData = { option_id: answers[questionId] };
+      } else if (question.question_type === 'rating') {
+        answerData = { rating: answers[questionId] };
+      } else if (question.question_type === 'yes_no') {
+        answerData = { yes_no: answers[questionId] };
+      } else if (question.question_type === 'text') {
+        answerData = { text: answers[questionId] };
       }
+
+      await surveyAPI.saveAnswer(response.id, questionId, answerData);
     } catch (err) {
-      setError(err.message);
-      console.error("Error fetching dynamic question:", err);
-    } finally {
-      setIsSubmitting(false);
+      console.error('[v0] Error saving answer:', err);
     }
   };
 
-  const submitDynamicAnswer = async () => {
+  const handleSubmit = async () => {
+    if (!response || !survey) return;
+
     try {
-      setIsSubmitting(true);
+      setSubmitting(true);
+      setError(null);
 
-      const response = await fetch(`${API_BASE}/survey/responses/dynamic/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          survey_id: surveyId,
-          question_text: dynamicQuestion,
-          answer: answers.dynamicAnswer,
-        }),
-      });
+      // Validate all required questions are answered
+      const unansweredRequired = survey.questions
+        .filter((q) => q.is_required)
+        .filter((q) => answers[q.id] === undefined || answers[q.id] === null || answers[q.id] === '')
+        .map((q) => q.question_text);
 
-      if (!response.ok) throw new Error("Failed to submit answer");
+      if (unansweredRequired.length > 0) {
+        setError(
+          `Please answer all required questions. Missing answers for: ${unansweredRequired.slice(0, 2).join(', ')}${unansweredRequired.length > 2 ? '...' : ''}`
+        );
+        return;
+      }
 
-      // Get next dynamic question
-      await fetchNextDynamicQuestion();
+      // Mark as submitted
+      await surveyAPI.submitResponse(response.id);
+      setSuccess(true);
+
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        router.push('/patient/assessment-results?survey_id=' + surveyId);
+      }, 2000);
     } catch (err) {
-      setError(err.message);
-      console.error("Error submitting dynamic answer:", err);
+      console.error('[v0] Error submitting survey:', err);
+      setError('Failed to submit the survey. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  const completeSurvey = async () => {
-    try {
-      setIsSubmitting(true);
-
-      const response = await fetch(`${API_BASE}/survey/complete/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          survey_id: surveyId,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Failed to complete survey");
-      const data = await response.json();
-
-      setCurrentStep("completed");
-      // Redirect to results page
-      window.location.href = `/assessment/result/${surveyId}`;
-    } catch (err) {
-      setError(err.message);
-      console.error("Error completing survey:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const currentQuestion = staticQuestions[currentQuestionIndex];
-  const progress =
-    currentStep === "static"
-      ? ((currentQuestionIndex + 1) / staticQuestions.length) * 100
-      : 100;
-
-  // Loading State
-  if (currentStep === "loading") {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Preparing your assessment...</p>
+          <p className="text-slate-600">Loading assessment...</p>
         </div>
       </div>
     );
   }
 
-  // Error State
-  if (error) {
+  if (!survey) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full border-2 border-red-200">
-          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2 text-center">
-            Something went wrong
-          </h2>
-          <p className="text-slate-600 mb-6 text-center">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="flex gap-3">
+              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-red-900">Error</h3>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+                <button
+                  onClick={() => router.back()}
+                  className="mt-4 text-red-600 hover:text-red-700 font-medium text-sm"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
+
+  const currentQuestion = survey.questions[currentQuestionIndex];
+  const totalQuestions = survey.questions.length;
+  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {success && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md">
+            <div className="mb-4 flex justify-center">
+              <CheckCircle2 className="w-16 h-16 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Assessment Complete!
+            </h2>
+            <p className="text-slate-600 mb-6">
+              Thank you for completing the assessment. We're analyzing your responses to match you with the best therapist.
+            </p>
+            <div className="flex justify-center">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            {currentStep === "static"
-              ? "Mental Health Assessment"
-              : "Follow-up Questions"}
-          </h1>
-          <p className="text-slate-600">
-            {currentStep === "static"
-              ? "Please answer these questions honestly to help us understand your needs"
-              : "These personalized questions help us better understand your situation"}
-          </p>
+        <div className="mb-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Back
+          </button>
+
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">{survey.title}</h1>
+          <p className="text-slate-600">{survey.description}</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex justify-between text-sm font-semibold text-slate-600 mb-2">
-            <span>
-              {currentStep === "static"
-                ? `Question ${currentQuestionIndex + 1} of ${
-                    staticQuestions.length
-                  }`
-                : `Follow-up ${dynamicQuestionNumber}`}
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold text-slate-700">
+              Question {currentQuestionIndex + 1} of {totalQuestions}
             </span>
-            <span>{Math.round(progress)}%</span>
+            <span className="text-sm text-slate-600">{Math.round(progress)}%</span>
           </div>
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        {/* Question Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200 mb-6">
-          {currentStep === "static" && currentQuestion && (
-            <>
-              <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold mb-4">
-                  Question {currentQuestionIndex + 1}
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 mb-6">
-                  {currentQuestion.question_text}
-                </h2>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
 
-                {/* Single Choice Options */}
-                {currentQuestion.response_type === "single_choice" && (
-                  <div className="space-y-3">
-                    {currentQuestion.options.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() =>
-                          handleStaticAnswer(currentQuestion.id, option)
-                        }
-                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                          answers[currentQuestion.id] === option
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {answers[currentQuestion.id] === option ? (
-                            <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                          ) : (
-                            <Circle className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                          )}
-                          <span className="text-slate-700">{option}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Text Response */}
-                {currentQuestion.response_type === "text" && (
-                  <textarea
-                    value={answers[currentQuestion.id] || ""}
-                    onChange={(e) =>
-                      handleStaticAnswer(currentQuestion.id, e.target.value)
-                    }
-                    placeholder="Type your answer here..."
-                    rows={6}
-                    className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors resize-none"
-                  />
-                )}
-              </div>
-            </>
-          )}
-
-          {currentStep === "dynamic" && dynamicQuestion && (
-            <>
-              <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold mb-4">
-                  Follow-up Question {dynamicQuestionNumber}
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 mb-6">
-                  {dynamicQuestion}
-                </h2>
-
-                <textarea
-                  value={answers.dynamicAnswer || ""}
-                  onChange={(e) =>
-                    setAnswers({ dynamicAnswer: e.target.value })
-                  }
-                  placeholder="Type your answer here..."
-                  rows={6}
-                  className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-purple-500 outline-none transition-colors resize-none"
-                />
-              </div>
-            </>
-          )}
-        </div>
+        {/* Current Question */}
+        {currentQuestion && (
+          <SurveyQuestion
+            question={currentQuestion}
+            value={answers[currentQuestion.id]}
+            onChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+            onBlur={() => handleSaveAnswer(currentQuestion.id)}
+          />
+        )}
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center gap-4">
-          {currentStep === "static" && (
-            <>
-              <button
-                onClick={goToPreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="px-6 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Previous
-              </button>
+        <div className="flex gap-4 justify-between mt-8">
+          <Button
+            onClick={() => {
+              if (currentQuestionIndex > 0) {
+                setCurrentQuestionIndex(currentQuestionIndex - 1);
+              }
+            }}
+            disabled={currentQuestionIndex === 0 || submitting}
+            variant="outline"
+            className="flex items-center gap-2 px-6 py-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </Button>
 
-              {currentQuestionIndex === staticQuestions.length - 1 ? (
-                <button
-                  onClick={submitStaticResponses}
-                  disabled={!answers[currentQuestion?.id] || isSubmitting}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      Continue to Follow-up
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+          {currentQuestionIndex === totalQuestions - 1 ? (
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 px-8 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Submitting...
+                </>
               ) : (
-                <button
-                  onClick={goToNextQuestion}
-                  disabled={!answers[currentQuestion?.id]}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  Next
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Submit Assessment
+                </>
               )}
-            </>
-          )}
-
-          {currentStep === "dynamic" && (
-            <>
-              <button
-                onClick={() => completeSurvey()}
-                disabled={isSubmitting}
-                className="px-6 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
-              >
-                Skip & Complete
-              </button>
-
-              <button
-                onClick={submitDynamicAnswer}
-                disabled={!answers.dynamicAnswer || isSubmitting}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Submit Answer
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </>
+            </Button>
+          ) : (
+            <Button
+              onClick={() => {
+                if (currentQuestionIndex < totalQuestions - 1) {
+                  setCurrentQuestionIndex(currentQuestionIndex + 1);
+                }
+              }}
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           )}
         </div>
 
-        {/* Help Text */}
-        <div className="mt-6 text-center text-sm text-slate-500">
-          <p>
-            Your responses are confidential and will be used to match you with
-            the right therapist
-          </p>
+        {/* Question Indicators */}
+        <div className="mt-12 flex flex-wrap gap-2 justify-center">
+          {survey.questions.map((q, idx) => (
+            <button
+              key={q.id}
+              onClick={() => setCurrentQuestionIndex(idx)}
+              className={`
+                w-10 h-10 rounded-lg font-semibold text-sm transition-all
+                ${
+                  idx === currentQuestionIndex
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== ''
+                      ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                      : 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200'
+                }
+              `}
+            >
+              {idx + 1}
+            </button>
+          ))}
         </div>
       </div>
     </div>
