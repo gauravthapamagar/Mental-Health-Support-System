@@ -61,6 +61,14 @@ export default function Home() {
     );
   }
 
+  const scrollToSection = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   // --- YOUR EXISTING LANDING PAGE CONTENT ---
   return (
     <div>
@@ -154,15 +162,18 @@ export default function Home() {
                 >
                   Get Matched
                 </Link>
-                <Link
-                  href="/how-it-works"
-                  className="px-8 py-4 bg-white/80 backdrop-blur-sm text-gray-900 font-semibold rounded-lg hover:bg-white transition-all shadow-md hover:shadow-lg border border-gray-200"
+                <button
+                  onClick={(e) => scrollToSection("how-it-works", e)}
+                  className="px-8 py-4 bg-white/80 backdrop-blur-sm text-gray-900 font-semibold rounded-lg hover:bg-white transition-all shadow-md hover:shadow-lg border border-gray-200 cursor-pointer"
                 >
                   Learn how it works
-                </Link>
+                </button>
               </div>
 
-              <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors group">
+              <button 
+                onClick={(e) => scrollToSection("mission", e)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors group cursor-pointer"
+              >
                 <span className="text-sm font-medium">Scroll Down</span>
                 <svg
                   className="w-5 h-5 group-hover:translate-y-1 transition-transform"
@@ -246,9 +257,13 @@ export default function Home() {
           }
         `}</style>
 
-        <OurMission />
+        <div id="mission">
+          <OurMission />
+        </div>
         <AudienceSection />
-        <WhoIsItFor />
+        <div id="how-it-works">
+          <WhoIsItFor />
+        </div>
         <TherapistsSection />
         <WhyUs />
         <Footer />

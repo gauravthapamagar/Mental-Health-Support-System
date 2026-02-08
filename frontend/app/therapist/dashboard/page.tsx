@@ -4,7 +4,7 @@ import DashboardStats from "@/components/therapist/DashboardStats";
 import UpcomingAppointments from "@/components/therapist/UpcomingAppointments";
 import QuickActions from "@/components/therapist/QuickActions";
 import RecentActivity from "@/components/therapist/RecentActivity";
-import { authAPI, therapistAPI } from "@/lib/api";
+import { authAPI, therapistAPI, bookingAPI } from "@/lib/api";
 
 interface User {
   id: number;
@@ -15,6 +15,8 @@ interface User {
 const TherapistDashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [recentAppointments, setRecentAppointments] = useState<any[]>([]);
 
   useEffect(() => {
     const loadTherapist = async () => {
@@ -27,10 +29,20 @@ const TherapistDashboard = () => {
         }
 
         setUser(currentUser);
-        await therapistAPI.getProfile();
+        
+        // Parallel fetching for better performance
+        const [profileRes, statsRes, appointmentsRes] = await Promise.all([
+          therapistAPI.getProfile(),
+          therapistAPI.getDashboardStats(),
+          bookingAPI.getTherapistAppointments("all") // Fetch all for activity log
+        ]);
+
+        setStats(statsRes);
+        setRecentAppointments(appointmentsRes.results || []);
+
       } catch (error) {
         console.error("Failed to load therapist dashboard", error);
-        window.location.href = "/auth/login";
+        // Don't redirect immediately on data fetch failure, just show error state or empty
       } finally {
         setLoading(false);
       }
@@ -58,7 +70,7 @@ const TherapistDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, {user?.full_name || "Gaurav Thapa"}
+                Welcome back, {user?.full_name || "Therapist"}
               </h1>
               <p className="text-gray-600">
                 Here's what's happening with your practice today.
@@ -79,8 +91,8 @@ const TherapistDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Section */}
-        <DashboardStats therapistId={user?.id} />
+        {/* Stats Section - Now Dynamic */}
+        <DashboardStats data={stats} />
 
         {/* Quick Actions */}
         <div className="mt-8">
@@ -89,14 +101,14 @@ const TherapistDashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          {/* Left Column - Appointments */}
+          {/* Left Column - Appointments Widget */}
           <div className="lg:col-span-2 space-y-6">
             <UpcomingAppointments therapistId={user?.id} />
           </div>
 
           {/* Right Column - Activity & Quick Info */}
           <div className="space-y-6">
-            <RecentActivity />
+            <RecentActivity appointments={recentAppointments} />
           </div>
         </div>
       </div>

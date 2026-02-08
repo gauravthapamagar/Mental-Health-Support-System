@@ -120,7 +120,7 @@ const Footer = () => {
             <ul className="space-y-4 font-medium">
               <li>
                 <Link
-                  href="/blogs"
+                  href="/blog"
                   className="hover:text-blue-600 transition-colors"
                 >
                   Blog

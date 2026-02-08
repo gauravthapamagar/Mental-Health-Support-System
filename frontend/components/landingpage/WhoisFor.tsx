@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { User, Stethoscope, ShieldCheck, Brain } from "lucide-react";
+import Link from "next/link";
 
 const userJourneys = [
   {
@@ -237,9 +238,12 @@ export default function UserJourneys() {
           <p className="text-slate-600 mb-4">
             Ready to start your journey with CarePair?
           </p>
-          <button className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl">
-            Get Started Today
-          </button>
+          <Link 
+  href="/auth/login"
+  className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl inline-block text-center"
+>
+  Get Started Today
+</Link>
         </div>
       </div>
     </section>

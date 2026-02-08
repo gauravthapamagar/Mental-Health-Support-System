@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Calendar, Users, Lock, ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function WhyUsSection() {
   const [visibleItems, setVisibleItems] = useState([]);
@@ -152,10 +153,13 @@ export default function WhyUsSection() {
               </div>
             </div>
 
-            <button className="flex-shrink-0 bg-white text-blue-700 px-8 py-4 rounded-xl font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 group">
-              Find Your Therapist
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <Link 
+  href="/auth/login"
+  className="flex-shrink-0 bg-white text-blue-700 px-8 py-4 rounded-xl font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 group"
+>
+  Find Your Therapist
+  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+</Link>
           </div>
         </div>
       </div>

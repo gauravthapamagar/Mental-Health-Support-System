@@ -44,9 +44,8 @@ export default function TherapistProfilePage() {
       // We also pass the current path so they can return here later
       router.push(`/auth/login?redirect=/therapist-profile/${id}`);
     } else {
-      // If they are logged in, you can route them to the booking form
-      // router.push(`/patient/booking-form/${id}`);
-      console.log("User is authenticated, proceed to booking");
+      // If they are logged in, redirect to the patient view where they can book
+      router.push(`/patient/therapists/${id}`);
     }
   };
 
@@ -60,6 +59,19 @@ export default function TherapistProfilePage() {
 
   if (!therapist)
     return <div className="p-20 text-center">Therapist not found.</div>;
+
+  // DATA MAPPING - Handle both possible response structures
+  const specialties =
+    therapist.specializations || therapist.specialization_tags || [];
+
+  const fullName =
+    therapist.user?.full_name || therapist.full_name || "Therapist";
+
+  const profilePic = therapist.profile_picture
+    ? therapist.profile_picture.startsWith("http")
+      ? therapist.profile_picture
+      : `http://127.0.0.1:8000${therapist.profile_picture}`
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -83,26 +95,22 @@ export default function TherapistProfilePage() {
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
               <div className="aspect-square rounded-[2rem] overflow-hidden bg-slate-100 mb-6 relative">
-                {therapist.profile_picture ? (
+                {profilePic ? (
                   <img
-                    src={
-                      therapist.profile_picture.startsWith("http")
-                        ? therapist.profile_picture
-                        : `http://127.0.0.1:8000${therapist.profile_picture}`
-                    }
-                    alt={therapist.user?.full_name}
+                    src={profilePic}
+                    alt={fullName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-slate-300">
-                    {therapist.user?.full_name?.charAt(0)}
+                    {fullName.charAt(0)}
                   </div>
                 )}
               </div>
 
               <div className="text-center space-y-2">
                 <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-                  {therapist.user?.full_name}
+                  {fullName}
                 </h1>
                 <p className="text-blue-600 font-semibold text-sm uppercase tracking-wide">
                   {therapist.profession_type}
@@ -153,15 +161,17 @@ export default function TherapistProfilePage() {
                   Specialties
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {therapist.specialization_tags?.map(
-                    (tag: string, i: number) => (
+                  {specialties.length > 0 ? (
+                    specialties.map((tag: string, i: number) => (
                       <span
                         key={i}
                         className="px-5 py-2.5 bg-slate-50 text-slate-700 rounded-full text-sm font-semibold border border-slate-100 shadow-sm"
                       >
                         {tag}
                       </span>
-                    ),
+                    ))
+                  ) : (
+                    <p className="text-slate-400 italic">No specialties listed.</p>
                   )}
                 </div>
               </section>
@@ -176,6 +186,7 @@ export default function TherapistProfilePage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {therapist.availability_slots &&
+                  Object.keys(therapist.availability_slots).length > 0 ? (
                     Object.entries(therapist.availability_slots).map(
                       ([day, times]: any) => (
                         <div
@@ -194,7 +205,13 @@ export default function TherapistProfilePage() {
                           </p>
                         </div>
                       ),
-                    )}
+                    )
+                  ) : (
+                    <div className="col-span-full p-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center text-slate-400 italic">
+                      General schedule not provided. Click "Book Session" to see
+                      specific available dates.
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
