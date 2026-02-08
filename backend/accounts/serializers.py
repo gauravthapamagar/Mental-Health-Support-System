@@ -1,7 +1,9 @@
+# accounts/serializers.py
+
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
 from .models import User, PatientProfile, TherapistProfile
-from .models import TherapistProfile
 import json
 
 
@@ -22,16 +24,24 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
     basic_health_info = serializers.CharField(required=False, allow_blank=True)
     terms_accepted = serializers.BooleanField(required=True)
 
+    # New address fields (added from AddressMixin)
+    address_line_1 = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    address_line_2 = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    city = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    state = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    postal_code = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = User
         fields = [
             'email', 'password', 'password2', 'full_name', 'phone_number',
             'date_of_birth', 'gender', 'emergency_contact_name',
-            'emergency_contact_phone', 'basic_health_info', 'terms_accepted'
+            'emergency_contact_phone', 'basic_health_info', 'terms_accepted',
+            'address_line_1', 'address_line_2', 'city', 'state', 'country', 'postal_code'
         ]
 
     def validate_email(self, value):
-        """Check if email already exists"""
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(
                 "This email is already registered. Please use a different email or log in."
@@ -48,39 +58,37 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-    # Extract profile-specific data BEFORE creating user
         validated_data.pop('password2')
         emergency_contact_name = validated_data.pop('emergency_contact_name')
         emergency_contact_phone = validated_data.pop('emergency_contact_phone')
         basic_health_info = validated_data.pop('basic_health_info', '')
         terms_accepted = validated_data.pop('terms_accepted')
 
+        # Extract address fields
+        address_data = {
+            'address_line_1': validated_data.pop('address_line_1', None),
+            'address_line_2': validated_data.pop('address_line_2', None),
+            'city': validated_data.pop('city', None),
+            'state': validated_data.pop('state', None),
+            'country': validated_data.pop('country', None),
+            'postal_code': validated_data.pop('postal_code', None),
+        }
+
         try:
             with transaction.atomic():
-                # Create the User
                 user = User.objects.create_user(
                     role='patient',
                     **validated_data
                 )
 
-                # Create or update Patient Profile
-                profile, created = PatientProfile.objects.get_or_create(
+                PatientProfile.objects.create(
                     user=user,
-                    defaults={
-                        'emergency_contact_name': emergency_contact_name,
-                        'emergency_contact_phone': emergency_contact_phone,
-                        'basic_health_info': basic_health_info,
-                        'terms_accepted': terms_accepted
-                    }
+                    emergency_contact_name=emergency_contact_name,
+                    emergency_contact_phone=emergency_contact_phone,
+                    basic_health_info=basic_health_info,
+                    terms_accepted=terms_accepted,
+                    **address_data
                 )
-
-                # If profile already exists, update it
-                if not created:
-                    profile.emergency_contact_name = emergency_contact_name
-                    profile.emergency_contact_phone = emergency_contact_phone
-                    profile.basic_health_info = basic_health_info
-                    profile.terms_accepted = terms_accepted
-                    profile.save()
 
                 return user
 
@@ -89,11 +97,6 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
                 "error": f"Registration failed: {str(e)}"
             })
 
-
-# serializers.py
-from django.db import transaction
-
-# accounts/serializers.py
 
 class TherapistRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -114,16 +117,24 @@ class TherapistRegistrationSerializer(serializers.ModelSerializer):
     license_id = serializers.CharField(required=True)
     years_of_experience = serializers.IntegerField(required=True, min_value=0)
 
+    # New address fields (added from AddressMixin)
+    address_line_1 = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    address_line_2 = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    city = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    state = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    postal_code = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = User
         fields = [
             'email', 'password', 'password2', 'full_name', 'phone_number',
             'date_of_birth', 'gender', 'profession_type', 'license_id', 
-            'years_of_experience'
+            'years_of_experience',
+            'address_line_1', 'address_line_2', 'city', 'state', 'country', 'postal_code'
         ]
 
     def validate_email(self, value):
-        """Check if email already exists"""
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(
                 "This email is already registered. Please use a different email or log in."
@@ -138,39 +149,46 @@ class TherapistRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Extract profile-specific data BEFORE creating user
         validated_data.pop('password2')
         profession_type = validated_data.pop('profession_type')
         license_id = validated_data.pop('license_id')
         years_of_experience = validated_data.pop('years_of_experience')
         user_phone = validated_data.get('phone_number')
 
-        # Use atomic transaction - if ANY part fails, EVERYTHING rolls back
+        # Extract address fields
+        address_data = {
+            'address_line_1': validated_data.pop('address_line_1', None),
+            'address_line_2': validated_data.pop('address_line_2', None),
+            'city': validated_data.pop('city', None),
+            'state': validated_data.pop('state', None),
+            'country': validated_data.pop('country', None),
+            'postal_code': validated_data.pop('postal_code', None),
+        }
+
         try:
             with transaction.atomic():
-                # Create the User
                 user = User.objects.create_user(
                     role='therapist',
                     **validated_data
                 )
 
-                # The profile is automatically created by a signal when the user is created.
-                # We need to update that existing profile instead of creating a new one.
                 profile, created = TherapistProfile.objects.get_or_create(user=user)
                 profile.profession_type = profession_type
                 profile.license_id = license_id
                 profile.years_of_experience = years_of_experience
                 profile.phone_number = user_phone
+                # Apply address fields
+                for key, value in address_data.items():
+                    setattr(profile, key, value)
                 profile.save()
 
                 return user
                 
         except Exception as e:
-            # If anything goes wrong, the transaction rolls back automatically
-            # Re-raise with a clear message
             raise serializers.ValidationError({
                 "error": f"Registration failed: {str(e)}"
             })
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -187,7 +205,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PatientProfile
-        fields = '__all__'
+        fields = '__all__'  # Automatically includes address fields from AddressMixin
 
 
 class TherapistProfileSerializer(serializers.ModelSerializer):
@@ -214,7 +232,13 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
             'license_id',    
             'years_of_experience',
             'certificates',
-            
+            # Address fields added here so they can be updated in profile completion
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'state',
+            'country',
+            'postal_code',
         ]
         
 
@@ -224,15 +248,12 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         else:
             data = data.copy()
     
-   
-    # Remove profile_picture if it's a string (URL) or empty
         if 'profile_picture' in data:
             if isinstance(data['profile_picture'], str):
                 data.pop('profile_picture')
             elif data['profile_picture'] in [None, '', 'null', 'undefined']:
                 data.pop('profile_picture')
 
-    # Handle JSON strings for other fields
         json_fields = ['specialization_tags', 'languages_spoken', 'availability_slots']
         for field in json_fields:
             value = data.get(field)
@@ -255,13 +276,9 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        # All your original features are preserved here
-                
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
-        
-        # Original completion logic
         required_fields = [
             instance.specialization_tags,
             instance.languages_spoken,
@@ -311,6 +328,11 @@ class PatientProfileUpdateSerializer(serializers.ModelSerializer):
             'emergency_contact_name',
             'emergency_contact_phone',
             'basic_health_info',
+            # Address fields added
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'state',
+            'country',
+            'postal_code',
         ]
-
-

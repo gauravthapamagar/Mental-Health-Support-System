@@ -8,6 +8,8 @@ from .models import (
 )
 from accounts.models import User
 
+from surveys.models import SurveyResponse
+from surveys.serializers import SurveyResponseSummarySerializer
 
 class TherapistAvailabilitySerializer(serializers.ModelSerializer):
     day_label = serializers.CharField(source='get_day_of_week_display', read_only=True)
@@ -49,6 +51,8 @@ class PatientMinimalSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name', 'email', 'phone_number']
 
 
+
+
 class AppointmentListSerializer(serializers.ModelSerializer):
     """Serializer for listing appointments"""
     therapist = TherapistMinimalSerializer(read_only=True)
@@ -58,16 +62,22 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     is_upcoming = serializers.BooleanField(read_only=True)
     can_cancel = serializers.BooleanField(read_only=True)
     
+    # ✅ ADD: Show if appointment has attached survey
+    has_survey = serializers.SerializerMethodField()
+    
     class Meta:
         model = Appointment
         fields = [
             'id', 'patient', 'therapist', 'appointment_date', 'start_time',
             'end_time', 'duration_minutes', 'appointment_type', 
             'appointment_type_label', 'status', 'status_label', 'session_mode',
-            'is_upcoming', 'can_cancel', 'created_at'
+            'is_upcoming', 'can_cancel', 'has_survey', 'created_at'  # ✅ Added has_survey
         ]
+    
+    def get_has_survey(self, obj):
+        return obj.survey_response is not None
 
-
+from surveys.serializers import SurveyResponseSerializer
 class AppointmentDetailSerializer(serializers.ModelSerializer):
     """Detailed appointment information"""
     therapist = TherapistMinimalSerializer(read_only=True)
@@ -78,6 +88,34 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
     is_past = serializers.BooleanField(read_only=True)
     can_cancel = serializers.BooleanField(read_only=True)
     cancelled_by_name = serializers.SerializerMethodField()
+    assessment_file_url = serializers.SerializerMethodField()
+    assessment_file_name = serializers.SerializerMethodField()
+    # ✅ ADD: Include survey response details
+    survey_response = SurveyResponseSummarySerializer(read_only=True)
+    survey_details = serializers.SerializerMethodField()
+    
+    def get_assessment_file_url(self, obj):
+        """Return full URL for assessment file"""
+        if obj.assessment_file:
+            request = self.context.get('request')
+            if request:
+                # Returns full URL: http://localhost:8000/media/...
+                return request.build_absolute_uri(obj.assessment_file.url)
+            # Fallback: relative URL
+            return obj.assessment_file.url
+        return None
+    
+    def get_assessment_file_name(self, obj):
+        """Extract just the filename"""
+        if obj.assessment_file:
+            import os
+            return os.path.basename(obj.assessment_file.name)
+        return None
+    
+    def get_survey_details(self, obj):
+        if obj.survey_response:
+            return SurveyResponseSerializer(obj.survey_response).data
+        return None
     
     class Meta:
         model = Appointment
@@ -89,7 +127,7 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             'contact_email', 'session_mode', 'meeting_link', 'meeting_id',
             'therapist_notes', 'cancelled_by', 'cancelled_by_name',
             'cancellation_reason', 'cancelled_at', 'is_upcoming', 'is_past',
-            'can_cancel', 'created_at', 'updated_at', 'confirmed_at'
+            'can_cancel', 'survey_response', 'created_at', 'updated_at', 'confirmed_at','survey_details', 'assessment_file_url','assessment_file_name',  # ✅ Added survey_response
         ]
     
     def get_cancelled_by_name(self, obj):
@@ -97,6 +135,7 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             return obj.cancelled_by.full_name
         return None
 
+# booking/serializers.py
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
     """Serializer for creating new appointments"""
@@ -106,12 +145,14 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         fields = [
             'therapist', 'appointment_date', 'start_time', 'duration_minutes',
             'appointment_type', 'reason_for_visit', 'patient_notes',
-            'contact_phone', 'contact_email', 'session_mode'
+            'contact_phone', 'contact_email', 'session_mode',
+            'assessment_file',  # ✅ Include this field
         ]
-        # Make contact info optional in request, we fill it from user profile if missing
+        # ✅ Make all contact fields and file optional
         extra_kwargs = {
             'contact_phone': {'required': False},
-            'contact_email': {'required': False}
+            'contact_email': {'required': False},
+            'assessment_file': {'required': False, 'allow_null': True},  # ✅ CRITICAL
         }
 
     def validate_appointment_date(self, value):
@@ -132,19 +173,18 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         start_time = attrs['start_time']
         duration = attrs.get('duration_minutes', 60)
         
-        # 1. Calculate end time
+        # Calculate end time
         start_datetime = datetime.combine(appointment_date, start_time)
         end_datetime = start_datetime + timedelta(minutes=duration)
         end_time = end_datetime.time()
         
-        # 2. Check Availability from JSON (Source used by the Slot Generator)
-        day_name = appointment_date.strftime('%A') # e.g., "Monday"
+        # Check availability (your existing code)
+        day_name = appointment_date.strftime('%A')
         profile = therapist.therapist_profile
         availability_json = profile.availability_slots or {}
         
         is_available = False
         
-        # Check if the day exists in JSON
         if day_name in availability_json:
             time_ranges = availability_json[day_name]
             for time_range in time_ranges:
@@ -159,7 +199,6 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
                 except:
                     continue
 
-        # If not found in JSON, fallback check in the database Table (lowercase day)
         if not is_available:
             is_available = TherapistAvailability.objects.filter(
                 therapist=therapist,
@@ -174,7 +213,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
                 'start_time': f"Therapist is not available at {start_time} on {day_name}."
             })
 
-        # 3. Check for Time-Off
+        # Check for time-off
         time_off = TimeOffPeriod.objects.filter(
             therapist=therapist,
             start_date__lte=appointment_date,
@@ -184,7 +223,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         if time_off:
             raise serializers.ValidationError({'appointment_date': "Therapist is on leave."})
 
-        # 4. Check for Conflicts
+        # Check for conflicts
         conflicting = Appointment.objects.filter(
             therapist=therapist,
             appointment_date=appointment_date,
@@ -201,22 +240,29 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
-        
-        # Auto-fill missing fields
+    
+        # Auto-fill patient
         validated_data['patient'] = user
-        if not validated_data.get('contact_phone'):
-            validated_data['contact_phone'] = user.phone_number or "0000000000"
-        if not validated_data.get('contact_email'):
+    
+    # Auto-fill contact info if missing
+        if not validated_data.get('contact_phone') or validated_data.get('contact_phone') == '0000000000':
+            validated_data['contact_phone'] = getattr(user, 'phone_number', '0000000000')
+    
+        if not validated_data.get('contact_email') or validated_data.get('contact_email') == 'patient@example.com':
             validated_data['contact_email'] = user.email
 
-        # Calculate end_time for database storage
-        start_datetime = datetime.combine(validated_data['appointment_date'], validated_data['start_time'])
+    # Calculate end_time
+        start_datetime = datetime.combine(
+            validated_data['appointment_date'], 
+            validated_data['start_time']
+        )
         end_datetime = start_datetime + timedelta(minutes=validated_data.get('duration_minutes', 60))
         validated_data['end_time'] = end_datetime.time()
 
+    # ✅ Create appointment (file is already in validated_data)
         appointment = Appointment.objects.create(**validated_data)
 
-        # Log History
+    # Log history
         AppointmentHistory.objects.create(
             appointment=appointment,
             changed_by=user,
@@ -224,9 +270,9 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             new_status='pending',
             notes='Appointment created by patient'
         )
+    
         return appointment
-
-
+    
 class CancelAppointmentSerializer(serializers.Serializer):
     """Serializer for cancelling appointments"""
     cancellation_reason = serializers.CharField(required=True, max_length=500)
@@ -300,4 +346,3 @@ class TherapistListSerializer(serializers.ModelSerializer):
             'languages', 'consultation_mode', 'consultation_fees',
             'is_verified', 'years_of_experience', 'bio'
         ]
-

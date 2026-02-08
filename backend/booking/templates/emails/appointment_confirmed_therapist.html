@@ -1,0 +1,40 @@
+
+
+{% block subject %}Appointment Confirmed{% endblock %}
+
+{% block content %}
+<h2 style="color: #2d3748; margin-bottom: 24px;">Appointment Confirmed</h2>
+
+<p>Dear {{ greeting_name }},</p>
+
+<p>You have successfully confirmed the following appointment:</p>
+
+<div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+  <div style="margin-bottom: 12px;">
+    <strong style="color: #4a5568;">Date & Time:</strong><br>
+    {{ appointment_datetime }} ({{ timezone }})
+  </div>
+  <div style="margin-bottom: 12px;">
+    <strong style="color: #4a5568;">Patient:</strong><br>
+    {{ patient_name }}
+  </div>
+  {% if meeting_link and meeting_link != "To be provided / check platform" %}
+  <div>
+    <strong style="color: #4a5568;">Meeting Link:</strong><br>
+    <a href="{{ meeting_link }}" style="color: #3182ce;">{{ meeting_link }}</a>
+  </div>
+  {% endif %}
+</div>
+
+<p>You can view or manage this appointment in your dashboard.</p>
+
+<p style="margin-top: 32px; color: #718096; font-size: 14px;">
+  Thank you for using {{ system_name }}.<br>
+  If needed, support is available at {{ support_email }}.
+</p>
+
+<p style="margin-top: 24px;">
+  Best regards,<br>
+  <strong>{{ system_name }} Team</strong>
+</p>
+{% endblock %}

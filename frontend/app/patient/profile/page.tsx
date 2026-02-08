@@ -11,6 +11,11 @@ import {
   Camera,
   Loader2,
   AlertCircle,
+  Home,
+  MapPin,
+  Building,
+  Globe,
+  Locate,
 } from "lucide-react";
 import { patientAPI } from "@/lib/api";
 
@@ -28,6 +33,13 @@ export default function PatientProfile() {
     emergency_contact_name: "",
     emergency_contact_phone: "",
     basic_health_info: "",
+    // Added address fields
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    country: "",
+    postal_code: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -44,13 +56,20 @@ export default function PatientProfile() {
 
         setFormData((prev) => ({
           ...prev,
-          full_name: data.user.full_name || "",
-          email: data.user.email || "",
-          phone_number: data.user.phone_number || "",
-          date_of_birth: data.user.date_of_birth || "",
+          full_name: data.user?.full_name || "",
+          email: data.user?.email || "",
+          phone_number: data.user?.phone_number || "",
+          date_of_birth: data.user?.date_of_birth || "",
           emergency_contact_name: data.emergency_contact_name || "",
           emergency_contact_phone: data.emergency_contact_phone || "",
           basic_health_info: data.basic_health_info || "",
+          // Load address fields
+          address_line_1: data.address_line_1 || "",
+          address_line_2: data.address_line_2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          country: data.country || "",
+          postal_code: data.postal_code || "",
         }));
       } catch (err: any) {
         setError(err.response?.data?.detail || "Failed to load profile data.");
@@ -81,6 +100,13 @@ export default function PatientProfile() {
         emergency_contact_name: formData.emergency_contact_name,
         emergency_contact_phone: formData.emergency_contact_phone,
         basic_health_info: formData.basic_health_info,
+        // Send address fields
+        address_line_1: formData.address_line_1 || undefined,
+        address_line_2: formData.address_line_2 || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        country: formData.country || undefined,
+        postal_code: formData.postal_code || undefined,
       });
       alert("Profile updated successfully!");
     } catch (err: any) {
@@ -118,7 +144,7 @@ export default function PatientProfile() {
 
   return (
     <div>
-      {/* Header Alignment matching Appointments/Articles */}
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">My Profile</h1>
         <p className="text-slate-600">
@@ -229,6 +255,115 @@ export default function PatientProfile() {
                         value={formData.phone_number}
                         className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-500 cursor-not-allowed"
                       />
+                    </div>
+                  </div>
+
+                  {/* Address Section */}
+                  <div className="md:col-span-2 border-t pt-6 mt-2">
+                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-slate-600" />
+                      Address Information
+                    </h4>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Address Line 1
+                        </label>
+                        <div className="relative">
+                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="address_line_1"
+                            value={formData.address_line_1}
+                            onChange={handleInputChange}
+                            placeholder="Street address, P.O. box, etc."
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Address Line 2 (optional)
+                        </label>
+                        <div className="relative">
+                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="address_line_2"
+                            value={formData.address_line_2}
+                            onChange={handleInputChange}
+                            placeholder="Apartment, suite, unit, etc."
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          City
+                        </label>
+                        <div className="relative">
+                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          State / Province
+                        </label>
+                        <div className="relative">
+                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Country
+                        </label>
+                        <div className="relative">
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="country"
+                            value={formData.country}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Nepal"
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Postal Code
+                        </label>
+                        <div className="relative">
+                          <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            type="text"
+                            name="postal_code"
+                            value={formData.postal_code}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 

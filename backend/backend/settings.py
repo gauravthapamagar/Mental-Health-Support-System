@@ -194,6 +194,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 QUESTIONS_PER_QUIZ = 5  # Number of questions to generate per blog
 VERIFICATION_POINTS_THRESHOLD = 100  # Points needed for auto-verification
 
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 from decouple import config  # type: ignore
 
 

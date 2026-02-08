@@ -4,6 +4,9 @@ from django.utils import timezone
 from accounts.models import User
 from datetime import datetime, timedelta
 
+def assessment_file_path(instance, filename):
+    # e.g. assessments/patient_123/2026-03-07_assessment.pdf
+    return f'assessments/patient_{instance.patient.id}/{instance.appointment_date}_{filename}'
 
 class TherapistAvailability(models.Model):
     """Therapist's weekly availability schedule"""
@@ -62,6 +65,12 @@ class TimeOffPeriod(models.Model):
     def __str__(self):
         return f"{self.therapist.full_name} - Off from {self.start_date} to {self.end_date}"
 
+def assessment_upload_path(instance, filename):
+    """Generate upload path for assessment files"""
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    patient_id = instance.patient.id
+    return f'assessments/patient_{patient_id}/{timestamp}_{filename}'
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
@@ -92,6 +101,15 @@ class Appointment(models.Model):
         limit_choices_to={'role': 'therapist'}
     )
     
+    survey_response = models.ForeignKey(
+        'surveys.SurveyResponse',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='appointments',
+        help_text='Patient assessment attached to this appointment'
+    )
+    
     # Appointment details
     appointment_date = models.DateField()
     start_time = models.TimeField()
@@ -110,6 +128,12 @@ class Appointment(models.Model):
     reason_for_visit = models.TextField(help_text="Patient's reason for booking")
     patient_notes = models.TextField(blank=True, help_text="Additional notes from patient")
     
+    assessment_file = models.FileField(
+        upload_to=assessment_upload_path,
+        null=True,
+        blank=True,
+        help_text='Patient assessment file (PDF, TXT, DOCX)'
+    )
     # Contact information
     contact_phone = models.CharField(max_length=17)
     contact_email = models.EmailField()

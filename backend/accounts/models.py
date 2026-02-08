@@ -36,6 +36,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField(unique=True, max_length=255)
     full_name = models.CharField(max_length=255)
+    
+    
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
@@ -62,7 +64,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = 'users'
 
 
-class PatientProfile(models.Model):
+class AddressMixin(models.Model):
+    address_line_1 = models.CharField(max_length=255, blank=True, null=True)
+    address_line_2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    postal_code = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+
+
+class PatientProfile(AddressMixin, models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
     emergency_contact_name = models.CharField(max_length=255)
     emergency_contact_phone = models.CharField(max_length=17)
@@ -78,7 +92,7 @@ class PatientProfile(models.Model):
         db_table = 'patient_profiles'
 
 
-class TherapistProfile(models.Model):
+class TherapistProfile(AddressMixin, models.Model):
     PROFESSION_CHOICES = [
         ('psychologist', 'Psychologist'),
         ('psychiatrist', 'Psychiatrist'),

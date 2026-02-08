@@ -1,0 +1,44 @@
+
+
+{% block subject %}Your Appointment is Confirmed{% endblock %}
+
+{% block content %}
+<h2 style="color: #2d3748; margin-bottom: 24px;">Appointment Confirmed!</h2>
+
+<p>Dear {{ greeting_name }},</p>
+
+<p>Great news — your appointment has been <strong>confirmed</strong> by your therapist.</p>
+
+<div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+  <div style="margin-bottom: 12px;">
+    <strong style="color: #4a5568;">Date & Time:</strong><br>
+    {{ appointment_datetime }} ({{ timezone }})
+  </div>
+  <div style="margin-bottom: 12px;">
+    <strong style="color: #4a5568;">Therapist:</strong><br>
+    {{ therapist_name }}
+  </div>
+  {% if meeting_link and meeting_link != "To be provided / check platform" %}
+  <div>
+    <strong style="color: #4a5568;">Meeting Link:</strong><br>
+    <a href="{{ meeting_link }}" style="color: #3182ce; text-decoration: underline;">Join the session</a>
+  </div>
+  {% else %}
+  <div style="color: #718096;">
+    <strong>Meeting Link:</strong> Will be provided soon — please check your dashboard.
+  </div>
+  {% endif %}
+</div>
+
+<p>You can view all details or manage your appointments here:</p>
+<p><a href="{{ platform_url }}" style="color: #3182ce;">Go to My Appointments</a></p>
+
+<p style="margin-top: 32px; color: #718096; font-size: 14px;">
+  If you have any questions, feel free to contact us at {{ support_email }}.
+</p>
+
+<p style="margin-top: 24px;">
+  Best regards,<br>
+  <strong>{{ system_name }} Team</strong>
+</p>
+{% endblock %}

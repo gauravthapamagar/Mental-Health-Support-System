@@ -25,7 +25,8 @@ from .serializers import (
     AvailableSlotSerializer
 )
 from accounts.models import User
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 
 class AppointmentPagination(PageNumberPagination):
     page_size = 10
@@ -270,12 +271,24 @@ def get_available_slots(request, therapist_id):
     }, status=status.HTTP_200_OK)
 
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsPatient])
+@parser_classes([MultiPartParser, FormParser, JSONParser])  # ← ADD THIS
 def create_appointment(request):
     """
     Create a new appointment (Patient only)
     """
+    # 🔍 DEBUG: Print received data
+    print("\n" + "=" * 60)
+    print("📥 RECEIVED APPOINTMENT BOOKING REQUEST")
+    print("=" * 60)
+    print(f"User: {request.user.email}")
+    print(f"Data received: {request.data}")
+    print(f"Files received: {request.FILES}")  # ✅ Check this
+    print("=" * 60 + "\n")
+    
+    
     serializer = CreateAppointmentSerializer(
         data=request.data,
         context={'request': request}
@@ -284,13 +297,19 @@ def create_appointment(request):
     if serializer.is_valid():
         appointment = serializer.save()
         
+        
+        
         return Response({
             'message': 'Appointment booked successfully! Waiting for therapist confirmation.',
             'appointment': AppointmentDetailSerializer(appointment).data
         }, status=status.HTTP_201_CREATED)
     
+    
+    for field, errors in serializer.errors.items():
+        print(f"  {field}: {errors}")
+   
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsPatient])
@@ -552,7 +571,7 @@ def therapist_appointments(request):
     
     return paginator.get_paginated_response(serializer.data)
 
-
+from .email_utils import send_confirmation_emails
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsTherapist])
 def confirm_appointment(request, appointment_id):
@@ -596,6 +615,13 @@ def confirm_appointment(request, appointment_id):
         new_status='confirmed',
         notes='Appointment confirmed by therapist'
     )
+    # ── Send confirmation emails ─────────────────────────────────
+    try:
+        send_confirmation_emails(appointment)
+    except Exception as e:
+        # Optional: log error — but don't fail the confirmation
+        print(f"Confirmation email failed: {e}")
+        # You could also use Django's logger here
     
     return Response({
         'message': 'Appointment confirmed successfully',

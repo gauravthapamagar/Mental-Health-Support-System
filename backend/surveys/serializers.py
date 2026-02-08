@@ -128,3 +128,20 @@ class SurveyResponseSerializer(serializers.ModelSerializer):
             'is_latest',
             'answers',
         ]
+
+
+class SurveyResponseSummarySerializer(serializers.ModelSerializer):
+    """Lightweight serializer for appointment display"""
+    survey_title = serializers.CharField(source='survey.title', read_only=True)
+    patient_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SurveyResponse
+        fields = [
+            'id', 'survey', 'survey_title', 'patient_name',
+            'status', 'total_score', 'created', 'completed_at', 'is_latest'
+        ]
+    
+    def get_patient_name(self, obj):
+        return obj.patient.full_name if obj.patient else "Unknown Patient"
+        

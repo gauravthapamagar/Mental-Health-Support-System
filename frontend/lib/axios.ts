@@ -78,9 +78,7 @@ import axios from "axios";
 // Create axios instance with Django API configuration
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_DJANGO_API_URL || "http://localhost:8000/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  
   withCredentials: true, // Important for CSRF tokens and cookies
 });
 

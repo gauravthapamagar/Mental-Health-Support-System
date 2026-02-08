@@ -96,9 +96,7 @@ export default function TherapistCard({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h3 className="text-xl font-bold text-gray-900">{name}</h3>
-                <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 rounded-full text-sm font-bold border border-green-200">
-                  {matchScore}% Match
-                </span>
+               
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium border ${getAvailabilityColor()}`}
                 >

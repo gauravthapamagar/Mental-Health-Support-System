@@ -251,10 +251,11 @@ export const bookingAPI = {
   // Create the appointment
   createAppointment: async (data: any) => {
     const response = await axiosInstance.post(
-      "/booking/appointments/create/",
-      data,
-    );
-    return response.data;
+    "/booking/appointments/create/",
+    data
+    // No config needed - axios detects FormData automatically
+  );
+  return response.data;
   },
 
   // Fetch appointments for the current user (Patient perspective)

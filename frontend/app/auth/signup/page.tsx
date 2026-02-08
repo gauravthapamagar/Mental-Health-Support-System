@@ -24,6 +24,11 @@ import {
   Loader2,
   Users,
   FileText,
+  MapPin,
+  Home,
+  Building,
+  Globe,
+  Locate,
 } from "lucide-react";
 
 export default function SignupPage() {
@@ -53,6 +58,13 @@ export default function SignupPage() {
     profession_type: "",
     license_id: "",
     years_of_experience: "",
+    // ── Added address fields ──
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    country: "",
+    postal_code: "",
   });
 
   // 🔗 Fetch dropdown metadata from backend
@@ -88,10 +100,6 @@ export default function SignupPage() {
     if (errorMsg) setErrorMsg("");
   };
 
-  // Update just the handleSubmit function in your signup page
-
-  // Update just the handleSubmit function in your signup page
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
@@ -123,7 +131,7 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
-    setErrorMsg(""); // Clear previous errors
+    setErrorMsg("");
 
     const payload: any = {
       email: formData.email,
@@ -133,6 +141,13 @@ export default function SignupPage() {
       phone_number: formData.phone_number,
       date_of_birth: formData.date_of_birth,
       gender: formData.gender,
+      // ── Added address fields to payload ──
+      address_line_1: formData.address_line_1 || undefined,
+      address_line_2: formData.address_line_2 || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      country: formData.country || undefined,
+      postal_code: formData.postal_code || undefined,
     };
 
     if (role === "patient") {
@@ -161,12 +176,9 @@ export default function SignupPage() {
       const data = err.response?.data;
 
       if (data) {
-        // Check if it's an object with error fields
         if (typeof data === "object") {
-          // Try to find the first error message
           let errorMessage = "";
 
-          // Priority order: error, email, then other fields
           if (data.error) {
             errorMessage = Array.isArray(data.error)
               ? data.error[0]
@@ -181,7 +193,6 @@ export default function SignupPage() {
               : data.password;
             errorMessage = `Password: ${pwdError}`;
           } else {
-            // Get first available error
             const firstKey = Object.keys(data)[0];
             if (firstKey) {
               const errorValue = data[firstKey];
@@ -211,6 +222,7 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+
   const commonFields = [
     {
       name: "full_name",
@@ -431,6 +443,68 @@ export default function SignupPage() {
                   </>
                 )}
 
+                {/* ── Added Address Section ── */}
+                <div className="pt-2 pb-1">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-500" />
+                    Address Information (optional)
+                  </h3>
+
+                  <div className="space-y-3">
+                    <FormInput
+                      name="address_line_1"
+                      placeholder="Address Line 1"
+                      icon={Home}
+                      value={formData.address_line_1}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="address_line_2"
+                      placeholder="Address Line 2 (optional)"
+                      icon={Home}
+                      value={formData.address_line_2}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormInput
+                        name="city"
+                        placeholder="City"
+                        icon={Locate}
+                        value={formData.city}
+                        onChange={handleInputChange}
+                      />
+
+                      <FormInput
+                        name="state"
+                        placeholder="State / Province"
+                        icon={Locate}
+                        value={formData.state}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormInput
+                        name="country"
+                        placeholder="Country"
+                        icon={Globe}
+                        value={formData.country}
+                        onChange={handleInputChange}
+                      />
+
+                      <FormInput
+                        name="postal_code"
+                        placeholder="Postal Code"
+                        icon={Building}
+                        value={formData.postal_code}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <FormInput
                     name="password"
@@ -579,7 +653,6 @@ const FormInput = ({
   <div className="relative">
     <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
     <input
-      required
       type={type}
       name={name}
       value={value}

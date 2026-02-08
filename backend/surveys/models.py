@@ -157,7 +157,7 @@ class SurveyResponse(TimeStampedModel):
         ]
     
     def __str__(self):
-        return f"{self.patient.username} - {self.survey.title} (v{self.retake_count})"
+        return f"{self.patient.email} - {self.survey.title} (v{self.retake_count})"
 
 
 class SurveyAnswer(TimeStampedModel):

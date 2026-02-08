@@ -15,6 +15,9 @@ import {
   BadgeCheck,
   Calendar,
   Plus,
+  Home,
+  Locate,
+  Building,
   X,
   Globe,
   Clock,
@@ -29,12 +32,11 @@ export default function TherapistProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
-  const [existingCertificate, setExistingCertificate] = useState<string | null>(
-    null,
-  );
+  const [existingCertificate, setExistingCertificate] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -48,8 +50,14 @@ export default function TherapistProfile() {
     consultation_mode: "online",
     specialization_tags: [] as string[],
     languages_spoken: [] as string[],
-    availability_slots: "" as string, // Matching your admin's text area/structure
+    availability_slots: "" as string,
     is_verified: false,
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    country: "",
+    postal_code: "",
   });
 
   const [newTag, setNewTag] = useState("");
@@ -77,14 +85,17 @@ export default function TherapistProfile() {
               ? data.availability_slots
               : JSON.stringify(data.availability_slots, null, 2),
           is_verified: data.is_verified || false,
+          address_line_1: data.address_line_1 || "",
+          address_line_2: data.address_line_2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          country: data.country || "",
+          postal_code: data.postal_code || "",
         });
 
-        // Set profile picture preview if it exists from backend
         if (data.profile_picture) {
           setPreviewUrl(data.profile_picture);
         }
-
-        // Set existing certificate if it exists from backend
         if (data.certificates) {
           setExistingCertificate(data.certificates);
         }
@@ -96,11 +107,11 @@ export default function TherapistProfile() {
     };
     fetchProfile();
   }, []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setProfilePicture(file);
-      // Local preview for immediate feedback
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
@@ -124,20 +135,18 @@ export default function TherapistProfile() {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setSuccessMessage(null);
+
     try {
       const dataToSend = new FormData();
 
-      // Profile picture
       if (profilePicture instanceof File) {
         dataToSend.append("profile_picture", profilePicture);
       }
-
-      // Certificate
       if (certificateFile instanceof File) {
         dataToSend.append("certificates", certificateFile);
       }
 
-      // Standard fields
       dataToSend.append("phone_number", formData.phone_number || "");
       dataToSend.append("license_id", formData.license_id || "");
       dataToSend.append(
@@ -151,7 +160,6 @@ export default function TherapistProfile() {
       );
       dataToSend.append("consultation_mode", formData.consultation_mode || "");
 
-      // Array fields
       dataToSend.append(
         "specialization_tags",
         JSON.stringify(formData.specialization_tags || []),
@@ -161,13 +169,26 @@ export default function TherapistProfile() {
         JSON.stringify(formData.languages_spoken || []),
       );
 
-      // Schedule
-      dataToSend.append("availability_slots", JSON.stringify(schedule || {}));
+      dataToSend.append("availability_slots", formData.availability_slots || "");
 
-      // API call
-      const response = await therapistAPI.updateProfile(dataToSend);
-      alert("Profile updated successfully!");
-      window.location.reload();
+      // Address fields
+      dataToSend.append("address_line_1", formData.address_line_1 || "");
+      dataToSend.append("address_line_2", formData.address_line_2 || "");
+      dataToSend.append("city", formData.city || "");
+      dataToSend.append("state", formData.state || "");
+      dataToSend.append("country", formData.country || "");
+      dataToSend.append("postal_code", formData.postal_code || "");
+
+      await therapistAPI.updateProfile(dataToSend);
+
+      // Show success message
+      setSuccessMessage("Your profile has been updated successfully!");
+
+      // Auto-hide after 4 seconds
+      setTimeout(() => setSuccessMessage(null), 4000);
+
+      // Optional: reload page to show fresh data (e.g. new profile picture)
+      // window.location.reload();
     } catch (err: any) {
       setError(err.message || "Update failed. Please check your data.");
     } finally {
@@ -190,6 +211,7 @@ export default function TherapistProfile() {
       setNewLang("");
     }
   };
+
   const DAYS_OF_WEEK = [
     "Monday",
     "Tuesday",
@@ -200,6 +222,7 @@ export default function TherapistProfile() {
     "Sunday",
   ];
   const [schedule, setSchedule] = useState<{ [key: string]: string[] }>({});
+
   useEffect(() => {
     if (formData.availability_slots) {
       try {
@@ -213,6 +236,7 @@ export default function TherapistProfile() {
       }
     }
   }, [formData.availability_slots]);
+
   const addTimeSlot = (day: string) => {
     const updated = {
       ...schedule,
@@ -245,6 +269,7 @@ export default function TherapistProfile() {
       availability_slots: JSON.stringify(updatedSchedule),
     }));
   };
+
   if (loading)
     return (
       <div className="flex items-center justify-center p-20">
@@ -346,6 +371,7 @@ export default function TherapistProfile() {
         {/* Form Body */}
         <div className="lg:col-span-3">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+            {/* Error Message */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
@@ -353,24 +379,41 @@ export default function TherapistProfile() {
               </div>
             )}
 
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-6 p-5 bg-green-50 border border-green-200 text-green-800 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-500">
+                <svg
+                  className="w-6 h-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <p className="font-semibold">Success!</p>
+                  <p className="text-sm text-green-700">{successMessage}</p>
+                </div>
+              </div>
+            )}
+
             {activeTab === "professional" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">
-                  Personal Information
-                </h2>
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Personal Information
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Basic contact and address details
+                  </p>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Professional Bio
-                    </label>
-                    <textarea
-                      name="bio"
-                      rows={5}
-                      value={formData.bio}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-all"
-                    />
-                  </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Phone Number
@@ -382,6 +425,7 @@ export default function TherapistProfile() {
                       className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Profession Type
@@ -400,6 +444,122 @@ export default function TherapistProfile() {
                       <option value="other">Other</option>
                     </select>
                   </div>
+
+                  {/* Address Section */}
+                  <div className="md:col-span-2 border-t pt-6 mt-4">
+                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-slate-600" />
+                      Practice / Clinic Address
+                    </h4>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Address Line 1
+                        </label>
+                        <div className="relative">
+                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="address_line_1"
+                            value={formData.address_line_1}
+                            onChange={handleInputChange}
+                            placeholder="Street address, clinic name, etc."
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Address Line 2 (optional)
+                        </label>
+                        <div className="relative">
+                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="address_line_2"
+                            value={formData.address_line_2}
+                            onChange={handleInputChange}
+                            placeholder="Building, floor, suite, etc."
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          City
+                        </label>
+                        <div className="relative">
+                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          State / Province
+                        </label>
+                        <div className="relative">
+                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Country
+                        </label>
+                        <div className="relative">
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="country"
+                            value={formData.country}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Nepal"
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Postal Code
+                        </label>
+                        <div className="relative">
+                          <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                          <input
+                            name="postal_code"
+                            value={formData.postal_code}
+                            onChange={handleInputChange}
+                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6 mt-4">
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">
+                    Professional Bio
+                  </h2>
+                  <textarea
+                    name="bio"
+                    rows={5}
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-all"
+                  />
                 </div>
               </div>
             )}
