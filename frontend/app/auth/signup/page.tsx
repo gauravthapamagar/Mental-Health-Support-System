@@ -103,22 +103,68 @@ export default function SignupPage() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (!formData.gender || !formData.date_of_birth) {
-      setErrorMsg(
-        "Please fill in all required fields (Gender and Date of Birth).",
-      );
+    // 1️⃣ Common Validation
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrorMsg("Please enter a valid email address.");
+      return;
+    }
+    if (!formData.full_name || formData.full_name.length < 2) {
+      setErrorMsg("Full name must be at least 2 characters.");
+      return;
+    }
+    if (!formData.password || formData.password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (formData.password.includes(" ")) {
+      setErrorMsg("Password cannot contain spaces.");
+      return;
+    }
+    if (formData.password !== formData.password2) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+    if (!formData.phone_number || formData.phone_number.length < 10) {
+      setErrorMsg("Please enter a valid phone number (min 10 digits)."); // Basic check
+      return;
+    }
+    if (!formData.date_of_birth) {
+      setErrorMsg("Date of birth is required.");
+      return;
+    }
+    const dob = new Date(formData.date_of_birth);
+    const today = new Date();
+    if (dob > today) {
+      setErrorMsg("Date of birth cannot be in the future.");
       return;
     }
 
-    // Additional validation for therapist
-    if (role === "therapist") {
+    if (!formData.gender) {
+      setErrorMsg("Gender selection is required.");
+      return;
+    }
+
+    // 2️⃣ Role-Specific Validation
+    if (role === "patient") {
+      if (!formData.emergency_contact_name) {
+        setErrorMsg("Emergency contact name is required for patients.");
+        return;
+      }
+      if (!formData.emergency_contact_phone) {
+        setErrorMsg("Emergency contact phone is required for patients.");
+        return;
+      }
+      if (!formData.terms_accepted) {
+        setErrorMsg("You must accept the terms and conditions.");
+        return;
+      }
+    } else if (role === "therapist") {
       if (!formData.profession_type) {
-        setErrorMsg("Please select a profession type.");
+        setErrorMsg("Please select your profession type.");
         return;
       }
       if (!formData.license_id) {
-        setErrorMsg("Please enter your license ID.");
+        setErrorMsg("License ID is required for verification.");
         return;
       }
       if (

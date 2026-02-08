@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Activity,
   CheckCircle,
+  Calendar,
 } from "lucide-react";
 
 const OverviewTab = ({ stats }: any) => {
@@ -25,7 +26,7 @@ const OverviewTab = ({ stats }: any) => {
           icon={<Users size={24} />}
           title="Total Users"
           value={stats.totalUsers ?? 0}
-          trend="+12%" // This can be made dynamic if your backend calculates growth
+          subtitle={`${stats.totalPatients ?? 0} patients`}
           color="blue"
         />
         <StatCard
@@ -38,16 +39,41 @@ const OverviewTab = ({ stats }: any) => {
         <StatCard
           icon={<FileText size={24} />}
           title="Published Blogs"
-          value={stats.totalBlogs ?? 0}
-          subtitle="Updated recently"
+          value={stats.publishedBlogs ?? 0}
+          subtitle={`${stats.pendingBlogs ?? 0} pending approval`}
           color="purple"
         />
         <StatCard
           icon={<ClipboardList size={24} />}
           title="Total Surveys"
           value={stats.totalSurveys ?? 0}
-          trend="+8%"
+          subtitle="Completed assessments"
           color="orange"
+        />
+      </div>
+
+      {/* Second Row of Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          icon={<Calendar size={24} />}
+          title="Total Appointments"
+          value={stats.totalAppointments ?? 0}
+          subtitle={`${stats.pendingAppointments ?? 0} pending`}
+          color="blue"
+        />
+        <StatCard
+          icon={<Activity size={24} />}
+          title="Journal Entries"
+          value={stats.totalJournals ?? 0}
+          subtitle="Patient reflections"
+          color="green"
+        />
+        <StatCard
+          icon={<TrendingUp size={24} />}
+          title="Platform Growth"
+          value="+24%"
+          subtitle="This month"
+          color="purple"
         />
       </div>
 

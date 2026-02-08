@@ -181,7 +181,7 @@ const TherapistsSection = () => {
 
                       <div className="mt-8 pt-5 border-t border-slate-50 flex items-center justify-between">
                         <Link
-                          href={`/find-therapist/${therapist.id}`}
+                          href={`/find-therapist/${therapist.user.id}`}
                           className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-blue-600"
                         >
                           View Profile <ArrowRight className="w-4 h-4" />

@@ -223,7 +223,7 @@ export default function Header() {
                 )}
                 {userRole === "therapist" && (
                   <Link
-                    href="/my-patients"
+                    href="/therapist/my-patients"
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all active:scale-95"
                   >
                     <Users className="w-4 h-4" />

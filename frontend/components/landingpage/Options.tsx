@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const careOptions = [
   {
@@ -153,9 +154,11 @@ export default function CareOptions() {
               : "opacity-0 translate-y-12"
           }`}
         >
-          <button className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer font-black px-10 py-5 rounded-2xl shadow-lg shadow-teal-200 transition-all uppercase tracking-widest mb-8 active:scale-95">
-            Start with a free assessment
-          </button>
+          <Link href="/auth/login">
+  <button className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer font-black px-10 py-5 rounded-2xl shadow-lg shadow-teal-200 transition-all uppercase tracking-widest mb-8 active:scale-95">
+    Start with a free assessment
+  </button>
+</Link>
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
             {[

@@ -184,6 +184,12 @@ export const therapistAPI = {
     );
     return response.data;
   },
+
+  // Get My Patients
+  getMyPatients: async () => {
+    const response = await axiosInstance.get("/booking/therapist/patients/");
+    return response.data;
+  },
 };
 
 export interface RecommendedBlog {
@@ -267,10 +273,25 @@ export const bookingAPI = {
   },
 
   // Fetch appointments for the therapist dashboard
+  // Fetch appointments for the therapist dashboard
   getTherapistAppointments: async (filterType: string) => {
+    const params: any = {};
+    
+    // Smart mapping for frontend tabs
+    if (filterType === 'pending') {
+      params.status = 'pending';
+    } else if (filterType === 'history') {
+      params.filter = 'past';
+    } else if (filterType === 'all') {
+      // No filter means get all
+    } else {
+      // Pass through for 'upcoming', 'today' etc.
+      params.filter = filterType;
+    }
+
     const response = await axiosInstance.get(
       "/booking/therapist/appointments/",
-      { params: { filter: filterType } },
+      { params },
     );
     return response.data;
   },

@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Calendar,
 } from "lucide-react";
 import { adminApiCall } from "@/lib/adminapi";
 
@@ -19,7 +20,9 @@ import { adminApiCall } from "@/lib/adminapi";
 import OverviewTab from "@/components/admin/OverviewTab";
 import UsersTab from "@/components/admin/UsersTab";
 import TherapistsTab from "@/components/admin/TherapistsTab";
+import AppointmentsTab from "@/components/admin/AppointmentsTab";
 import BlogsTab from "@/components/admin/BlogsTab";
+import JournalsTab from "@/components/admin/JournalsTab";
 import SurveysTab from "@/components/admin/SurveysTab";
 import SettingsTab from "@/components/admin/SettingsTab";
 
@@ -39,6 +42,9 @@ const AdminDashboard = () => {
     pendingBlogs: 0,
     publishedBlogs: 0,
     totalSurveys: 0,
+    totalAppointments: 0,
+    pendingAppointments: 0,
+    totalJournals: 0,
   });
 
   // Verify admin access
@@ -147,6 +153,19 @@ const AdminDashboard = () => {
             badge={stats.pendingBlogs}
           />
           <NavItem
+            icon={<Calendar size={20} />}
+            label="Appointments"
+            active={activeTab === "appointments"}
+            onClick={() => setActiveTab("appointments")}
+            badge={stats.pendingAppointments}
+          />
+          <NavItem
+            icon={<FileText size={20} />}
+            label="Journals"
+            active={activeTab === "journals"}
+            onClick={() => setActiveTab("journals")}
+          />
+          <NavItem
             icon={<ClipboardList size={20} />}
             label="Surveys"
             active={activeTab === "surveys"}
@@ -193,7 +212,9 @@ const AdminDashboard = () => {
           {activeTab === "overview" && <OverviewTab stats={stats} />}
           {activeTab === "users" && <UsersTab />}
           {activeTab === "therapists" && <TherapistsTab />}
+          {activeTab === "appointments" && <AppointmentsTab />}
           {activeTab === "blogs" && <BlogsTab />}
+          {activeTab === "journals" && <JournalsTab />}
           {activeTab === "surveys" && <SurveysTab />}
           {activeTab === "settings" && <SettingsTab />}
         </div>

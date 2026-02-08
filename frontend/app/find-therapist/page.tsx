@@ -173,7 +173,7 @@ export default function FindTherapist() {
 
                   <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                     <Link
-                      href={`/find-therapist/${profile.id}`} // Change profile.user.id to profile.id
+                      href={`/find-therapist/${profile.user.id}`} // Fixed: Use User ID, not Profile ID
                       className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-blue-600 transition-colors"
                     >
                       View Profile <ArrowRight className="w-4 h-4" />
