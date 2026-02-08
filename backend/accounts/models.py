@@ -102,12 +102,12 @@ class TherapistProfile(AddressMixin, models.Model):
         ('other', 'Other'),
     ]
     profile_picture = models.ImageField(
-        upload_to='media/therapist_profiles/', 
+        upload_to='therapist_profiles/', 
         null=True, 
         blank=True
     )
     certificates = models.FileField(
-        upload_to='media/therapist_certificates/',
+        upload_to='therapist_certificates/',
         null=True,
         blank=True,
         help_text="Upload your license, degree, or other credentials"

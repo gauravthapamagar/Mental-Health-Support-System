@@ -63,15 +63,9 @@ export default function StatsGrid({ stats }: StatsGridProps) {
         href="/patient/appointments"
       />
 
-      <StatCard
-        icon={<Star className="text-blue-600" size={24} />}
-        label="AI Match Compatibility"
-        value={stats.matchScore ? `${stats.matchScore}% Match Score` : "Not Matched"}
-        subtitle="Based on Similarity Score"
-        href="/patient/therapist-matches/find"
-      />
+      
 
-      <StatCard
+      {/* <StatCard
         icon={<TrendingUp className="text-blue-600" size={24} />}
         label="Recent Mood Sentiment"
         value={stats.moodSentiment || "No Data"}
@@ -85,7 +79,7 @@ export default function StatsGrid({ stats }: StatsGridProps) {
         value={`${stats.insightCount || 0} Entries`}
         subtitle="Total Reflections"
         href="/patient/journal"
-      />
+      /> */}
     </div>
   );
 }

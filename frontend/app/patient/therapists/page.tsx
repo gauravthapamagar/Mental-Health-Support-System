@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import TherapistCard from "@/components/patient/therapists/TherapistCard";
-import BookAppointmentModal from "@/components/patient/BookAppointmentModal/page"; // We'll create this next
+import BookAppointmentModal from "@/components/patient/BookAppointmentModal/page";
 import { Search, Loader2 } from "lucide-react";
 import { bookingAPI } from "@/lib/api";
 
@@ -25,6 +25,8 @@ export default function TherapistsPage() {
           specialization !== "All Specialties" ? specialization : "",
         mode: mode !== "All Formats" ? mode : "",
       });
+      
+      console.log("API Response:", data);
       setTherapists(data.results || []);
     } catch (error) {
       console.error("Error loading therapists", error);
@@ -73,22 +75,38 @@ export default function TherapistsPage() {
             <Loader2 className="animate-spin text-blue-600" size={40} />
           </div>
         ) : therapists.length > 0 ? (
-          therapists.map((t: any) => (
-            <TherapistCard
-              key={t.id}
-              id={t.id}
-              name={t.full_name}
-              title={t.profession}
-              experience={`${t.years_of_experience} years`}
-              specialties={t.specialization || []}
-              availability={t.is_verified ? "Verified" : "Available"}
-              formats={[t.consultation_mode]}
-              // We pass a function to open the modal
-              onBookClick={() =>
-                setSelectedTherapist({ id: t.id, name: t.full_name })
-              }
-            />
-          ))
+          therapists.map((t: any) => {
+            // Format profile picture URL
+            let profilePicture = t.profile_picture;
+            if (profilePicture && !profilePicture.startsWith('http')) {
+              profilePicture = `http://127.0.0.1:8000${profilePicture}`;
+            }
+            
+            return (
+              <TherapistCard
+                key={t.id}
+                id={t.id.toString()}
+                name={t.full_name}
+                title={t.profession || 'Therapist'}
+                experience={`${t.years_of_experience || 0} years`}
+                matchScore={95}
+                specialties={t.specialization || []}
+                availability={t.is_verified ? "Available" : "Limited"}
+                formats={t.consultation_mode ? [
+                  t.consultation_mode.charAt(0).toUpperCase() + 
+                  t.consultation_mode.slice(1)
+                ] : ["Video"]}
+                image={profilePicture || t.full_name.charAt(0)}
+                bio={t.bio || ''}
+                rating={4.9}
+                reviewCount={127}
+                fees={t.consultation_fees} // Add this line
+                onBookClick={() =>
+                  setSelectedTherapist({ id: t.id, name: t.full_name })
+                }
+              />
+            );
+          })
         ) : (
           <p className="text-center py-20 text-gray-500">
             No therapists found matching your criteria.

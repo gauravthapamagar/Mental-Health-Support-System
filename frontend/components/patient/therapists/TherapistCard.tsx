@@ -1,5 +1,5 @@
 "use client";
-import { Video, Phone, MapPin, Star, Clock } from "lucide-react";
+import { Video, Phone, MapPin, Star, Clock, DollarSign } from "lucide-react";
 import Link from "next/link";
 
 interface TherapistCardProps {
@@ -10,11 +10,12 @@ interface TherapistCardProps {
   matchScore: number;
   specialties: string[];
   availability: "Available" | "Limited" | "Unavailable";
-  formats: ("Video" | "In-Person" | "Phone")[];
+  formats: ("Video" | "In-Person" | "Phone" | "Online" | "Offline" | "Both")[];
   image: string;
   bio?: string;
   rating?: number;
   reviewCount?: number;
+  fees?: number | string; // Add this
   onBookClick: () => void;
 }
 
@@ -31,11 +32,9 @@ export default function TherapistCard({
   bio,
   rating = 4.9,
   reviewCount = 127,
+  fees, // Add this
   onBookClick,
 }: TherapistCardProps) {
-  // CONFIG: Change this to your actual Django server URL
-  const BACKEND_URL = "http://127.0.0.1:8000";
-
   const getAvailabilityColor = () => {
     switch (availability) {
       case "Available":
@@ -59,6 +58,8 @@ export default function TherapistCard({
         return <MapPin size={16} className="text-green-600" />;
       case "phone":
         return <Phone size={16} className="text-purple-600" />;
+      case "both":
+        return <Video size={16} className="text-blue-600" />;
       default:
         return <Clock size={16} className="text-gray-600" />;
     }
@@ -66,8 +67,6 @@ export default function TherapistCard({
 
   // Logic to handle images vs initials
   const isImageUrl = image && (image.includes("/") || image.startsWith("http"));
-  const finalImageUrl =
-    image && image.startsWith("/") ? `${BACKEND_URL}${image}` : image;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200">
@@ -76,17 +75,21 @@ export default function TherapistCard({
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md overflow-hidden">
             {isImageUrl ? (
               <img
-                src={finalImageUrl}
+                src={image}
                 alt={name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
-                  target.parentElement!.innerHTML = `<span class="text-2xl font-bold text-white">${name.charAt(0)}</span>`;
+                  if (target.parentElement) {
+                    target.parentElement.innerHTML = `<span class="text-2xl font-bold text-white">${name.charAt(0)}</span>`;
+                  }
                 }}
               />
             ) : (
-              <span className="text-2xl font-bold text-white">{image}</span>
+              <span className="text-2xl font-bold text-white">
+                {image || name.charAt(0)}
+              </span>
             )}
           </div>
         </div>
@@ -108,25 +111,43 @@ export default function TherapistCard({
                 {title} • {experience} experience
               </p>
 
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center gap-1">
-                  <Star size={16} className="text-yellow-500 fill-yellow-500" />
-                  <span className="font-bold text-gray-900">{rating}</span>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Star size={16} className="text-yellow-500 fill-yellow-500" />
+                    <span className="font-bold text-gray-900">{rating}</span>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    ({reviewCount} reviews)
+                  </span>
                 </div>
-                <span className="text-sm text-gray-500">
-                  ({reviewCount} reviews)
-                </span>
+
+                {/* Add Fees Display */}
+                {fees && (
+                  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
+                    <DollarSign size={16} className="text-green-600" />
+                    <span className="text-sm font-bold text-green-700">
+                      ${fees}/session
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 mb-3">
-                {specialties.map((specialty) => (
-                  <span
-                    key={specialty}
-                    className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium"
-                  >
-                    {specialty}
+                {specialties && specialties.length > 0 ? (
+                  specialties.map((specialty, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium"
+                    >
+                      {specialty}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-400 italic">
+                    No specialties listed
                   </span>
-                ))}
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -134,17 +155,23 @@ export default function TherapistCard({
                   Available formats:
                 </span>
                 <div className="flex items-center gap-2">
-                  {formats.map((format) => (
-                    <div
-                      key={format}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      {getFormatIcon(format)}
-                      <span className="text-xs font-medium text-gray-700 capitalize">
-                        {format}
-                      </span>
-                    </div>
-                  ))}
+                  {formats && formats.length > 0 ? (
+                    formats.map((format, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        {getFormatIcon(format)}
+                        <span className="text-xs font-medium text-gray-700 capitalize">
+                          {format}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">
+                      Not specified
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

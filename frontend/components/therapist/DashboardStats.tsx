@@ -38,14 +38,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ data }) => {
       icon: Clock,
       color: "bg-green-500",
     },
-    {
-      title: "Success Rate",
-      value: `${data?.success_rate ?? 0}%`,
-      change: "Stable",
-      changeType: "positive",
-      icon: TrendingUp,
-      color: "bg-orange-500",
-    },
+    
   ];
 
   return (

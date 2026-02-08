@@ -338,11 +338,24 @@ class TherapistListSerializer(serializers.ModelSerializer):
     is_verified = serializers.BooleanField(source='therapist_profile.is_verified', read_only=True)
     years_of_experience = serializers.IntegerField(source='therapist_profile.years_of_experience', read_only=True)
     bio = serializers.CharField(source='therapist_profile.bio', read_only=True)
+    profile_picture = serializers.SerializerMethodField() 
     
     class Meta:
         model = User
         fields = [
             'id', 'full_name', 'email', 'profession', 'specialization',
             'languages', 'consultation_mode', 'consultation_fees',
-            'is_verified', 'years_of_experience', 'bio'
+            'is_verified', 'years_of_experience', 'bio', 'profile_picture'
         ]
+    
+    def get_profile_picture(self, obj):
+        """Return full URL for profile picture"""
+        try:
+            if hasattr(obj, 'therapist_profile') and obj.therapist_profile.profile_picture:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.therapist_profile.profile_picture.url)
+                return obj.therapist_profile.profile_picture.url
+        except Exception:
+            pass
+        return None

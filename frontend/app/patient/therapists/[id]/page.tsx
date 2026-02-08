@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Loader2,
   Clock,
+  DollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import BookAppointmentModal from "@/components/patient/BookAppointmentModal";
@@ -107,6 +108,8 @@ export default function PatientTherapistProfilePage() {
       : `http://127.0.0.1:8000${therapist.profile_picture}`
     : null;
 
+  const consultationFees = therapist.consultation_fees;
+
   return (
     <div className="w-full">
       {/* Back Button */}
@@ -146,6 +149,23 @@ export default function PatientTherapistProfilePage() {
                 {therapist.profession_type || "THERAPIST"}
               </p>
             </div>
+
+            {/* Add Fees Display */}
+            {consultationFees && (
+              <div className="w-full mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl">
+                <div className="flex items-center justify-center gap-2">
+                  <DollarSign size={24} className="text-green-600" />
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-700">
+                      ${consultationFees}
+                    </p>
+                    <p className="text-xs text-green-600 font-medium">
+                      per session
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => setIsBookingModalOpen(true)}

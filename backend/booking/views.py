@@ -116,11 +116,15 @@ def list_available_therapists(request):
     
     paginator = AppointmentPagination()
     paginated_therapists = paginator.paginate_queryset(therapists, request)
-    serializer = TherapistListSerializer(paginated_therapists, many=True)
+    
+    # Pass request context to serializer
+    serializer = TherapistListSerializer(
+        paginated_therapists, 
+        many=True, 
+        context={'request': request}  # Add this line
+    )
     
     return paginator.get_paginated_response(serializer.data)
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_therapist_availability(request, therapist_id):

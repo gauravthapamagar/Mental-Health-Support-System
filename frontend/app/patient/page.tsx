@@ -104,14 +104,7 @@ export default function PatientLandingPage() {
                   Account Active
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center border border-blue-100">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="text-sm text-slate-600 font-medium">
-                  HIPAA Compliant
-                </span>
-              </div>
+              
             </div>
           </div>
 
@@ -191,9 +184,9 @@ export default function PatientLandingPage() {
             },
             {
               icon: MessageSquare,
-              title: "Messages",
-              desc: "Chat with therapist",
-              route: "/patient/messages",
+              title: "Quizzes",
+              desc: "Take Quizzes",
+              route: "/patient/quizzes",
               color: "indigo",
               bgColor: "bg-indigo-50",
               borderColor: "border-indigo-100",
@@ -209,21 +202,12 @@ export default function PatientLandingPage() {
               borderColor: "border-purple-100",
               hoverBorder: "hover:border-purple-300",
             },
-            {
-              icon: Activity,
-              title: "Care Plan",
-              desc: "Your exercises",
-              route: "/patient/care-plan",
-              color: "pink",
-              bgColor: "bg-pink-50",
-              borderColor: "border-pink-100",
-              hoverBorder: "hover:border-pink-300",
-            },
+            
             {
               icon: Brain,
               title: "Assessment",
               desc: "Take Assesment",
-              route: "/patient/surveys",
+              route: "patient/therapist-matching-assessment",
               color: "indigo",
               bgColor: "bg-indigo-50",
               borderColor: "border-indigo-100",
@@ -271,14 +255,14 @@ export default function PatientLandingPage() {
           {[
             {
               icon: Brain,
-              title: "AI-Powered Insights",
+              title: "Real-Time Insights",
               color: "purple",
               bgColor: "from-purple-50 to-white",
               borderColor: "border-purple-100",
               features: [
                 "Real-time mood tracking",
                 "Behavioral pattern analysis",
-                "Personalized recommendations",
+                "Coping Techniques Recommendations",
               ],
             },
             {
@@ -289,7 +273,7 @@ export default function PatientLandingPage() {
               borderColor: "border-blue-100",
               features: [
                 "Licensed professionals",
-                "94% match success rate",
+               
                 "Specialized care approaches",
               ],
             },
@@ -300,7 +284,7 @@ export default function PatientLandingPage() {
               bgColor: "from-cyan-50 to-white",
               borderColor: "border-cyan-100",
               features: [
-                "HIPAA compliant platform",
+               
                 "End-to-end encryption",
                 "Your data is protected",
               ],
@@ -349,14 +333,14 @@ export default function PatientLandingPage() {
           {[
             {
               icon: MessageSquare,
-              title: "Complete Profile",
+              title: "Fill Survey",
               desc: "Tell us about your needs and preferences",
               color: "blue",
             },
             {
               icon: Brain,
               title: "Get Matched",
-              desc: "AI finds your perfect therapist match",
+              desc: "Carepair finds your perfect therapist match",
               color: "indigo",
             },
             {

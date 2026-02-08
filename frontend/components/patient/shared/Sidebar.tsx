@@ -63,12 +63,7 @@ const resourceNavItems: NavItem[] = [
 ];
 
 const toolsNavItems: NavItem[] = [
-  {
-    id: "messages",
-    label: "Messages",
-    icon: MessageSquare,
-    href: "/patient/messages",
-  },
+  
   { id: "journal", label: "Journal", icon: Heart, href: "/patient/journal" },
   {
     id: "medications",
@@ -76,12 +71,7 @@ const toolsNavItems: NavItem[] = [
     icon: Pill,
     href: "/patient/medications",
   },
-  {
-    id: "care-plan",
-    label: "Care Plan",
-    icon: ClipboardList,
-    href: "/patient/care-plan",
-  },
+  
 ];
 
 const bottomNavItems: NavItem[] = [
