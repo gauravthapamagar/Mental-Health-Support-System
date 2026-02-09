@@ -10,6 +10,10 @@ import {
   Clock,
   Loader2,
   Eye,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Timer,
 } from "lucide-react";
 import { useState } from "react";
 import { bookingAPI } from "@/lib/api";
@@ -25,7 +29,7 @@ interface AppointmentCardProps {
   format: "video" | "in-person" | "phone";
   matchScore: number;
   sentiment?: string;
-  status?: "upcoming" | "completed" | "cancelled";
+  status?: "pending" | "upcoming" | "completed" | "cancelled";
   notes?: string;
   onRefresh?: () => void;
 }
@@ -140,6 +144,56 @@ export default function AppointmentCard({
     }
   };
 
+  const getStatusConfig = () => {
+    switch (status) {
+      case "pending":
+        return {
+          label: "Awaiting Confirmation",
+          bgColor: "bg-amber-50",
+          textColor: "text-amber-700",
+          borderColor: "border-amber-200",
+          icon: <Timer size={16} className="text-amber-600" />,
+          gradient: "from-amber-400 to-orange-400",
+        };
+      case "upcoming":
+        return {
+          label: "Confirmed",
+          bgColor: "bg-blue-50",
+          textColor: "text-blue-700",
+          borderColor: "border-blue-200",
+          icon: <CheckCircle2 size={16} className="text-blue-600" />,
+          gradient: "from-blue-400 to-cyan-400",
+        };
+      case "completed":
+        return {
+          label: "Completed",
+          bgColor: "bg-green-50",
+          textColor: "text-green-700",
+          borderColor: "border-green-200",
+          icon: <CheckCircle2 size={16} className="text-green-600" />,
+          gradient: "from-green-400 to-emerald-400",
+        };
+      case "cancelled":
+        return {
+          label: "Cancelled",
+          bgColor: "bg-red-50",
+          textColor: "text-red-700",
+          borderColor: "border-red-200",
+          icon: <XCircle size={16} className="text-red-600" />,
+          gradient: "from-red-400 to-pink-400",
+        };
+      default:
+        return {
+          label: status,
+          bgColor: "bg-slate-50",
+          textColor: "text-slate-700",
+          borderColor: "border-slate-200",
+          icon: null,
+          gradient: "from-slate-400 to-slate-500",
+        };
+    }
+  };
+
   const getInitials = (name: string) =>
     name
       .split(" ")
@@ -148,161 +202,242 @@ export default function AppointmentCard({
       .toUpperCase()
       .slice(0, 2);
 
+  const statusConfig = getStatusConfig();
+
   return (
     <>
-      <div className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Left Section - Therapist Info */}
-          <div className="flex items-start gap-4 flex-1">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md text-white font-bold text-lg">
-              {getInitials(therapist)}
-            </div>
+      <div className="group relative bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+        {/* Gradient accent bar */}
+        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${statusConfig.gradient}`} />
+        
+        {/* Hover background effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <h3 className="text-lg font-bold text-gray-900">{therapist}</h3>
-                {status === "upcoming" && (
-                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
-                    {matchScore}% Match
-                  </span>
-                )}
-                <span
-                  className={`px-3 py-1 text-xs font-medium rounded-full capitalize ${
-                    status === "completed"
-                      ? "bg-green-100 text-green-700"
-                      : status === "cancelled"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
-                  }`}
-                >
-                  {status}
-                </span>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-2">{title}</p>
-
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={16} />
-                  <span className="font-medium">{date}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={16} />
-                  <span className="font-medium">{time}</span>
-                </div>
-                <div
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border ${getFormatColor()}`}
-                >
-                  {getFormatIcon()}
-                  <span className="font-medium text-xs">{getFormatLabel()}</span>
+        <div className="relative p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            {/* Left Section - Therapist Info */}
+            <div className="flex items-start gap-4 flex-1">
+              {/* Enhanced Avatar with gradient border */}
+              <div className="relative flex-shrink-0">
+                <div className={`absolute inset-0 bg-gradient-to-br ${statusConfig.gradient} rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity`} />
+                <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl text-white font-bold text-xl group-hover:scale-110 transition-transform">
+                  {getInitials(therapist)}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Right Section - Actions */}
-          <div className="flex items-center gap-3 lg:flex-col lg:items-end">
-            {status === "upcoming" && (
-              <>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowRescheduleModal(true)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                    title="Reschedule"
+              <div className="flex-1 min-w-0">
+                {/* Name and Status badges */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <h3 className="text-xl font-bold text-slate-900">{therapist}</h3>
+                  
+                  {/* Status Badge */}
+                  <span
+                    className={`flex items-center gap-1.5 px-3 py-1.5 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor} border-2 rounded-xl text-xs font-bold uppercase tracking-wide shadow-sm`}
                   >
-                    <RefreshCw size={20} />
+                    {statusConfig.icon}
+                    {statusConfig.label}
+                  </span>
+
+                  {/* Match Score - only for pending/upcoming */}
+                  {(status === "pending" || status === "upcoming") && (
+                    <span className="px-3 py-1.5 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border-2 border-orange-200 rounded-xl text-xs font-bold shadow-sm">
+                      {matchScore}% Match
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <p className="text-sm text-slate-600 mb-3 font-medium">{title}</p>
+
+                {/* Date, Time & Format */}
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <Calendar size={16} className="text-blue-600" />
+                    </div>
+                    <span className="font-semibold">{date}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <div className="p-1.5 bg-indigo-100 rounded-lg">
+                      <Clock size={16} className="text-indigo-600" />
+                    </div>
+                    <span className="font-semibold">{time}</span>
+                  </div>
+                  
+                  <div
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 ${getFormatColor()} shadow-sm`}
+                  >
+                    {getFormatIcon()}
+                    <span className="font-semibold text-xs">{getFormatLabel()}</span>
+                  </div>
+                </div>
+
+                {/* Pending Status Message */}
+                {status === "pending" && (
+                  <div className="mt-4 flex items-start gap-2 p-3 bg-amber-50 border-2 border-amber-200 rounded-xl">
+                    <AlertCircle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 font-medium">
+                      Your therapist is reviewing your appointment request. You'll be notified once it's confirmed.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Section - Actions */}
+            <div className="flex items-center gap-3 lg:flex-col lg:items-end">
+              {/* PENDING STATUS - Limited Actions */}
+              {status === "pending" && (
+                <>
+                  <button
+                    onClick={() => setShowDetailsModal(true)}
+                    className="flex-1 lg:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-slate-300 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-slate-400 transition-all shadow-sm"
+                  >
+                    <Eye size={18} />
+                    View Details
                   </button>
+
                   <button
                     onClick={() => setShowCancelModal(true)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                    title="Cancel"
+                    className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300"
+                    title="Cancel Request"
                   >
-                    <X size={20} />
+                    <X size={22} />
                   </button>
-                </div>
+                </>
+              )}
 
+              {/* UPCOMING STATUS - Full Actions */}
+              {status === "upcoming" && (
+                <>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowRescheduleModal(true)}
+                      className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border-2 border-slate-200 hover:border-blue-300"
+                      title="Reschedule"
+                    >
+                      <RefreshCw size={20} />
+                    </button>
+                    <button
+                      onClick={() => setShowCancelModal(true)}
+                      className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300"
+                      title="Cancel"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setShowDetailsModal(true)}
+                    className="w-full lg:w-auto px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <Eye size={18} />
+                    Details
+                  </button>
+
+                  {format === "video" && (
+                    <button className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:scale-105">
+                      <Video size={18} /> Join Call
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* COMPLETED STATUS */}
+              {status === "completed" && (
                 <button
                   onClick={() => setShowDetailsModal(true)}
-                  className="w-full lg:w-auto px-6 py-2 bg-black text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5"
+                  className="w-full lg:w-auto px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-slate-400 transition-all"
                 >
-                  <Eye size={16} />
-                  Details
+                  Review Session
                 </button>
+              )}
 
-                {format === "video" && (
-                  <button className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">
-                    <Video size={16} /> Join Call
-                  </button>
-                )}
-              </>
-            )}
-
-            {status === "completed" && (
-              <button
-                onClick={() => setShowDetailsModal(true)}
-                className="w-full lg:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
-              >
-                Review
-              </button>
-            )}
-
-            {status === "cancelled" && (
-              <button
-                onClick={() => setShowDetailsModal(true)}
-                className="w-full lg:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
-              >
-                View Details
-              </button>
-            )}
+              {/* CANCELLED STATUS */}
+              {status === "cancelled" && (
+                <button
+                  onClick={() => setShowDetailsModal(true)}
+                  className="w-full lg:w-auto px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                >
+                  View Details
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Reschedule Modal */}
       {showRescheduleModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4">Reschedule Session</h3>
-            <div className="space-y-4 mb-6">
-              <input
-                type="date"
-                className="w-full p-3 border rounded-lg"
-                value={rescheduleData.date}
-                onChange={(e) =>
-                  setRescheduleData({ ...rescheduleData, date: e.target.value })
-                }
-              />
-              <input
-                type="time"
-                className="w-full p-3 border rounded-lg"
-                value={rescheduleData.time}
-                onChange={(e) =>
-                  setRescheduleData({ ...rescheduleData, time: e.target.value })
-                }
-              />
-              <textarea
-                placeholder="Reason for rescheduling..."
-                className="w-full p-3 border rounded-lg"
-                rows={3}
-                value={rescheduleData.reason}
-                onChange={(e) =>
-                  setRescheduleData({ ...rescheduleData, reason: e.target.value })
-                }
-              />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <RefreshCw className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">Reschedule Session</h3>
             </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">New Date</label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={rescheduleData.date}
+                  onChange={(e) =>
+                    setRescheduleData({ ...rescheduleData, date: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">New Time</label>
+                <input
+                  type="time"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={rescheduleData.time}
+                  onChange={(e) =>
+                    setRescheduleData({ ...rescheduleData, time: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Reason (Optional)</label>
+                <textarea
+                  placeholder="Why are you rescheduling?"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  rows={3}
+                  value={rescheduleData.reason}
+                  onChange={(e) =>
+                    setRescheduleData({ ...rescheduleData, reason: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRescheduleModal(false)}
-                className="flex-1 py-3 border rounded-lg hover:bg-gray-50"
+                className="flex-1 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 font-bold transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReschedule}
                 disabled={loading}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-lg flex justify-center items-center gap-2 disabled:opacity-50"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl flex justify-center items-center gap-2 disabled:opacity-50 font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : "Confirm Reschedule"}
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm Reschedule"
+                )}
               </button>
             </div>
           </div>
@@ -311,46 +446,65 @@ export default function AppointmentCard({
 
       {/* Cancel Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-red-600 mb-2">Cancel Appointment?</h3>
-            <p className="text-gray-600 mb-4 text-sm">
-              This action cannot be undone. Please provide a reason for cancellation.
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-xl">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-red-600">
+                {status === "pending" ? "Cancel Request?" : "Cancel Appointment?"}
+              </h3>
+            </div>
+
+            <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+              {status === "pending" 
+                ? "Your appointment request will be withdrawn and the therapist will be notified."
+                : "This action cannot be undone. Please provide a reason for cancellation."}
             </p>
-            <div className="mb-4">
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Cancellation Reason
+              </label>
               <textarea
                 placeholder="Why are you cancelling? (minimum 10 characters)"
-                className="w-full p-3 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                rows={3}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+                rows={4}
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
               />
               <p
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium mt-2 ${
                   cancelReason.trim().length < 10 && cancelReason.length > 0
                     ? "text-red-600"
-                    : "text-gray-500"
+                    : "text-slate-500"
                 }`}
               >
                 {cancelReason.trim().length}/10 characters minimum
               </p>
             </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowCancelModal(false);
                   setCancelReason("");
                 }}
-                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                className="flex-1 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 font-bold transition-all"
               >
-                Keep it
+                Keep {status === "pending" ? "Request" : "Appointment"}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={loading || cancelReason.trim().length < 10}
-                className="flex-1 py-3 bg-red-600 text-white rounded-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 font-medium"
+                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed hover:from-red-700 hover:to-red-600 font-bold transition-all shadow-lg"
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : "Cancel Session"}
+                {loading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  `Cancel ${status === "pending" ? "Request" : "Session"}`
+                )}
               </button>
             </div>
           </div>
@@ -364,14 +518,6 @@ export default function AppointmentCard({
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
           therapistName={therapist}
-          // You can add more props if your modal already supports / needs them:
-          // title={title}
-          // date={date}
-          // time={time}
-          // format={format}
-          // status={status}
-          // matchScore={matchScore}
-          // notes={notes}
         />
       )}
     </>

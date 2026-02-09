@@ -24,6 +24,10 @@ import {
   MapPin,
   FileText,
   Download,
+  CheckCircle2,
+  Sparkles,
+  Award,
+  Heart,
 } from "lucide-react";
 import { therapistAPI } from "@/lib/api";
 
@@ -33,10 +37,13 @@ export default function TherapistProfile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
-  const [existingCertificate, setExistingCertificate] = useState<string | null>(null);
+  const [existingCertificate, setExistingCertificate] = useState<string | null>(
+    null
+  );
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -126,7 +133,7 @@ export default function TherapistProfile() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -151,22 +158,22 @@ export default function TherapistProfile() {
       dataToSend.append("license_id", formData.license_id || "");
       dataToSend.append(
         "years_of_experience",
-        String(formData.years_of_experience || 0),
+        String(formData.years_of_experience || 0)
       );
       dataToSend.append("bio", formData.bio || "");
       dataToSend.append(
         "consultation_fees",
-        String(formData.consultation_fees || 0),
+        String(formData.consultation_fees || 0)
       );
       dataToSend.append("consultation_mode", formData.consultation_mode || "");
 
       dataToSend.append(
         "specialization_tags",
-        JSON.stringify(formData.specialization_tags || []),
+        JSON.stringify(formData.specialization_tags || [])
       );
       dataToSend.append(
         "languages_spoken",
-        JSON.stringify(formData.languages_spoken || []),
+        JSON.stringify(formData.languages_spoken || [])
       );
 
       dataToSend.append("availability_slots", formData.availability_slots || "");
@@ -181,14 +188,11 @@ export default function TherapistProfile() {
 
       await therapistAPI.updateProfile(dataToSend);
 
-      // Show success message
-      setSuccessMessage("Your profile has been updated successfully!");
+      // Show jaw-dropping success modal
+      setShowSuccessModal(true);
 
-      // Auto-hide after 4 seconds
-      setTimeout(() => setSuccessMessage(null), 4000);
-
-      // Optional: reload page to show fresh data (e.g. new profile picture)
-      // window.location.reload();
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowSuccessModal(false), 5000);
     } catch (err: any) {
       setError(err.message || "Update failed. Please check your data.");
     } finally {
@@ -272,570 +276,779 @@ export default function TherapistProfile() {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center p-20">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/20">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-teal-100 border-t-teal-500 rounded-full animate-spin mx-auto"></div>
+            <Heart className="w-6 h-6 text-teal-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <p className="text-slate-600 font-medium">Loading your profile...</p>
+        </div>
       </div>
     );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-24">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Professional Profile
-        </h1>
-        <p className="text-slate-600">
-          Update your clinical details and practice settings
-        </p>
-      </div>
-
-      <div className="grid lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-6">
-            <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200">
-              <div className="relative group">
-                <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold relative mb-4 overflow-hidden border-2 border-white shadow-sm">
-                  {previewUrl ? (
-                    <img
-                      src={previewUrl || "/placeholder.svg"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    formData.full_name?.charAt(0)
-                  )}
-                  {formData.is_verified && (
-                    <BadgeCheck className="absolute top-0 right-0 w-5 h-5 text-blue-500 fill-white z-10" />
-                  )}
-                </div>
-                <label className="absolute bottom-4 -right-1 p-1.5 bg-white rounded-full shadow-md border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
-                  <Camera className="w-4 h-4 text-slate-600" />
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </label>
-              </div>
-              <h3 className="font-bold text-slate-900">{formData.full_name}</h3>
-              <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">
-                {formData.profession_type}
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/20">
+      {/* Success Modal - Jaw Dropping */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-500">
+            {/* Animated Background Circles */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl animate-pulse delay-75"></div>
             </div>
 
-            <nav className="space-y-1">
-              {[
-                {
-                  id: "professional",
-                  label: "Basic Info",
-                  icon: <User className="w-4 h-4" />,
-                },
-                {
-                  id: "practice",
-                  label: "Clinical & Fees",
-                  icon: <Stethoscope className="w-4 h-4" />,
-                },
-                {
-                  id: "expertise",
-                  label: "Expertise",
-                  icon: <Globe className="w-4 h-4" />,
-                },
-                {
-                  id: "credentials",
-                  label: "Credentials",
-                  icon: <FileText className="w-4 h-4" />,
-                },
-                {
-                  id: "availability",
-                  label: "Schedule",
-                  icon: <Clock className="w-4 h-4" />,
-                },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    activeTab === tab.id
-                      ? "bg-blue-50 text-blue-700 font-bold"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {tab.icon} <span className="text-sm">{tab.label}</span>
-                </button>
-              ))}
-            </nav>
+            {/* Content */}
+            <div className="relative z-10 text-center space-y-6">
+              {/* Success Icon with Animation */}
+              <div className="relative mx-auto w-24 h-24">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-blue-500 rounded-full animate-ping opacity-20"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-blue-500 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-12 h-12 text-white animate-in zoom-in duration-700" />
+                </div>
+                <Sparkles className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
+                <Sparkles className="w-4 h-4 text-blue-400 absolute -bottom-1 -left-1 animate-bounce delay-100" />
+              </div>
+
+              {/* Success Message */}
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-slate-800 animate-in slide-in-from-bottom-4 duration-500">
+                  Profile Updated Successfully!
+                </h3>
+                <p className="text-slate-600 animate-in slide-in-from-bottom-4 duration-500 delay-75">
+                  Your professional profile has been updated and is ready to
+                  help more people on their mental health journey.
+                </p>
+              </div>
+
+              {/* Stats or Additional Info */}
+              <div className="grid grid-cols-3 gap-3 py-4 animate-in slide-in-from-bottom-4 duration-500 delay-150">
+                <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl p-3 border border-teal-100/50">
+                  <Award className="w-5 h-5 text-teal-600 mx-auto mb-1" />
+                  <p className="text-xs font-semibold text-slate-700">
+                    Professional
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-3 border border-blue-100/50">
+                  <Heart className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-xs font-semibold text-slate-700">
+                    Verified
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-3 border border-purple-100/50">
+                  <Sparkles className="w-5 h-5 text-purple-600 mx-auto mb-1" />
+                  <p className="text-xs font-semibold text-slate-700">Active</p>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white font-semibold py-3 rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Form Body */}
-        <div className="lg:col-span-3">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
-            {/* Error Message */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                {error}
-              </div>
-            )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8 md:pt-25 md:pb-16">
+        {/* Header */}
+        <div className="mb-8 md:mb-12 animate-in slide-in-from-top duration-500">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-gradient-to-br from-teal-500 to-blue-500 rounded-xl">
+              <Heart className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              Professional Profile
+            </h1>
+          </div>
+          <p className="text-slate-600 ml-14">
+            Manage your professional information to help clients find the right
+            care
+          </p>
+        </div>
 
-            {/* Success Message */}
-            {successMessage && (
-              <div className="mb-6 p-5 bg-green-50 border border-green-200 text-green-800 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-500">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <p className="font-semibold">Success!</p>
-                  <p className="text-sm text-green-700">{successMessage}</p>
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1 animate-in slide-in-from-left duration-500">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/60 p-6 sticky top-6 hover:shadow-xl transition-all duration-300">
+              {/* Profile Picture Section */}
+              <div className="flex flex-col items-center mb-8 pb-6 border-b border-slate-100">
+                <div className="relative group mb-4">
+                  <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-blue-500 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-xl group-hover:scale-105 transition-transform duration-300">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl || "/placeholder.svg"}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                        {formData.full_name?.charAt(0)}
+                      </div>
+                    )}
+                    {formData.is_verified && (
+                      <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-lg">
+                        <BadgeCheck className="w-5 h-5 text-teal-500" />
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border-2 border-teal-100 cursor-pointer hover:bg-teal-50 transition-all hover:scale-110">
+                    <Camera className="w-4 h-4 text-teal-600" />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </label>
                 </div>
-              </div>
-            )}
-
-            {activeTab === "professional" && (
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    Personal Information
-                  </h2>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Basic contact and address details
+                <h3 className="font-bold text-slate-900 text-lg">
+                  {formData.full_name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                  <p className="text-sm text-teal-600 font-semibold uppercase tracking-wide">
+                    {formData.profession_type}
                   </p>
                 </div>
+              </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      name="phone_number"
-                      value={formData.phone_number}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Profession Type
-                    </label>
-                    <select
-                      name="profession_type"
-                      value={formData.profession_type}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+              {/* Navigation */}
+              <nav className="space-y-1.5">
+                {[
+                  {
+                    id: "professional",
+                    label: "Personal Info",
+                    icon: <User className="w-4 h-4" />,
+                    gradient: "from-blue-500 to-cyan-500",
+                  },
+                  {
+                    id: "practice",
+                    label: "Practice Details",
+                    icon: <Stethoscope className="w-4 h-4" />,
+                    gradient: "from-teal-500 to-emerald-500",
+                  },
+                  {
+                    id: "expertise",
+                    label: "Expertise",
+                    icon: <Award className="w-4 h-4" />,
+                    gradient: "from-purple-500 to-pink-500",
+                  },
+                  {
+                    id: "credentials",
+                    label: "Credentials",
+                    icon: <FileText className="w-4 h-4" />,
+                    gradient: "from-amber-500 to-orange-500",
+                  },
+                  {
+                    id: "availability",
+                    label: "Availability",
+                    icon: <Clock className="w-4 h-4" />,
+                    gradient: "from-rose-500 to-red-500",
+                  },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
+                      activeTab === tab.id
+                        ? "bg-gradient-to-r " +
+                          tab.gradient +
+                          " text-white shadow-lg scale-105"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div
+                      className={`${activeTab === tab.id ? "" : "group-hover:scale-110 transition-transform"}`}
                     >
-                      <option value="psychologist">Psychologist</option>
-                      <option value="psychiatrist">Psychiatrist</option>
-                      <option value="counselor">Counselor</option>
-                      <option value="social_worker">Social Worker</option>
-                      <option value="therapist">Therapist</option>
-                      <option value="other">Other</option>
-                    </select>
+                      {tab.icon}
+                    </div>
+                    <span className="text-sm font-semibold">{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {/* Form Body */}
+          <div className="lg:col-span-3 animate-in slide-in-from-right duration-500">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/60 p-6 md:p-10 hover:shadow-xl transition-shadow duration-300">
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-5 bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+                  <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Error</p>
+                    <p className="text-sm">{error}</p>
                   </div>
+                </div>
+              )}
 
-                  {/* Address Section */}
-                  <div className="md:col-span-2 border-t pt-6 mt-4">
-                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-slate-600" />
-                      Practice / Clinic Address
-                    </h4>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Address Line 1
-                        </label>
-                        <div className="relative">
-                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="address_line_1"
-                            value={formData.address_line_1}
-                            onChange={handleInputChange}
-                            placeholder="Street address, clinic name, etc."
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
+              {activeTab === "professional" && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg">
+                        <User className="w-5 h-5 text-blue-600" />
                       </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Address Line 2 (optional)
-                        </label>
-                        <div className="relative">
-                          <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="address_line_2"
-                            value={formData.address_line_2}
-                            onChange={handleInputChange}
-                            placeholder="Building, floor, suite, etc."
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          City
-                        </label>
-                        <div className="relative">
-                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="city"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          State / Province
-                        </label>
-                        <div className="relative">
-                          <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="state"
-                            value={formData.state}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Country
-                        </label>
-                        <div className="relative">
-                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="country"
-                            value={formData.country}
-                            onChange={handleInputChange}
-                            placeholder="e.g. Nepal"
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Postal Code
-                        </label>
-                        <div className="relative">
-                          <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                          <input
-                            name="postal_code"
-                            value={formData.postal_code}
-                            onChange={handleInputChange}
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors"
-                          />
-                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900">
+                          Personal Information
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Your basic contact and professional details
+                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="border-t pt-6 mt-4">
-                  <h2 className="text-xl font-bold text-slate-900 mb-2">
-                    Professional Bio
-                  </h2>
-                  <textarea
-                    name="bio"
-                    rows={5}
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === "practice" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">
-                  Clinical Details
-                </h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      License ID
-                    </label>
-                    <input
-                      name="license_id"
-                      value={formData.license_id}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Years of Experience
-                    </label>
-                    <input
-                      type="number"
-                      name="years_of_experience"
-                      value={formData.years_of_experience}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Consultation Mode
-                    </label>
-                    <select
-                      name="consultation_mode"
-                      value={formData.consultation_mode}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    >
-                      <option value="online">Online</option>
-                      <option value="offline">Offline</option>
-                      <option value="both">Both</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Consultation Fee ($)
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        Phone Number
+                      </label>
                       <input
-                        name="consultation_fees"
-                        value={formData.consultation_fees}
+                        name="phone_number"
+                        value={formData.phone_number}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                        placeholder="+1 (555) 000-0000"
                       />
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {activeTab === "expertise" && (
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-4">
-                    Expertise & Languages
-                  </h2>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Specializations
-                  </label>
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      placeholder="Add specialty..."
-                      className="flex-1 px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    />
-                    <button
-                      onClick={() => addItem("tags")}
-                      className="p-2 bg-blue-600 text-white rounded-xl"
-                    >
-                      <Plus />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.specialization_tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100"
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        Profession Type
+                      </label>
+                      <select
+                        name="profession_type"
+                        value={formData.profession_type}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300 bg-white"
                       >
-                        {tag}{" "}
-                        <X
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={() =>
-                            setFormData((p) => ({
-                              ...p,
-                              specialization_tags: p.specialization_tags.filter(
-                                (_, idx) => idx !== i,
-                              ),
-                            }))
-                          }
-                        />
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Languages Spoken
-                  </label>
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      value={newLang}
-                      onChange={(e) => setNewLang(e.target.value)}
-                      placeholder="Add language..."
-                      className="flex-1 px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-                    />
-                    <button
-                      onClick={() => addItem("langs")}
-                      className="p-2 bg-blue-600 text-white rounded-xl"
-                    >
-                      <Plus />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.languages_spoken.map((lang, i) => (
-                      <span
-                        key={i}
-                        className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200"
-                      >
-                        {lang}{" "}
-                        <X
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={() =>
-                            setFormData((p) => ({
-                              ...p,
-                              languages_spoken: p.languages_spoken.filter(
-                                (_, idx) => idx !== i,
-                              ),
-                            }))
-                          }
-                        />
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                        <option value="psychologist">Psychologist</option>
+                        <option value="psychiatrist">Psychiatrist</option>
+                        <option value="counselor">Counselor</option>
+                        <option value="social_worker">Social Worker</option>
+                        <option value="therapist">Therapist</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
 
-            {activeTab === "availability" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    Weekly Availability
-                  </h2>
-                  <p className="text-sm text-slate-500 mb-6">
-                    Set your recurring weekly consultation hours.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {DAYS_OF_WEEK.map((day) => (
-                    <div
-                      key={day}
-                      className="p-4 border border-slate-200 rounded-2xl bg-slate-50/50"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-blue-500" /> {day}
-                        </h4>
-                        <button
-                          onClick={() => addTimeSlot(day)}
-                          className="text-xs flex items-center gap-1 bg-white border border-blue-200 text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors font-semibold shadow-sm"
-                        >
-                          <Plus className="w-3 h-3" /> Add Slot
-                        </button>
+                    {/* Address Section */}
+                    <div className="md:col-span-2 border-t-2 border-slate-100 pt-8 mt-4">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg">
+                          <MapPin className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-lg">
+                            Practice Location
+                          </h4>
+                          <p className="text-sm text-slate-600">
+                            Where you provide care to your clients
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        {schedule[day] && schedule[day].length > 0 ? (
-                          schedule[day].map((slot, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm"
-                            >
-                              <input
-                                type="text"
-                                value={slot}
-                                placeholder="e.g. 9:00 AM - 10:00 AM"
-                                onChange={(e) =>
-                                  updateTimeSlot(day, index, e.target.value)
-                                }
-                                className="text-sm font-medium text-slate-600 outline-none w-40"
-                              />
-                              <button
-                                onClick={() => removeTimeSlot(day, index)}
-                                className="text-red-400 hover:text-red-600 p-1"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs text-slate-400 italic">
-                            No slots added for this day.
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2 group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Address Line 1
+                          </label>
+                          <div className="relative">
+                            <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="address_line_1"
+                              value={formData.address_line_1}
+                              onChange={handleInputChange}
+                              placeholder="Street address, clinic name, building"
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Address Line 2{" "}
+                            <span className="text-slate-400 font-normal">
+                              (optional)
+                            </span>
+                          </label>
+                          <div className="relative">
+                            <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="address_line_2"
+                              value={formData.address_line_2}
+                              onChange={handleInputChange}
+                              placeholder="Suite, floor, apartment"
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            City
+                          </label>
+                          <div className="relative">
+                            <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="city"
+                              value={formData.city}
+                              onChange={handleInputChange}
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            State / Province
+                          </label>
+                          <div className="relative">
+                            <Locate className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="state"
+                              value={formData.state}
+                              onChange={handleInputChange}
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Country
+                          </label>
+                          <div className="relative">
+                            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="country"
+                              value={formData.country}
+                              onChange={handleInputChange}
+                              placeholder="e.g. Nepal, United States"
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="group">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Postal Code
+                          </label>
+                          <div className="relative">
+                            <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                            <input
+                              name="postal_code"
+                              value={formData.postal_code}
+                              onChange={handleInputChange}
+                              className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t-2 border-slate-100 pt-8 mt-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-lg">
+                        <FileText className="w-5 h-5 text-teal-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">
+                          Professional Bio
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          Share your approach and what makes you unique
+                        </p>
+                      </div>
+                    </div>
+                    <textarea
+                      name="bio"
+                      rows={6}
+                      value={formData.bio}
+                      onChange={handleInputChange}
+                      placeholder="Tell potential clients about your therapeutic approach, areas of focus, and what they can expect from working with you..."
+                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 hover:border-slate-300 resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "practice" && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-lg">
+                      <Stethoscope className="w-5 h-5 text-teal-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Practice Details
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Your clinical information and consultation settings
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        License ID
+                      </label>
+                      <input
+                        name="license_id"
+                        value={formData.license_id}
+                        onChange={handleInputChange}
+                        placeholder="e.g. PSY-123456"
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                      />
+                    </div>
+
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        Years of Experience
+                      </label>
+                      <input
+                        type="number"
+                        name="years_of_experience"
+                        value={formData.years_of_experience}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                      />
+                    </div>
+
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        Consultation Mode
+                      </label>
+                      <select
+                        name="consultation_mode"
+                        value={formData.consultation_mode}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300 bg-white"
+                      >
+                        <option value="online">Online Only</option>
+                        <option value="offline">In-Person Only</option>
+                        <option value="both">Both Online & In-Person</option>
+                      </select>
+                    </div>
+
+                    <div className="group">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        Consultation Fee
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                        <input
+                          name="consultation_fees"
+                          value={formData.consultation_fees}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 100 or negotiable"
+                          className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all duration-300 group-hover:border-slate-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "expertise" && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg">
+                      <Award className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Areas of Expertise
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Your specializations and languages
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="p-6 bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl border border-teal-100">
+                      <label className="block text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-teal-600" />
+                        Specializations
+                      </label>
+                      <div className="flex gap-2 mb-4">
+                        <input
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addItem("tags");
+                            }
+                          }}
+                          placeholder="e.g. Anxiety, Depression, Trauma..."
+                          className="flex-1 px-4 py-3 border-2 border-teal-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-100 outline-none transition-all bg-white"
+                        />
+                        <button
+                          onClick={() => addItem("tags")}
+                          className="px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.specialization_tags.map((tag, i) => (
+                          <span
+                            key={i}
+                            className="group flex items-center gap-2 bg-white border-2 border-teal-200 text-teal-700 px-4 py-2 rounded-xl text-sm font-semibold hover:border-teal-400 transition-all duration-300 shadow-sm hover:shadow-md"
+                          >
+                            {tag}
+                            <X
+                              className="w-4 h-4 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+                              onClick={() =>
+                                setFormData((p) => ({
+                                  ...p,
+                                  specialization_tags:
+                                    p.specialization_tags.filter(
+                                      (_, idx) => idx !== i
+                                    ),
+                                }))
+                              }
+                            />
+                          </span>
+                        ))}
+                        {formData.specialization_tags.length === 0 && (
+                          <p className="text-sm text-slate-500 italic">
+                            No specializations added yet
                           </p>
                         )}
                       </div>
                     </div>
-                  ))}
+
+                    <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100">
+                      <label className="block text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-purple-600" />
+                        Languages Spoken
+                      </label>
+                      <div className="flex gap-2 mb-4">
+                        <input
+                          value={newLang}
+                          onChange={(e) => setNewLang(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addItem("langs");
+                            }
+                          }}
+                          placeholder="e.g. English, Spanish, Nepali..."
+                          className="flex-1 px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all bg-white"
+                        />
+                        <button
+                          onClick={() => addItem("langs")}
+                          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.languages_spoken.map((lang, i) => (
+                          <span
+                            key={i}
+                            className="group flex items-center gap-2 bg-white border-2 border-purple-200 text-purple-700 px-4 py-2 rounded-xl text-sm font-semibold hover:border-purple-400 transition-all duration-300 shadow-sm hover:shadow-md"
+                          >
+                            {lang}
+                            <X
+                              className="w-4 h-4 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+                              onClick={() =>
+                                setFormData((p) => ({
+                                  ...p,
+                                  languages_spoken: p.languages_spoken.filter(
+                                    (_, idx) => idx !== i
+                                  ),
+                                }))
+                              }
+                            />
+                          </span>
+                        ))}
+                        {formData.languages_spoken.length === 0 && (
+                          <p className="text-sm text-slate-500 italic">
+                            No languages added yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === "credentials" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">
-                  Professional Credentials
-                </h2>
-                <p className="text-sm text-slate-600">
-                  Upload your license, degree, and other professional documents
-                </p>
+              {activeTab === "availability" && (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-gradient-to-br from-rose-100 to-red-100 rounded-lg">
+                      <Clock className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Weekly Schedule
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Set your recurring consultation hours
+                      </p>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    Upload Certificate/License
-                  </label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
+                  <div className="space-y-4">
+                    {DAYS_OF_WEEK.map((day, dayIndex) => (
+                      <div
+                        key={day}
+                        className="group p-5 border-2 border-slate-200 rounded-2xl bg-gradient-to-br from-white to-slate-50/50 hover:border-teal-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-bold text-slate-800 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                              {day.substring(0, 2)}
+                            </div>
+                            {day}
+                          </h4>
+                          <button
+                            onClick={() => addTimeSlot(day)}
+                            className="flex items-center gap-2 bg-white border-2 border-teal-200 text-teal-600 px-4 py-2 rounded-xl hover:bg-teal-50 hover:border-teal-400 transition-all duration-300 font-semibold text-sm shadow-sm hover:shadow-md"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Slot
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          {schedule[day] && schedule[day].length > 0 ? (
+                            schedule[day].map((slot, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 bg-white p-3 rounded-xl border-2 border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-300"
+                              >
+                                <Clock className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                                <input
+                                  type="text"
+                                  value={slot}
+                                  placeholder="09:00 AM - 10:00 AM"
+                                  onChange={(e) =>
+                                    updateTimeSlot(day, index, e.target.value)
+                                  }
+                                  className="text-sm font-semibold text-slate-700 outline-none w-44 bg-transparent"
+                                />
+                                <button
+                                  onClick={() => removeTimeSlot(day, index)}
+                                  className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-all"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-slate-400 italic py-2">
+                              No availability set for this day
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "credentials" && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
+                      <FileText className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Professional Credentials
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Upload your license and certifications
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-8 border-2 border-dashed border-slate-300 rounded-2xl hover:border-teal-400 hover:bg-teal-50/30 transition-all duration-300 cursor-pointer group">
                     {certificateFile ? (
-                      <div className="flex items-center justify-center gap-3 text-slate-700">
-                        <FileText className="w-6 h-6 text-blue-600" />
-                        <div className="text-left">
-                          <p className="font-semibold">
+                      <div className="text-center space-y-4">
+                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-teal-500 to-blue-500 rounded-2xl flex items-center justify-center">
+                          <FileText className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg">
                             {certificateFile.name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-sm text-slate-500 mt-1">
                             {(certificateFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
                       </div>
                     ) : existingCertificate ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-3 text-slate-700">
-                          <FileText className="w-6 h-6 text-green-600" />
-                          <div className="text-left">
-                            <p className="font-semibold">Document uploaded</p>
-                            <p className="text-xs text-slate-500">
-                              Click to replace
-                            </p>
-                          </div>
+                      <div className="text-center space-y-4">
+                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+                          <CheckCircle2 className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg">
+                            Certificate Uploaded
+                          </p>
+                          <p className="text-sm text-slate-600 mt-2">
+                            Click to replace with a new document
+                          </p>
                         </div>
                         <a
                           href={existingCertificate}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-semibold mt-3"
                         >
-                          <Download className="w-4 h-4" />
+                          <Download className="w-5 h-5" />
                           View Current Document
                         </a>
                       </div>
                     ) : (
-                      <div>
-                        <p className="text-slate-600 font-medium mb-2">
-                          Click to upload or drag and drop
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          PDF, DOC, DOCX or image files up to 10MB
-                        </p>
+                      <div className="text-center space-y-4">
+                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center group-hover:from-teal-200 group-hover:to-blue-200 transition-all duration-300">
+                          <FileText className="w-8 h-8 text-slate-600 group-hover:text-teal-600 transition-colors" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg">
+                            Upload Your Certificate
+                          </p>
+                          <p className="text-sm text-slate-500 mt-2">
+                            Drag and drop or click to browse
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            PDF, DOC, DOCX or image files up to 10MB
+                          </p>
+                        </div>
                       </div>
                     )}
+
                     <input
                       type="file"
                       className="hidden"
@@ -845,44 +1058,75 @@ export default function TherapistProfile() {
                     />
                     <label
                       htmlFor="certificate-input"
-                      className="mt-4 inline-block"
+                      className="mt-6 block"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <button
                         type="button"
                         onClick={() =>
                           document.getElementById("certificate-input")?.click()
                         }
-                        className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm"
+                        className="mx-auto block px-8 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
                       >
                         {certificateFile || existingCertificate
                           ? "Replace Document"
                           : "Choose File"}
                       </button>
                     </label>
+
+                    {certificateFile && (
+                      <p className="text-xs text-teal-600 mt-4 text-center font-medium">
+                        ✓ New file selected. Click Save to upload.
+                      </p>
+                    )}
                   </div>
 
-                  {certificateFile && (
-                    <p className="text-xs text-slate-500 mt-2">
-                      New file selected. Click Save to upload.
-                    </p>
-                  )}
+                  <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-6 border border-blue-100">
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                          <AlertCircle className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 mb-2">
+                          Document Guidelines
+                        </h4>
+                        <ul className="text-sm text-slate-700 space-y-1">
+                          <li>• License must be current and valid</li>
+                          <li>• Document should be clearly legible</li>
+                          <li>• Maximum file size: 10MB</li>
+                          <li>
+                            • Accepted formats: PDF, DOC, DOCX, JPG, PNG
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="mt-10 pt-6 border-t border-slate-100 flex justify-end gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Save className="w-5 h-5" />
-                )}
-                {saving ? "Updating Profile..." : "Save Changes"}
-              </button>
+              {/* Save Button */}
+              <div className="mt-12 pt-8 border-t-2 border-slate-100 flex justify-end gap-4">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="group relative px-12 py-4 bg-gradient-to-r from-teal-500 to-blue-500 text-white font-bold rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 flex items-center gap-3 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden hover:scale-105"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin relative z-10" />
+                      <span className="relative z-10">Updating Profile...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-6 h-6 relative z-10" />
+                      <span className="relative z-10">Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
