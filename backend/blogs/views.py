@@ -372,40 +372,63 @@ def blog_categories(request):
         for choice in BlogPost.CATEGORY_CHOICES
     ]
     return Response({'categories': categories}, status=status.HTTP_200_OK)
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_recommendations(request):
     recommender = BlogRecommender()
     user = request.user
-    
-    # Check if user has any likes or views
-    has_history = BlogLike.objects.filter(user=user).exists() or \
-                  BlogView.objects.filter(user=user).exists()
-    
-    if has_history:
-        # Personalized AI Logic (TF-IDF)
-        blogs = recommender.get_content_based_recommendations(user)
-        data = [
-            {
-                "blog": blog, 
-                "reason": f"Because you enjoyed articles in {blog.get_category_display()}", 
-                "recommendation_type": "personalized"
-            } 
-            for blog in blogs
-        ]
-    else:
-        # COLD START: Since Survey isn't ready, we show Trending and Newest
-        # Fix the typo '.order_of' -> '.order_by'
-        trending_blogs = BlogPost.objects.filter(status='published').order_by('-views_count')[:3]
-        new_blogs = BlogPost.objects.filter(status='published').order_by('-published_at')[:2]
-        
-        data = []
-        for b in trending_blogs:
-            data.append({"blog": b, "reason": "Trending on the platform", "recommendation_type": "trending"})
-        for b in new_blogs:
-            data.append({"blog": b, "reason": "Freshly published", "recommendation_type": "new"})
 
-    # Serialize with context so 'is_liked' works
+    has_likes = BlogLike.objects.filter(user=user).exists()
+    has_views = BlogView.objects.filter(user=user).exists()
+
+    data = []
+
+    if has_likes:
+        # Try collaborative first
+        collab_blogs = recommender.get_collaborative_recommendations(user)
+
+        if collab_blogs.exists():
+            blogs = collab_blogs
+            rec_type = "collaborative"
+            reason_fn = lambda b: "People with similar interests also liked this"
+        else:
+            # Fallback to content-based
+            blogs = recommender.get_content_based_recommendations(user)
+            rec_type = "personalized"
+            reason_fn = lambda b: f"Because you enjoyed articles in {b.get_category_display()}"
+
+    elif has_views:
+        blogs = recommender.get_content_based_recommendations(user)
+        rec_type = "personalized"
+        reason_fn = lambda b: f"Because you read articles in {b.get_category_display()}"
+
+    else:
+        trending = BlogPost.objects.filter(status='published').order_by('-views_count')[:3]
+        newest = BlogPost.objects.filter(status='published').order_by('-published_at')[:2]
+
+        for b in trending:
+            data.append({
+                "blog": b,
+                "reason": "Trending on the platform",
+                "recommendation_type": "trending"
+            })
+
+        for b in newest:
+            data.append({
+                "blog": b,
+                "reason": "Freshly published",
+                "recommendation_type": "new"
+            })
+
+        serializer = BlogRecommendationSerializer(data, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    for blog in blogs:
+        data.append({
+            "blog": blog,
+            "reason": reason_fn(blog),
+            "recommendation_type": rec_type
+        })
+
     serializer = BlogRecommendationSerializer(data, many=True, context={'request': request})
     return Response(serializer.data)
