@@ -124,14 +124,14 @@ export default function TherapistCard({
 
                 {/* Add Fees Display */}
                 {fees && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
-                    <DollarSign size={16} className="text-green-600" />
-                    <span className="text-sm font-bold text-green-700">
-                      ${fees}/session
-                    </span>
-                  </div>
-                )}
-              </div>
+  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
+    <span className="text-green-600 text-base font-bold">₹</span>
+    <span className="text-sm font-bold text-green-700">
+      {fees}/session
+    </span>
+  </div>
+)}
+</div>
 
               <div className="flex flex-wrap gap-2 mb-3">
                 {specialties && specialties.length > 0 ? (

@@ -1,105 +1,119 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import StatsGrid from "@/components/patient/dashboard/StatsGrid";
 import UpcomingSessions from "@/components/patient/dashboard/UpcomingSessions";
-import { matchingAPI, journalAPI, bookingAPI } from "@/lib/api";
+import CarePlan from "@/components/patient/dashboard/CarePlan";
+import QuickInsights from "@/components/patient/dashboard/QuickInsights";
+import { journalAPI, bookingAPI, JournalEntry } from '@/lib/api';
 
-interface DashboardData {
-  upcomingAppointments: any[];
-  matchScore: number | null;
-  moodSentiment: string;
-  insightCount: number;
-  loading: boolean;
-}
-
-export default function DashboardPage() {
-  const { user } = useAuth();
-  const [greeting, setGreeting] = useState("Good morning");
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
-    upcomingAppointments: [],
-    matchScore: null,
-    moodSentiment: "",
-    insightCount: 0,
-    loading: true
-  });
-
-  // Get the first name from the full_name string
-  const firstName = user?.full_name?.split(" ")[0] || "User";
+export default function PatientDashboard() {
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return "Good morning";
-      if (hour < 18) return "Good afternoon";
-      return "Good evening";
-    };
-
-    setGreeting(getGreeting());
-    fetchDashboardData();
+    loadDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    
     try {
-      // Use Promise.allSettled to ensure one failure doesn't break everything
-      const [appointmentsRes, matchRes, journalRes] = await Promise.allSettled([
-        bookingAPI.getMyAppointments('upcoming'),
-        matchingAPI.getLatestMatch(),
-        journalAPI.getSummary()
-      ]);
-
-      const upcomingAppointments = appointmentsRes.status === 'fulfilled' 
-        ? (appointmentsRes.value.results || []) 
-        : [];
+      const journalResponse = await journalAPI.getEntries({ limit: 100 });
+      setJournalEntries(journalResponse.results || journalResponse || []);
       
-      const matchScore = (matchRes.status === 'fulfilled' && matchRes.value?.data?.top_match_1_score)
-        ? Math.round(matchRes.value.data.top_match_1_score)
-        : null;
-
-      // Journal summary structure depends on backend, assuming safe defaults
-      const moodSentiment = journalRes.status === 'fulfilled' 
-        ? (journalRes.value?.dominant_mood || "Stable") // Adjust based on actual API
-        : "";
+      const appointmentsResponse = await bookingAPI.getMyAppointments();
+      setAppointments(appointmentsResponse.results || appointmentsResponse || []);
       
-      const insightCount = journalRes.status === 'fulfilled'
-        ? (journalRes.value?.total_entries || 0)
-        : 0;
-
-      setDashboardData({
-        upcomingAppointments,
-        matchScore,
-        moodSentiment,
-        insightCount,
-        loading: false
-      });
-
     } catch (error) {
-      console.error("Error fetching dashboard data", error);
-      setDashboardData(prev => ({ ...prev, loading: false }));
+      console.error('[Dashboard] Error loading data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-violet-50/20 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-violet-500 to-blue-500 rounded-3xl flex items-center justify-center shadow-2xl"
+          >
+            <div className="w-16 h-16 bg-white rounded-2xl" />
+          </motion.div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Loading Your Dashboard</h2>
+          <p className="text-slate-600 font-medium">Preparing your personalized experience...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          {greeting}, {firstName}
-        </h1>
-        <p className="text-gray-600">
-          Here is what is happening with your health today.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-violet-50/20 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute -top-40 -left-40 w-96 h-96 bg-violet-300/20 rounded-full blur-3xl"
+          animate={{ x: [0, 100, 0], y: [0, 50, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute top-1/2 -right-40 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl"
+          animate={{ x: [0, -100, 0], y: [0, -50, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute -bottom-40 left-1/3 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl"
+          animate={{ x: [0, -50, 0], y: [0, 100, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        />
       </div>
 
-      <StatsGrid stats={{
-        nextSession: dashboardData.upcomingAppointments[0],
-        matchScore: dashboardData.matchScore,
-        moodSentiment: dashboardData.moodSentiment,
-        insightCount: dashboardData.insightCount
-      }} />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <StatsGrid 
+            appointments={appointments} 
+            journalEntries={journalEntries}
+          />
+        </div>
 
-      <div className="mt-8">
-        <UpcomingSessions appointments={dashboardData.upcomingAppointments} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <UpcomingSessions appointments={appointments} />
+          </div>
+
+          <div className="space-y-8">
+            <CarePlan />
+            <QuickInsights 
+              journalEntries={journalEntries}
+              appointments={appointments}
+            />
+          </div>
+        </div>
+
+        {/* Floating action button */}
+        <motion.a
+          href="/patient/journal"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 1, type: "spring", bounce: 0.6 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white z-50 hover:shadow-violet-500/50 transition-all"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </motion.a>
       </div>
     </div>
   );
