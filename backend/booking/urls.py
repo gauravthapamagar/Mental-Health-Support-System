@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_payment
 
 urlpatterns = [
     # Public - Therapist discovery
@@ -20,4 +21,13 @@ urlpatterns = [
     
     # Statistics
     path('stats/', views.appointment_stats, name='appointment-stats'),
+    
+    path('payments/initiate/', views_payment.initiate_payment, name='initiate-payment'),
+
+    # Patient verifies payment after Khalti redirect
+    path('payments/verify/', views_payment.verify_payment, name='verify-payment'),
+
+    # Check payment status for an appointment (both patient and therapist)
+    path('payments/status/<int:appointment_id>/', views_payment.payment_status, name='payment-status'),
+    
 ]

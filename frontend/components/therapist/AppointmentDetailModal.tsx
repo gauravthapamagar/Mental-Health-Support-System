@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState} from "react";
 import { bookingAPI } from "@/lib/api";
+import {CreditCard } from "lucide-react";
 import {
   X,
   User,
@@ -169,17 +170,16 @@ export default function AppointmentDetailModal({
           {/* Status Badge */}
           <div className="mt-4">
             <span
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-lg backdrop-blur-sm ${
-                appointment.status === "confirmed"
-                  ? "bg-green-500/90 text-white"
-                  : appointment.status === "pending"
-                  ? "bg-amber-500/90 text-white"
-                  : "bg-white/90 text-gray-700"
-              }`}
-            >
-              {appointment.status === "confirmed" && <CheckCircle size={16} />}
-              {appointment.status_label || appointment.status}
-            </span>
+    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${
+      appointment.status === "confirmed"
+        ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
+        : appointment.status === "awaiting_payment"
+          ? "bg-gradient-to-r from-purple-400 to-purple-500 text-white"
+          : "bg-gradient-to-r from-amber-400 to-amber-500 text-white"
+    }`}
+  >
+    {appointment.status === "awaiting_payment" ? "Awaiting Payment" : (appointment.status_label || appointment.status)}
+  </span>
           </div>
         </div>
 

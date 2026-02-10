@@ -340,12 +340,18 @@ class TherapistListSerializer(serializers.ModelSerializer):
     bio = serializers.CharField(source='therapist_profile.bio', read_only=True)
     profile_picture = serializers.SerializerMethodField() 
     
+    address_line_1 = serializers.CharField(source='therapist_profile.address_line_1', read_only=True, allow_null=True)
+    address_line_2 = serializers.CharField(source='therapist_profile.address_line_2', read_only=True, allow_null=True)
+    city = serializers.CharField(source='therapist_profile.city', read_only=True, allow_null=True)
+    state = serializers.CharField(source='therapist_profile.state', read_only=True, allow_null=True)
+    postal_code = serializers.CharField(source='therapist_profile.postal_code', read_only=True, allow_null=True)
+    
     class Meta:
         model = User
         fields = [
             'id', 'full_name', 'email', 'profession', 'specialization',
             'languages', 'consultation_mode', 'consultation_fees',
-            'is_verified', 'years_of_experience', 'bio', 'profile_picture'
+            'is_verified', 'years_of_experience', 'bio', 'profile_picture','address_line_1', 'address_line_2', 'city', 'state', 'postal_code'
         ]
     
     def get_profile_picture(self, obj):
@@ -359,3 +365,50 @@ class TherapistListSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+    
+    
+from .models import Payment
+class PaymentSerializer(serializers.ModelSerializer):
+    """Serializer for Payment model - used in responses"""
+    amount_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'appointment', 'khalti_pidx', 'khalti_transaction_id',
+            'amount', 'amount_display', 'status', 'initiated_at', 'completed_at'
+        ]
+        read_only_fields = fields
+
+    def get_amount_display(self, obj):
+        return f"Rs. {obj.amount / 100:.2f}"
+
+
+class InitiatePaymentSerializer(serializers.Serializer):
+    """Validates the initiate payment request from frontend"""
+    appointment_id = serializers.IntegerField()
+
+    def validate_appointment_id(self, value):
+        from .models import Appointment
+        try:
+            appointment = Appointment.objects.get(id=value)
+        except Appointment.DoesNotExist:
+            raise serializers.ValidationError("Appointment not found.")
+
+        if appointment.status != 'awaiting_payment':
+            raise serializers.ValidationError(
+                f"Appointment is not awaiting payment. Current status: {appointment.status}"
+            )
+
+        if appointment.session_mode != 'online':
+            raise serializers.ValidationError(
+                "Payment is only required for online consultations."
+            )
+
+        return value
+
+
+class VerifyPaymentSerializer(serializers.Serializer):
+    """Validates the verify payment request"""
+    pidx = serializers.CharField(max_length=100)
+    appointment_id = serializers.IntegerField()

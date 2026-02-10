@@ -35,22 +35,20 @@ const TherapistAppointments = () => {
 
   const filterAppointments = (data: any[]) => {
     const now = new Date();
-
     const filtered = data.filter((apt: any) => {
       if (apt.status === "cancelled") {
         return false;
       }
-
       if (activeTab === "pending") {
         return apt.status === "pending";
       } else if (activeTab === "upcoming") {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-        return apt.status === "confirmed" && appointmentDateTime > now;
+        // Include both confirmed AND awaiting_payment in upcoming for therapist view
+        return (apt.status === "confirmed" || apt.status === "awaiting_payment") && appointmentDateTime > now;
       } else if (activeTab === "history") {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-        return apt.status === "confirmed" && appointmentDateTime <= now;
+        return (apt.status === "confirmed" || apt.status === "completed") && appointmentDateTime <= now;
       }
-
       return false;
     });
 
@@ -317,6 +315,15 @@ const TherapistAppointments = () => {
                           >
                             {apt.status_label || apt.status}
                           </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${
+                              apt.session_mode === "online"
+                                ? "bg-gradient-to-r from-purple-400 to-blue-400 text-white"
+                                : "bg-gradient-to-r from-orange-400 to-red-400 text-white"
+                            }`}
+                          >
+                            {apt.session_mode === "online" ? "Online" : "In-Person"}
+                          </span>
                           {apt.has_survey && (
                             <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-teal-100 text-blue-700 text-xs rounded-full font-bold flex items-center gap-1.5 shadow-sm">
                               <CheckCircle size={14} />
@@ -368,10 +375,7 @@ const TherapistAppointments = () => {
 
                       {apt.status === "confirmed" && (
                         <>
-                          <button className="flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-sm hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl hover:scale-105">
-                            <Video size={18} className="mr-2" />
-                            Start Session
-                          </button>
+                          
                           <div className="relative group/cancel">
                             <button
                               onClick={() => {

@@ -1,0 +1,45 @@
+Car Price Prediction – Data Collection & Preprocessing
+
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+
+# 1. Load dataset
+df = pd.read_csv("car_dataset.csv")
+df.head()
+
+# 2. Basic info
+df.info()
+df.describe()
+
+# 3. Check for missing values
+df.isnull().sum()
+
+# 4. Check duplicates
+df.duplicated().sum()
+
+# Remove duplicates
+df = df.drop_duplicates()
+
+# 5. Data Cleaning: Fix string formats in numeric columns
+
+df['km_driven'] = df['km_driven'].str.replace('kmpl', '').astype(float)
+
+# 6. Handle missing values
+
+df['seats'] = df['seats'].fillna(df['seats'].mode()[0])
+
+# 7. Encode categorical columns
+label_cols = ['fuel', 'seller_type', 'transmission', 'owner']
+le = LabelEncoder()
+for col in label_cols:
+    df[col] = le.fit_transform(df[col])
+
+# 8. Scale numerical features
+scale_cols = ['year', 'km_driven', 'mileage', 'engine', 'max_power']
+scaler = MinMaxScaler()
+df[scale_cols] = scaler.fit_transform(df[scale_cols])
+
+
+# 9. Save cleaned dataset
+df.to_csv("car_cleaned_data.csv", index=False)
+print("Cleaned dataset saved as car_cleaned_data.csv")

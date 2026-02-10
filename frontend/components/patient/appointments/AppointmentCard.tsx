@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   Timer,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 import { bookingAPI } from "@/lib/api";
@@ -29,9 +30,12 @@ interface AppointmentCardProps {
   format: "video" | "in-person" | "phone";
   matchScore: number;
   sentiment?: string;
-  status?: "pending" | "upcoming" | "completed" | "cancelled";
+  status?: "pending" | "upcoming" | "completed" | "cancelled" | "awaiting_payment" | "confirmed";
   notes?: string;
   onRefresh?: () => void;
+  consultationFee?: number;
+  onPayNow?: () => void;
+  isPaymentLoading?: boolean;
 }
 
 export default function AppointmentCard({
@@ -46,6 +50,9 @@ export default function AppointmentCard({
   status = "upcoming",
   notes,
   onRefresh,
+  consultationFee,
+  onPayNow,
+  isPaymentLoading = false,
 }: AppointmentCardProps) {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -155,6 +162,16 @@ export default function AppointmentCard({
           icon: <Timer size={16} className="text-amber-600" />,
           gradient: "from-amber-400 to-orange-400",
         };
+      case "awaiting_payment":
+        return {
+          label: "Awaiting Payment",
+          bgColor: "bg-purple-50",
+          textColor: "text-purple-700",
+          borderColor: "border-purple-200",
+          icon: <AlertCircle size={16} className="text-purple-600" />,
+          gradient: "from-purple-400 to-pink-400",
+        };
+      case "confirmed":
       case "upcoming":
         return {
           label: "Confirmed",
@@ -282,6 +299,16 @@ export default function AppointmentCard({
                     </p>
                   </div>
                 )}
+
+                {/* Awaiting Payment Status Message */}
+                {status === "awaiting_payment" && (
+                  <div className="mt-4 flex items-start gap-2 p-3 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                    <AlertCircle size={18} className="text-purple-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-purple-800 font-medium">
+                      Your therapist has confirmed this appointment. Please complete the payment to finalize the booking.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -304,6 +331,37 @@ export default function AppointmentCard({
                     title="Cancel Request"
                   >
                     <X size={22} />
+                  </button>
+                </>
+              )}
+
+              {/* AWAITING PAYMENT STATUS - Payment Action */}
+              {status === "awaiting_payment" && (
+                <>
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300"
+                    title="Cancel"
+                  >
+                    <X size={20} />
+                  </button>
+
+                  <button
+                    onClick={onPayNow}
+                    disabled={isPaymentLoading}
+                    className="w-full lg:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isPaymentLoading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard size={18} />
+                        Pay Rs. {consultationFee || "N/A"}
+                      </>
+                    )}
                   </button>
                 </>
               )}

@@ -10,6 +10,7 @@ import {
   Loader2,
   Clock,
   DollarSign,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import BookAppointmentModal from "@/components/patient/BookAppointmentModal";
@@ -110,6 +111,15 @@ export default function PatientTherapistProfilePage() {
 
   const consultationFees = therapist.consultation_fees;
 
+  // Construct address string
+  const addressParts = [];
+  if (therapist.address_line_1) addressParts.push(therapist.address_line_1);
+  if (therapist.address_line_2) addressParts.push(therapist.address_line_2);
+  if (therapist.city) addressParts.push(therapist.city);
+  if (therapist.state) addressParts.push(therapist.state);
+  if (therapist.postal_code) addressParts.push(therapist.postal_code);
+  const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
+
   return (
     <div className="w-full">
       {/* Back Button */}
@@ -130,7 +140,7 @@ export default function PatientTherapistProfilePage() {
             <div className="w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-100 mb-6 border border-slate-50">
               {profilePic ? (
                 <img
-                  src={profilePic}
+                  src={profilePic || "/placeholder.svg"}
                   alt={fullName}
                   className="w-full h-full object-cover"
                 />
@@ -149,6 +159,21 @@ export default function PatientTherapistProfilePage() {
                 {therapist.profession_type || "THERAPIST"}
               </p>
             </div>
+
+            {/* Address Display */}
+            {fullAddress && (
+              <div className="w-full mb-6 p-4 bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-2xl">
+                <div className="flex items-start gap-3">
+                  <MapPin size={20} className="text-red-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <p className="text-sm text-red-600 font-medium">Location</p>
+                    <p className="text-sm font-semibold text-red-700">
+                      {fullAddress}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Add Fees Display */}
             {consultationFees && (

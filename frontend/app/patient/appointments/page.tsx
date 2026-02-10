@@ -1,16 +1,28 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { bookingAPI } from "@/lib/api";
+import { bookingAPI, paymentAPI } from "@/lib/api";
 import AppointmentCard from "@/components/patient/appointments/AppointmentCard";
-import { Calendar, Plus, Loader2, Timer, CheckCircle2, Clock, XCircle } from "lucide-react";
+import {
+  Calendar,
+  Plus,
+  Loader2,
+  Timer,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  CreditCard,
+} from "lucide-react";
 import Link from "next/link";
+import { toast } from "react-toastify"; // Import toast for error notifications
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
   const [loading, setLoading] = useState(true);
+  const [payingAppointmentId, setPayingAppointmentId] = useState<number | null>(null);
   const [tabCounts, setTabCounts] = useState({
     pending: 0,
+    pay_now: 0,
     upcoming: 0,
     past: 0,
     cancelled: 0,
@@ -20,25 +32,28 @@ export default function AppointmentsPage() {
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
-      let data;
+      // Fetch all upcoming appointments to manually filter
+      const upcomingData = await bookingAPI.getMyAppointments("upcoming");
+      const allUpcoming = upcomingData.results || [];
       
       if (activeTab === "pending") {
-        // For pending, we need to fetch and filter by status
-        const upcomingData = await bookingAPI.getMyAppointments("upcoming");
-        const allUpcoming = upcomingData.results || [];
-        // Filter for pending status only
-        const pendingAppts = allUpcoming.filter((apt: any) => apt.status === "pending");
+        const pendingAppts = allUpcoming.filter(
+          (apt: any) => apt.status === "pending"
+        );
         setAppointments(pendingAppts);
+      } else if (activeTab === "pay_now") {
+        // Fetch awaiting_payment appointments
+        const awaitingPayment = allUpcoming.filter(
+          (apt: any) => apt.status === "awaiting_payment"
+        );
+        setAppointments(awaitingPayment);
       } else if (activeTab === "upcoming") {
-        // For upcoming, fetch and exclude pending appointments
-        const upcomingData = await bookingAPI.getMyAppointments("upcoming");
-        const allUpcoming = upcomingData.results || [];
-        // Only show confirmed appointments (exclude pending)
-        const confirmedUpcoming = allUpcoming.filter((apt: any) => apt.status === "confirmed");
+        const confirmedUpcoming = allUpcoming.filter(
+          (apt: any) => apt.status === "confirmed"
+        );
         setAppointments(confirmedUpcoming);
       } else {
-        // For other tabs (past, cancelled), use the API as is
-        data = await bookingAPI.getMyAppointments(activeTab);
+        const data = await bookingAPI.getMyAppointments(activeTab);
         setAppointments(data.results || []);
       }
     } catch (error) {
@@ -59,23 +74,32 @@ export default function AppointmentsPage() {
       ]);
 
       const allUpcoming = upcomingData.results || [];
+      const allPast = pastData.results || [];
+      const allCancelled = cancelledData.results || [];
       const now = new Date();
-      
-      // Count pending from upcoming with status "pending"
-      const pendingCount = allUpcoming.filter((apt: any) => apt.status === "pending").length;
-      
-      // Count confirmed upcoming (future dates with status "confirmed")
+
+      const pendingCount = allUpcoming.filter(
+        (apt: any) => apt.status === "pending"
+      ).length;
+
+      const payNowCount = allUpcoming.filter(
+        (apt: any) => apt.status === "awaiting_payment"
+      ).length;
+
       const upcomingCount = allUpcoming.filter((apt: any) => {
         if (apt.status !== "confirmed") return false;
-        const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
+        const appointmentDateTime = new Date(
+          `${apt.appointment_date}T${apt.start_time}`
+        );
         return appointmentDateTime > now;
       }).length;
 
       setTabCounts({
         pending: pendingCount,
+        pay_now: payNowCount,
         upcoming: upcomingCount,
-        past: (pastData.results || []).length,
-        cancelled: (cancelledData.results || []).length,
+        past: allPast.length,
+        cancelled: allCancelled.length,
       });
     } catch (error) {
       console.error("Failed to fetch tab counts", error);
@@ -85,11 +109,50 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchAppointments();
     fetchTabCounts();
+    
+    // Poll for updates every 10 seconds to catch status changes from therapist
+    const pollInterval = setInterval(() => {
+      fetchTabCounts();
+      fetchAppointments();
+    }, 10000);
+    
+    return () => clearInterval(pollInterval);
   }, [fetchAppointments, fetchTabCounts]);
 
   const refreshAppointments = () => {
     fetchAppointments();
     fetchTabCounts();
+  };
+
+  // NEW: Handle Khalti payment
+  const handlePayNow = async (appointmentId: number) => {
+    setPayingAppointmentId(appointmentId);
+    try {
+      console.log("[v0] Initiating payment for appointment:", appointmentId);
+      const response = await paymentAPI.initiatePayment(appointmentId);
+      console.log("[v0] Payment response:", response);
+      if (response.payment_url) {
+        window.location.href = response.payment_url;
+      } else {
+        console.error("[v0] No payment_url in response:", response);
+        toast?.toast({
+          title: "Payment Error",
+          description: "Invalid payment response from server",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("[v0] Payment failed:", error);
+      console.error("[v0] Error status:", error.response?.status);
+      console.error("[v0] Error data:", error.response?.data);
+      toast?.toast({
+        title: "Payment Error",
+        description: error.response?.data?.detail || "Failed to initiate payment. Check backend.",
+        variant: "destructive",
+      });
+    } finally {
+      setPayingAppointmentId(null);
+    }
   };
 
   // Tab configuration with icons and colors
@@ -101,6 +164,14 @@ export default function AppointmentsPage() {
       color: "amber",
       activeColor: "bg-amber-500",
       textColor: "text-amber-600",
+    },
+    {
+      id: "pay_now",
+      label: "Pay Now",
+      icon: CreditCard,
+      color: "purple",
+      activeColor: "bg-purple-500",
+      textColor: "text-purple-600",
     },
     {
       id: "upcoming",
@@ -128,25 +199,30 @@ export default function AppointmentsPage() {
     },
   ];
 
-  // Determine status for AppointmentCard based on appointment data and active tab
-  const getAppointmentStatus = (apt: any): "pending" | "upcoming" | "completed" | "cancelled" => {
+  // Updated status mapping
+  const getAppointmentStatus = (
+    apt: any
+  ): "pending" | "awaiting_payment" | "upcoming" | "completed" | "cancelled" | "confirmed" => {
     if (activeTab === "pending") return "pending";
+    if (activeTab === "pay_now") return "awaiting_payment";
     if (activeTab === "cancelled") return "cancelled";
     if (activeTab === "past") return "completed";
-    if (activeTab === "upcoming") return "upcoming";
-    
-    // Fallback logic
+    if (activeTab === "upcoming") return "confirmed";
+
     if (apt.status === "pending") return "pending";
+    if (apt.status === "awaiting_payment") return "awaiting_payment";
     if (apt.status === "cancelled") return "cancelled";
-    
+
     const now = new Date();
-    const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-    
+    const appointmentDateTime = new Date(
+      `${apt.appointment_date}T${apt.start_time}`
+    );
+
     if (apt.status === "confirmed") {
-      return appointmentDateTime <= now ? "completed" : "upcoming";
+      return appointmentDateTime <= now ? "completed" : "confirmed";
     }
-    
-    return "upcoming";
+
+    return "confirmed";
   };
 
   return (
@@ -160,13 +236,23 @@ export default function AppointmentsPage() {
             View and manage your scheduled therapy sessions
           </p>
         </div>
-        <Link
-          href="/patient/therapists"
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm font-semibold"
-        >
-          <Plus size={20} />
-          Book New Appointment
-        </Link>
+        <div className="flex gap-3">
+          <button
+            onClick={refreshAppointments}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all shadow-sm font-semibold disabled:opacity-60"
+          >
+            <Loader2 size={20} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <Link
+            href="/patient/therapists"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm font-semibold"
+          >
+            <Plus size={20} />
+            Book New Appointment
+          </Link>
+        </div>
       </div>
 
       {/* Enhanced Tabs with Icons and Counts */}
@@ -174,7 +260,7 @@ export default function AppointmentsPage() {
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const count = tabCounts[tab.id as keyof typeof tabCounts];
-          
+
           return (
             <button
               key={tab.id}
@@ -185,9 +271,11 @@ export default function AppointmentsPage() {
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
             >
-              <Icon 
-                size={18} 
-                className={activeTab === tab.id ? tab.textColor : "text-gray-400"} 
+              <Icon
+                size={18}
+                className={
+                  activeTab === tab.id ? tab.textColor : "text-gray-400"
+                }
               />
               {tab.label}
               {count > 0 && (
@@ -214,9 +302,33 @@ export default function AppointmentsPage() {
               <Timer className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h4 className="font-bold text-amber-900 mb-1">Awaiting Therapist Confirmation</h4>
+              <h4 className="font-bold text-amber-900 mb-1">
+                Awaiting Therapist Confirmation
+              </h4>
               <p className="text-sm text-amber-800">
-                Your therapist is reviewing your appointment request. You'll receive a notification once they confirm your booking.
+                Your therapist is reviewing your appointment request. You will
+                receive a notification once they confirm your booking.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Pay Now Tab Info Banner */}
+      {activeTab === "pay_now" && appointments.length > 0 && (
+        <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+              <CreditCard className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h4 className="font-bold text-purple-900 mb-1">
+                Payment Required
+              </h4>
+              <p className="text-sm text-purple-800">
+                Your therapist has confirmed these appointments. Please complete
+                payment to finalize your booking. Online consultations require
+                payment before the session.
               </p>
             </div>
           </div>
@@ -226,7 +338,9 @@ export default function AppointmentsPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24">
           <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
-          <p className="text-gray-500 animate-pulse">Loading Appointments...</p>
+          <p className="text-gray-500 animate-pulse">
+            Loading Appointments...
+          </p>
         </div>
       ) : appointments.length > 0 ? (
         <div className="grid gap-4">
@@ -235,7 +349,9 @@ export default function AppointmentsPage() {
               key={app.id}
               id={app.id.toString()}
               therapist={app.therapist?.full_name || "Specialist"}
-              title={app.therapist?.profession || "Mental Health Professional"}
+              title={
+                app.therapist?.profession || "Mental Health Professional"
+              }
               date={app.appointment_date}
               time={app.start_time}
               format={app.session_mode === "online" ? "video" : "in-person"}
@@ -243,30 +359,60 @@ export default function AppointmentsPage() {
               status={getAppointmentStatus(app)}
               notes={app.patient_notes}
               onRefresh={refreshAppointments}
+              consultationFee={
+                app.therapist?.consultation_fees ||
+                app.therapist_profile?.consultation_fees ||
+                app.consultation_fee ||
+                app.therapist?.profile?.consultation_fees
+              }
+              onPayNow={() => handlePayNow(app.id)}
+              isPaymentLoading={payingAppointmentId === app.id}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
-            activeTab === "pending" ? "bg-amber-50" :
-            activeTab === "upcoming" ? "bg-blue-50" :
-            activeTab === "past" ? "bg-green-50" :
-            "bg-red-50"
-          }`}>
+          <div
+            className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              activeTab === "pending"
+                ? "bg-amber-50"
+                : activeTab === "pay_now"
+                  ? "bg-purple-50"
+                  : activeTab === "upcoming"
+                    ? "bg-blue-50"
+                    : activeTab === "past"
+                      ? "bg-green-50"
+                      : "bg-red-50"
+            }`}
+          >
             {(() => {
-              const Icon = tabs.find(t => t.id === activeTab)?.icon || Calendar;
-              return <Icon className={tabs.find(t => t.id === activeTab)?.textColor || "text-gray-400"} size={32} />;
+              const Icon =
+                tabs.find((t) => t.id === activeTab)?.icon || Calendar;
+              return (
+                <Icon
+                  className={
+                    tabs.find((t) => t.id === activeTab)?.textColor ||
+                    "text-gray-400"
+                  }
+                  size={32}
+                />
+              );
             })()}
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            No {activeTab} appointments
+            No {activeTab === "pay_now" ? "payments pending" : `${activeTab} appointments`}
           </h3>
           <p className="text-gray-500 mb-8 max-w-xs mx-auto">
-            {activeTab === "pending" && "You don't have any pending appointment requests."}
-            {activeTab === "upcoming" && "You don't have any upcoming appointments scheduled."}
-            {activeTab === "past" && "You haven't completed any sessions yet."}
-            {activeTab === "cancelled" && "You don't have any cancelled appointments."}
+            {activeTab === "pending" &&
+              "You don't have any pending appointment requests."}
+            {activeTab === "pay_now" &&
+              "No appointments are awaiting payment right now."}
+            {activeTab === "upcoming" &&
+              "You don't have any upcoming appointments scheduled."}
+            {activeTab === "past" &&
+              "You haven't completed any sessions yet."}
+            {activeTab === "cancelled" &&
+              "You don't have any cancelled appointments."}
           </p>
           {(activeTab === "pending" || activeTab === "upcoming") && (
             <Link
