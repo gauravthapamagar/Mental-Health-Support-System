@@ -48,7 +48,13 @@ class TherapistMatch(models.Model):
         limit_choices_to={'role': 'therapist'}
     )
     top_match_3_score = models.FloatField(default=0.0)
-    
+
+    match_reasons = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Stores match reasons for each therapist"
+    )
+
     matched_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -80,10 +86,4 @@ class TherapistMatch(models.Model):
                 'score': self.top_match_3_score,
                 'rank': 3
             })
-        # Add this field after top_match_3_score
-        match_reasons = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Stores match reasons for each therapist"
-        )
         return matches

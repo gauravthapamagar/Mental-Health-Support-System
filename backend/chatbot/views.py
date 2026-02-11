@@ -9,11 +9,11 @@ import traceback
 
 # Configure Gemini API
 API_KEY = os.environ.get('GEMINI_API_KEY')
-print(f"🔑 API Key loaded: {'Yes' if API_KEY else 'No'}")
-print(f"🔑 API Key length: {len(API_KEY) if API_KEY else 0}")
+print(f"API Key loaded: {'Yes' if API_KEY else 'No'}")
+print(f"API Key length: {len(API_KEY) if API_KEY else 0}")
 
 if not API_KEY:
-    print("❌ WARNING: GEMINI_API_KEY not found in environment variables!")
+    print("WARNING: GEMINI_API_KEY not found in environment variables!")
 
 # System prompt for mental health chatbot
 SYSTEM_PROMPT = """You are a compassionate mental health support chatbot. Your role is to:

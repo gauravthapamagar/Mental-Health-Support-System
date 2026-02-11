@@ -103,6 +103,12 @@ class TherapistMatchViewSet(viewsets.ModelViewSet):
                 }
             })
         
+        # Add match reasons to the data
+        match_data['match_reasons'] = {
+            str(result['therapist_id']): result['reasons']
+            for result in match_results
+        }
+
         # Save to database
         therapist_match = TherapistMatch.objects.create(**match_data)
         
