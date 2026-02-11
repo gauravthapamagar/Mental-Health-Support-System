@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, time
 from accounts.permissions import IsPatient, IsTherapist
 from .models import (
     TherapistAvailability, TimeOffPeriod, Appointment,
-    AppointmentHistory, AppointmentFeedback
+    AppointmentHistory, AppointmentFeedback, 
 )
 from .serializers import (
     TherapistAvailabilitySerializer, TimeOffPeriodSerializer,
@@ -24,6 +24,7 @@ from .serializers import (
     AppointmentFeedbackSerializer, TherapistListSerializer,
     AvailableSlotSerializer
 )
+from .serializers import PaymentSerializer
 from accounts.models import User
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -58,7 +59,7 @@ def my_appointments(request):
     if filter_type == 'upcoming':
         appointments = appointments.filter(
             appointment_date__gte=today,
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'confirmed', 'awaiting_payment']
         )
     elif filter_type == 'past':
         # Use Q objects for the OR condition to prevent 500 error
@@ -146,7 +147,6 @@ def get_therapist_availability(request, therapist_id):
         'availability': serializer.data
     }, status=status.HTTP_200_OK)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_available_slots(request, therapist_id):
@@ -187,8 +187,11 @@ def get_available_slots(request, therapist_id):
         therapist=therapist,
         appointment_date__gte=start_date,
         appointment_date__lte=end_date,
-        status__in=['pending', 'confirmed']
+        status__in=['confirmed', 'awaiting_payment']
     )
+    
+    # Get booked slots from therapist profile
+    booked_slots = therapist.therapist_profile.booked_slots or []
     
     available_slots = []
     current_date = start_date
@@ -245,12 +248,20 @@ def get_available_slots(request, therapist_id):
                     
                     slot_end_time = slot_end_dt_temp.time()
                     
-                    # Check if slot is already booked
+                    # Check if slot is already booked in appointments
                     is_booked = existing_appointments.filter(
                         appointment_date=current_date,
                         start_time__lt=slot_end_time,
                         end_time__gt=slot_start_time
                     ).exists()
+                    
+                    # Check if slot is in booked_slots (confirmed appointments)
+                    is_in_booked_slots = any(
+                        slot['date'] == str(current_date) and 
+                        slot['start_time'] == str(slot_start_time) and 
+                        slot['end_time'] == str(slot_end_time)
+                        for slot in booked_slots
+                    )
                     
                     # Check if slot is in the past
                     is_past = current_dt < now_aware
@@ -259,7 +270,7 @@ def get_available_slots(request, therapist_id):
                         'date': current_date,
                         'start_time': slot_start_time,
                         'end_time': slot_end_time,
-                        'is_available': not is_booked and not is_past
+                        'is_available': not (is_booked or is_in_booked_slots) and not is_past
                     })
                     
                     # Move to next hour
@@ -273,7 +284,6 @@ def get_available_slots(request, therapist_id):
         'therapist_name': therapist.full_name,
         'slots': serializer.data
     }, status=status.HTTP_200_OK)
-
 
 
 @api_view(['POST'])
@@ -335,7 +345,7 @@ def my_appointments(request):
     if filter_type == 'upcoming':
         appointments = appointments.filter(
             appointment_date__gte=timezone.now().date(),
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'confirmed', 'awaiting_payment']
         )
     elif filter_type == 'past':
         appointments = appointments.filter(
@@ -562,7 +572,7 @@ def therapist_appointments(request):
     elif filter_type == 'upcoming':
         appointments = appointments.filter(
             appointment_date__gte=timezone.now().date(),
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'confirmed','awaiting_payment']
         )
     elif filter_type == 'past':
         appointments = appointments.filter(
@@ -576,60 +586,148 @@ def therapist_appointments(request):
     return paginator.get_paginated_response(serializer.data)
 
 from .email_utils import send_confirmation_emails
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated, IsTherapist])
+# def confirm_appointment(request, appointment_id):
+#     """
+#     Therapist confirms an appointment
+#     """
+#     appointment = get_object_or_404(
+#         Appointment,
+#         id=appointment_id,
+#         therapist=request.user
+#     )
+    
+#     if appointment.status != 'pending':
+#         return Response({
+#             'error': f'Cannot confirm appointment with status: {appointment.status}'
+#         }, status=status.HTTP_400_BAD_REQUEST)
+    
+#     serializer = ConfirmAppointmentSerializer(data=request.data)
+#     if not serializer.is_valid():
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+#     # Update appointment
+#     old_status = appointment.status
+#     appointment.status = 'confirmed'
+#     appointment.confirmed_at = timezone.now()
+    
+#     if serializer.validated_data.get('meeting_link'):
+#         appointment.meeting_link = serializer.validated_data['meeting_link']
+    
+#     if serializer.validated_data.get('therapist_notes'):
+#         appointment.therapist_notes = serializer.validated_data['therapist_notes']
+    
+#     appointment.save()
+    
+#     # Create history entry
+#     AppointmentHistory.objects.create(
+#         appointment=appointment,
+#         changed_by=request.user,
+#         action='confirmed',
+#         old_status=old_status,
+#         new_status='confirmed',
+#         notes='Appointment confirmed by therapist'
+#     )
+#     # ── Send confirmation emails ─────────────────────────────────
+#     try:
+#         send_confirmation_emails(appointment)
+#     except Exception as e:
+#         # Optional: log error — but don't fail the confirmation
+#         print(f"Confirmation email failed: {e}")
+#         # You could also use Django's logger here
+    
+#     return Response({
+#         'message': 'Appointment confirmed successfully',
+#         'appointment': AppointmentDetailSerializer(appointment).data
+#     }, status=status.HTTP_200_OK)
+
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsTherapist])
 def confirm_appointment(request, appointment_id):
     """
-    Therapist confirms an appointment
+    Therapist confirms an appointment.
+    - Online sessions  -> status = 'awaiting_payment' (patient must pay first)
+    - Offline sessions -> status = 'confirmed' (no payment needed)
     """
     appointment = get_object_or_404(
         Appointment,
         id=appointment_id,
         therapist=request.user
     )
-    
+
     if appointment.status != 'pending':
         return Response({
             'error': f'Cannot confirm appointment with status: {appointment.status}'
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     serializer = ConfirmAppointmentSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Update appointment
+
     old_status = appointment.status
-    appointment.status = 'confirmed'
     appointment.confirmed_at = timezone.now()
-    
+
+    # Set meeting link and notes if provided
     if serializer.validated_data.get('meeting_link'):
         appointment.meeting_link = serializer.validated_data['meeting_link']
-    
     if serializer.validated_data.get('therapist_notes'):
         appointment.therapist_notes = serializer.validated_data['therapist_notes']
-    
+
+    # ──── KEY CHANGE: Check session mode ────
+    if appointment.session_mode == 'online':
+        # Online appointment -> needs payment before becoming fully confirmed
+        appointment.status = 'awaiting_payment'
+        history_action = 'confirmed_awaiting_payment'
+        history_notes = 'Appointment confirmed by therapist. Awaiting patient payment for online session.'
+        message = 'Appointment confirmed. Patient has been notified to complete payment.'
+    else:
+        # Offline appointment -> directly confirmed, no payment needed
+        appointment.status = 'confirmed'
+        history_action = 'confirmed'
+        history_notes = 'Appointment confirmed by therapist (in-person session, no payment required).'
+        message = 'Appointment confirmed successfully.'
+
     appointment.save()
     
+    therapist_profile = appointment.therapist.therapist_profile
+    if not therapist_profile.booked_slots:
+        therapist_profile.booked_slots = []
+        
+    slot_info = {
+        'date': str(appointment.appointment_date),
+        'start_time': str(appointment.start_time),
+        'end_time': str(appointment.end_time),
+        'appointment_id': appointment.id
+    }
+    
+    if slot_info not in therapist_profile.booked_slots:
+        therapist_profile.booked_slots.append(slot_info)
+        
+    therapist_profile.save()
+
     # Create history entry
     AppointmentHistory.objects.create(
         appointment=appointment,
         changed_by=request.user,
-        action='confirmed',
+        action=history_action,
         old_status=old_status,
-        new_status='confirmed',
-        notes='Appointment confirmed by therapist'
+        new_status=appointment.status,
+        notes=history_notes
     )
-    # ── Send confirmation emails ─────────────────────────────────
+
+    # Send confirmation emails
     try:
         send_confirmation_emails(appointment)
     except Exception as e:
-        # Optional: log error — but don't fail the confirmation
         print(f"Confirmation email failed: {e}")
-        # You could also use Django's logger here
-    
+
     return Response({
-        'message': 'Appointment confirmed successfully',
-        'appointment': AppointmentDetailSerializer(appointment).data
+        'message': message,
+        'appointment': AppointmentDetailSerializer(appointment).data,
+        'requires_payment': appointment.session_mode == 'online',
     }, status=status.HTTP_200_OK)
 
 
@@ -695,7 +793,7 @@ def appointment_stats(request):
         'cancelled': appointments.filter(status='cancelled').count(),
         'upcoming': appointments.filter(
             appointment_date__gte=today,
-            status__in=['pending', 'confirmed']
+            status__in=['pending', 'confirmed', 'awaiting_payment']
         ).count(),
         # Count sessions today
         'today_sessions': appointments.filter(appointment_date=today).count(),
@@ -708,3 +806,4 @@ def appointment_stats(request):
     }
     
     return Response(stats, status=status.HTTP_200_OK)
+

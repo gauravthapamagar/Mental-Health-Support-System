@@ -143,6 +143,14 @@ class TherapistProfile(AddressMixin, models.Model):
         null=True, 
         help_text="Availability schedule structure"
     )
+    
+    booked_slots = models.JSONField(
+        default=list,
+        blank=True,
+        null=True,
+        help_text="List of booked slots: [{'date': '2026-02-10', 'start_time': '09:00', 'end_time': '10:00'}]"
+    )
+    
     bio = models.TextField(blank=True, null=True)
     
     profile_completed = models.BooleanField(default=False)

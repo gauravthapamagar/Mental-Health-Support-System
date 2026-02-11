@@ -65,28 +65,18 @@ const resourceNavItems: NavItem[] = [
 const toolsNavItems: NavItem[] = [
   
   { id: "journal", label: "Journal", icon: Heart, href: "/patient/journal" },
-  {
-    id: "medications",
-    label: "Medications",
-    icon: Pill,
-    href: "/patient/medications",
-  },
+  
   
 ];
 
 const bottomNavItems: NavItem[] = [
   { id: "profile", label: "Profile", icon: User, href: "/patient/profile" },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-    href: "/patient/settings",
-  },
+  
   {
     id: "support",
     label: "Support",
     icon: HelpCircle,
-    href: "/patient/support",
+    href: "/support",
   },
 ];
 

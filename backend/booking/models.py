@@ -76,6 +76,7 @@ class Appointment(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending Confirmation'),
         ('confirmed', 'Confirmed'),
+        ('awaiting_payment', 'Awaiting Payment'),
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
         ('no_show', 'No Show'),
@@ -266,3 +267,77 @@ class AppointmentFeedback(models.Model):
     
     def __str__(self):
         return f"Feedback for {self.appointment} - {self.rating}/5"
+    
+    
+    
+
+class Payment(models.Model):
+    """Track Khalti payments for online appointments"""
+
+    STATUS_CHOICES = [
+        ('initiated', 'Initiated'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+        ('expired', 'Expired'),
+    ]
+
+    appointment = models.OneToOneField(
+        'Appointment',
+        on_delete=models.CASCADE,
+        related_name='payment'
+    )
+    patient = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='payments',
+        limit_choices_to={'role': 'patient'}
+    )
+
+    # Khalti fields
+    khalti_pidx = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Khalti payment identifier (pidx)"
+    )
+    khalti_transaction_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Khalti transaction ID after successful payment"
+    )
+
+    # Amount in paisa (Khalti uses paisa: 1 NPR = 100 paisa)
+    amount = models.IntegerField(
+        help_text="Amount in paisa (e.g., 100000 = Rs. 1000)"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='initiated'
+    )
+
+    # Khalti response data
+    khalti_response = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Full JSON response from Khalti API"
+    )
+
+    initiated_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'payments'
+        ordering = ['-initiated_at']
+
+    def __str__(self):
+        return f"Payment for Appointment #{self.appointment.id} - {self.get_status_display()}"
+
+    @property
+    def amount_in_rupees(self):
+        """Convert paisa to NPR"""
+        return self.amount / 100

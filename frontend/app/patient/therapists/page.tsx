@@ -26,7 +26,11 @@ export default function TherapistsPage() {
         mode: mode !== "All Formats" ? mode : "",
       });
       
-      console.log("API Response:", data);
+      console.log("[v0] Full API Response:", data);
+      if (data.results && data.results.length > 0) {
+        console.log("[v0] First therapist object keys:", Object.keys(data.results[0]));
+        console.log("[v0] First therapist full object:", JSON.stringify(data.results[0], null, 2));
+      }
       setTherapists(data.results || []);
     } catch (error) {
       console.error("Error loading therapists", error);
@@ -82,6 +86,25 @@ export default function TherapistsPage() {
               profilePicture = `http://127.0.0.1:8000${profilePicture}`;
             }
             
+            // Construct address string - check both top-level and nested profile object
+            const addressParts = [];
+            
+            // Try top-level fields first
+            const addr1 = t.address_line_1 || t.profile?.address_line_1;
+            const addr2 = t.address_line_2 || t.profile?.address_line_2;
+            const city = t.city || t.profile?.city;
+            const state = t.state || t.profile?.state;
+            const postalCode = t.postal_code || t.profile?.postal_code;
+            
+            if (addr1) addressParts.push(addr1);
+            if (addr2) addressParts.push(addr2);
+            if (city) addressParts.push(city);
+            if (state) addressParts.push(state);
+            if (postalCode) addressParts.push(postalCode);
+            
+            const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : undefined;
+            console.log("[v0] Therapist:", t.full_name, "Address:", fullAddress);
+
             return (
               <TherapistCard
                 key={t.id}
@@ -100,7 +123,8 @@ export default function TherapistsPage() {
                 bio={t.bio || ''}
                 rating={4.9}
                 reviewCount={127}
-                fees={t.consultation_fees} // Add this line
+                fees={t.consultation_fees}
+                address={fullAddress}
                 onBookClick={() =>
                   setSelectedTherapist({ id: t.id, name: t.full_name })
                 }

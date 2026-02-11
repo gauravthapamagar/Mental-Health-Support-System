@@ -1,0 +1,8 @@
+1.   cd.. * 2  (to go back)
+2.   cd xampp
+3.   cd mysql
+4.   cd bin
+5.  mysql -u root -p
+6. just enter when asked for password
+7.   show databases;  (to show the exixting databases)
+8.  

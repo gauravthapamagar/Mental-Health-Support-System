@@ -15,7 +15,8 @@ interface TherapistCardProps {
   bio?: string;
   rating?: number;
   reviewCount?: number;
-  fees?: number | string; // Add this
+  fees?: number | string;
+  address?: string;
   onBookClick: () => void;
 }
 
@@ -32,7 +33,8 @@ export default function TherapistCard({
   bio,
   rating = 4.9,
   reviewCount = 127,
-  fees, // Add this
+  fees,
+  address,
   onBookClick,
 }: TherapistCardProps) {
   const getAvailabilityColor = () => {
@@ -75,7 +77,7 @@ export default function TherapistCard({
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md overflow-hidden">
             {isImageUrl ? (
               <img
-                src={image}
+                src={image || "/placeholder.svg"}
                 alt={name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -111,6 +113,13 @@ export default function TherapistCard({
                 {title} • {experience} experience
               </p>
 
+              {address && (
+                <div className="flex items-start gap-2 mb-3 text-gray-600">
+                  <MapPin size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm">{address}</p>
+                </div>
+              )}
+
               <div className="flex items-center gap-4 mb-3">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
@@ -124,14 +133,14 @@ export default function TherapistCard({
 
                 {/* Add Fees Display */}
                 {fees && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
-                    <DollarSign size={16} className="text-green-600" />
-                    <span className="text-sm font-bold text-green-700">
-                      ${fees}/session
-                    </span>
-                  </div>
-                )}
-              </div>
+  <div className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
+    <span className="text-green-600 text-base font-bold">₹</span>
+    <span className="text-sm font-bold text-green-700">
+      {fees}/session
+    </span>
+  </div>
+)}
+</div>
 
               <div className="flex flex-wrap gap-2 mb-3">
                 {specialties && specialties.length > 0 ? (

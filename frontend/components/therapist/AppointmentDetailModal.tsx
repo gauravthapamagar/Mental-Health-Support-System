@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState} from "react";
 import { bookingAPI } from "@/lib/api";
+import {CreditCard } from "lucide-react";
 import {
   X,
   User,
@@ -14,6 +15,8 @@ import {
   CheckCircle,
   Download,
   Loader2,
+  Heart,
+  Sparkles,
 } from "lucide-react";
 
 interface AppointmentDetailModalProps {
@@ -40,8 +43,6 @@ export default function AppointmentDetailModal({
     try {
       setLoading(true);
       const data = await bookingAPI.getAppointmentDetail(appointmentId.toString());
-      console.log("📋 Appointment data:", data);
-      console.log("📎 File URL:", data.assessment_file_url);
       setAppointment(data);
     } catch (error) {
       console.error("Failed to fetch appointment details:", error);
@@ -50,7 +51,6 @@ export default function AppointmentDetailModal({
     }
   };
 
-  // ✅ FIXED: Proper file download handler
   const handleDownloadAssessment = async () => {
     if (!appointment.assessment_file_url) {
       alert('No assessment file available');
@@ -59,33 +59,23 @@ export default function AppointmentDetailModal({
 
     setDownloading(true);
     try {
-      console.log("🔽 Downloading from:", appointment.assessment_file_url);
-
-      // Fetch the file from backend
       const response = await fetch(appointment.assessment_file_url);
       
       if (!response.ok) {
         throw new Error(`Download failed: ${response.statusText}`);
       }
 
-      // Get the blob
       const blob = await response.blob();
-      
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = appointment.assessment_file_name || 'assessment.pdf';
       document.body.appendChild(link);
       link.click();
-      
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      console.log("✅ Download successful");
     } catch (error) {
-      console.error('❌ Download error:', error);
+      console.error('Download error:', error);
       alert('Failed to download assessment file. Please try again.');
     } finally {
       setDownloading(false);
@@ -101,10 +91,17 @@ export default function AppointmentDetailModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-        <div className="bg-white rounded-2xl max-w-4xl w-full p-8 text-center shadow-2xl">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading appointment details...</p>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fade-in">
+        <div className="bg-white rounded-2xl max-w-md w-full p-10 text-center shadow-2xl animate-scale-in">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-teal-400 rounded-full animate-ping opacity-20"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full animate-pulse opacity-40"></div>
+            <div className="absolute inset-4 bg-gradient-to-br from-blue-600 to-teal-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-6 bg-white rounded-full flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-blue-600 animate-pulse" />
+            </div>
+          </div>
+          <p className="text-gray-600 text-lg font-medium">Loading session details...</p>
         </div>
       </div>
     );
@@ -112,18 +109,20 @@ export default function AppointmentDetailModal({
 
   if (!appointment) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fade-in">
         <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            Error Loading Appointment
+            Error Loading Session
           </h3>
           <p className="text-gray-600 mb-6">
-            Could not load appointment details. Please try again.
+            Could not load session details. Please try again.
           </p>
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800"
+            className="px-6 py-2.5 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl font-bold hover:from-gray-900 hover:to-black transition-all shadow-lg"
           >
             Close
           </button>
@@ -135,16 +134,21 @@ export default function AppointmentDetailModal({
   const hasFile = !!appointment.assessment_file_url;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-4xl w-full my-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fade-in">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl animate-scale-in overflow-hidden flex flex-col">
+        {/* Header with Gradient - Fixed */}
+        <div className="relative p-6 bg-gradient-to-r from-blue-600 to-teal-600 text-white flex-shrink-0">
           <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                Appointment Details
-              </h2>
-              <p className="text-gray-600 flex items-center gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <h2 className="text-2xl font-bold">
+                  Session Details
+                </h2>
+              </div>
+              <p className="text-white/90 flex items-center gap-2">
                 <Calendar size={16} />
                 {new Date(appointment.appointment_date).toLocaleDateString("en-US", {
                   weekday: "long",
@@ -157,147 +161,161 @@ export default function AppointmentDetailModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              className="p-2 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm"
             >
-              <X size={24} />
+              <X size={22} />
             </button>
           </div>
 
           {/* Status Badge */}
           <div className="mt-4">
             <span
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${
-                appointment.status === "confirmed"
-                  ? "bg-green-100 text-green-700"
-                  : appointment.status === "pending"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {appointment.status === "confirmed" && <CheckCircle size={16} />}
-              {appointment.status_label || appointment.status}
-            </span>
+    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${
+      appointment.status === "confirmed"
+        ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
+        : appointment.status === "awaiting_payment"
+          ? "bg-gradient-to-r from-purple-400 to-purple-500 text-white"
+          : "bg-gradient-to-r from-amber-400 to-amber-500 text-white"
+    }`}
+  >
+    {appointment.status === "awaiting_payment" ? "Awaiting Payment" : (appointment.status_label || appointment.status)}
+  </span>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b">
-          <div className="flex gap-1 px-6">
+        {/* Tabs - Fixed */}
+        <div className="border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+          <div className="flex gap-2 px-6">
             <button
               onClick={() => setActiveTab("details")}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`relative px-6 py-3 font-bold transition-all ${
                 activeTab === "details"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              Patient Details
+              {activeTab === "details" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-teal-600 rounded-t-full"></div>
+              )}
+              <span className="relative flex items-center gap-2 text-sm">
+                <User size={16} />
+                Patient Details
+              </span>
             </button>
             <button
               onClick={() => setActiveTab("attachment")}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              className={`relative px-6 py-3 font-bold transition-all flex items-center gap-2 ${
                 activeTab === "attachment"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              <FileText size={18} />
-              Assessment File
-              {hasFile && (
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold">
-                  Attached
-                </span>
+              {activeTab === "attachment" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-teal-600 rounded-t-full"></div>
               )}
+              <span className="relative flex items-center gap-2 text-sm">
+                <FileText size={16} />
+                Assessment File
+                {hasFile && (
+                  <span className="px-2 py-0.5 bg-gradient-to-r from-green-400 to-green-500 text-white text-xs rounded-full font-bold shadow-md">
+                    Attached
+                  </span>
+                )}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        {/* Scrollable Content */}
+        <div className="p-6 overflow-y-auto flex-1 bg-gradient-to-b from-white to-gray-50">
           {activeTab === "details" ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Patient Information */}
-              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div className="bg-white rounded-xl p-6 border border-blue-100 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <User size={20} className="text-blue-600" />
+                  <div className="p-1.5 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg">
+                    <User size={16} className="text-white" />
+                  </div>
                   Patient Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Full Name
                     </label>
-                    <p className="text-gray-900 font-medium">
+                    <p className="text-gray-900 font-semibold">
                       {appointment.patient?.full_name || appointment.patient_name || "N/A"}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Email
                     </label>
-                    <p className="text-gray-900 font-medium flex items-center gap-2">
-                      <Mail size={16} className="text-gray-400" />
+                    <p className="text-gray-900 font-medium flex items-center gap-2 text-sm">
+                      <Mail size={16} className="text-blue-500" />
                       {appointment.contact_email || appointment.patient?.email}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Phone
                     </label>
-                    <p className="text-gray-900 font-medium flex items-center gap-2">
-                      <Phone size={16} className="text-gray-400" />
+                    <p className="text-gray-900 font-medium flex items-center gap-2 text-sm">
+                      <Phone size={16} className="text-teal-500" />
                       {appointment.contact_phone || appointment.patient?.phone_number}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Session Mode
                     </label>
-                    <p className="text-gray-900 font-medium">
-                      {appointment.session_mode === "online" ? "Online" : "In-Person"}
+                    <p className="text-gray-900 font-semibold">
+                      {appointment.session_mode === "online" ? "🌐 Online" : "🏥 In-Person"}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Appointment Details */}
-              <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+              <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl p-6 border border-blue-200 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Calendar size={20} className="text-blue-600" />
-                  Appointment Details
+                  <div className="p-1.5 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg">
+                    <Calendar size={16} className="text-white" />
+                  </div>
+                  Session Details
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Type
                     </label>
-                    <p className="text-gray-900 font-medium">
+                    <p className="text-gray-900 font-semibold">
                       {appointment.appointment_type_label || appointment.appointment_type}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Duration
                     </label>
                     <p className="text-gray-900 font-medium flex items-center gap-2">
-                      <Clock size={16} className="text-gray-400" />
+                      <Clock size={16} className="text-blue-500" />
                       {appointment.duration_minutes} minutes
                     </p>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                       Reason for Visit
                     </label>
-                    <p className="text-gray-900 font-medium bg-white p-3 rounded-lg">
+                    <p className="text-gray-900 font-medium bg-white p-3 rounded-lg border border-blue-100 text-sm leading-relaxed">
                       {appointment.reason_for_visit}
                     </p>
                   </div>
                   {appointment.patient_notes && (
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-semibold text-gray-600 block mb-1">
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                         Additional Notes
                       </label>
-                      <p className="text-gray-900 font-medium bg-white p-3 rounded-lg">
+                      <p className="text-gray-900 font-medium bg-white p-3 rounded-lg border border-blue-100 text-sm leading-relaxed">
                         {appointment.patient_notes}
                       </p>
                     </div>
@@ -306,30 +324,31 @@ export default function AppointmentDetailModal({
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {hasFile ? (
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-                    <FileText size={24} className="text-blue-600" />
+                <div className="bg-white rounded-xl p-6 border border-blue-100 shadow-sm">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="p-1.5 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg">
+                      <FileText size={18} className="text-white" />
+                    </div>
                     Attached Assessment File
                   </h3>
 
-                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                  <div className="bg-gradient-to-br from-blue-50 to-teal-50 p-5 rounded-lg border border-blue-200">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-800 mb-1 truncate max-w-full">
-                          {appointment.assessment_file_name || "assessment-file.pdf"}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 mb-1 truncate">
+                          📄 {appointment.assessment_file_name || "assessment-file.pdf"}
                         </p>
                         <p className="text-sm text-gray-600">
                           Uploaded by patient during booking
                         </p>
                       </div>
 
-                      {/* ✅ FIXED: Use button with onClick handler instead of <a> tag */}
                       <button
                         onClick={handleDownloadAssessment}
                         disabled={downloading}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-lg hover:from-blue-700 hover:to-teal-700 transition-all font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                       >
                         {downloading ? (
                           <>
@@ -346,25 +365,27 @@ export default function AppointmentDetailModal({
                     </div>
                   </div>
 
-                  <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
                       <div>
-                        <h4 className="font-semibold text-amber-900 mb-1">Note for Therapist</h4>
-                        <p className="text-sm text-amber-800">
-                          This file was uploaded by the patient. Review it carefully before the session.
+                        <h4 className="font-bold text-amber-900 mb-1 text-sm">Note for Therapist</h4>
+                        <p className="text-sm text-amber-800 leading-relaxed">
+                          This file was uploaded by the patient. Please review it carefully before the session.
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border-2 border-dashed border-gray-300">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
                     No Assessment File Attached
                   </h3>
-                  <p className="text-gray-600 max-w-md mx-auto">
+                  <p className="text-gray-600 max-w-md mx-auto text-sm">
                     The patient did not upload any assessment report for this appointment.
                   </p>
                 </div>
@@ -373,25 +394,48 @@ export default function AppointmentDetailModal({
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t bg-gray-50 flex gap-3 justify-end">
+        {/* Footer Actions - Fixed */}
+        <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3 justify-end flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all"
+            className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-100 hover:border-gray-400 transition-all"
           >
             Close
           </button>
           {appointment.status === "pending" && onConfirm && (
             <button
               onClick={handleConfirmClick}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-200 flex items-center gap-2"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
-              <CheckCircle size={20} />
-              Confirm Appointment
+              <CheckCircle size={18} />
+              Confirm Session
             </button>
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scale-in {
+          from { 
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

@@ -254,6 +254,13 @@ export const bookingAPI = {
     return response.data;
   },
 
+  getAwaitingPaymentAppointments: async () => {
+    const response = await axiosInstance.get("/booking/appointments/my/", {
+      params: { status: "awaiting_payment" },
+    });
+    return response.data;
+  },
+
   // Create the appointment
   createAppointment: async (data: any) => {
     const response = await axiosInstance.post(
@@ -645,7 +652,81 @@ export const matchingAPI = {
   },
 };
 
-export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI };
+export interface PaymentInitiateResponse {
+  payment_url: string;
+  pidx: string;
+  payment_id: number;
+  amount: number;
+  amount_display: string;
+}
+
+export interface PaymentVerifyResponse {
+  message: string;
+  payment: {
+    id: number;
+    appointment: number;
+    khalti_pidx: string;
+    khalti_transaction_id: string;
+    amount: number;
+    amount_display: string;
+    status: string;
+    initiated_at: string;
+    completed_at: string;
+  };
+  appointment_status: string;
+}
+
+export interface PaymentStatusResponse {
+  has_payment: boolean;
+  payment: {
+    id: number;
+    appointment: number;
+    khalti_pidx: string;
+    khalti_transaction_id: string;
+    amount: number;
+    amount_display: string;
+    status: string;
+    initiated_at: string;
+    completed_at: string;
+  } | null;
+}
+
+// ──── Payment API ────
+export const paymentAPI = {
+  /**
+   * Initiate a Khalti payment for an awaiting_payment appointment.
+   * Redirects user to Khalti payment page.
+   */
+  initiatePayment: async (appointmentId: number): Promise<PaymentInitiateResponse> => {
+    const response = await axiosInstance.post("/booking/payments/initiate/", {
+      appointment_id: appointmentId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Verify a payment after Khalti redirects back.
+   * Called from the payment verification page.
+   */
+  verifyPayment: async (pidx: string, appointmentId: number): Promise<PaymentVerifyResponse> => {
+    const response = await axiosInstance.post("/booking/payments/verify/", {
+      pidx,
+      appointment_id: appointmentId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Check payment status for a specific appointment.
+   */
+  getPaymentStatus: async (appointmentId: number): Promise<PaymentStatusResponse> => {
+    const response = await axiosInstance.get(`/booking/payments/status/${appointmentId}/`);
+    return response.data;
+  },
+};
+
+
+export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI,paymentAPI };
 
 
 

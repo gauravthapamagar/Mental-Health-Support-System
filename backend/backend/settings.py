@@ -208,3 +208,11 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 EMAIL_TIMEOUT = 10
+
+# Khalti Payment Gateway
+KHALTI_PUBLIC_KEY = os.getenv("KHALTI_PUBLIC_KEY")
+KHALTI_BASE_URL = os.getenv("KHALTI_BASE_URL")
+KHALTI_SECRET_KEY = os.getenv("KHALTI_SECRET_KEY")
+
+
+FRONTEND_URL = 'http://localhost:3000'  # Your Next.js URL
