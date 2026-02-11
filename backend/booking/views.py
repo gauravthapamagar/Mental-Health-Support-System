@@ -77,12 +77,14 @@ def my_appointments(request):
 @permission_classes([AllowAny])
 def list_available_therapists(request):
     """
-    List all therapists available for booking (public endpoint)
+    List all available therapists for booking (public endpoint)
+    Only therapists with completed profiles AND verified status are shown to patients
     Patients can see this without logging in
     """
     therapists = User.objects.filter(
         role='therapist',
-        therapist_profile__profile_completed=True
+        therapist_profile__profile_completed=True,
+        therapist_profile__is_verified=True
     ).select_related('therapist_profile')
     
     # Filter by specialization
@@ -98,11 +100,6 @@ def list_available_therapists(request):
         therapists = therapists.filter(
             therapist_profile__consultation_mode__in=[mode, 'both']
         )
-    
-    # Filter by verified status
-    verified_only = request.query_params.get('verified_only')
-    if verified_only == 'true':
-        therapists = therapists.filter(therapist_profile__is_verified=True)
     
     # Sort options
     sort_by = request.query_params.get('sort_by', 'name')

@@ -1,10 +1,9 @@
 'use client';
 
-import { MessageSquare, Calendar, Heart, TrendingUp, Sparkles, BookOpen, Target, Award, Zap, Brain, Smile, Frown, Meh } from "lucide-react";
+import { Wind, Lightbulb, BookMarked, CheckCircle, Circle, ArrowRight, Play, Pause } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { JournalEntry } from '@/lib/api';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 interface QuickInsightsProps {
   journalEntries: JournalEntry[];
@@ -12,332 +11,267 @@ interface QuickInsightsProps {
 }
 
 export default function QuickInsights({ journalEntries, appointments }: QuickInsightsProps) {
-  // Analyze journal data
-  const insights = useMemo(() => {
-    const recentEntries = journalEntries.slice(0, 7);
-    
-    // Sentiment analysis
-    const sentiments = recentEntries.map(entry => {
-      const content = entry.content?.toLowerCase() || '';
-      const positiveWords = ['happy', 'great', 'good', 'better', 'amazing', 'wonderful', 'joy', 'excited', 'love', 'grateful', 'thankful'];
-      const negativeWords = ['sad', 'bad', 'worse', 'terrible', 'awful', 'anxious', 'worried', 'stressed', 'depressed', 'upset'];
-      
-      const positiveCount = positiveWords.filter(word => content.includes(word)).length;
-      const negativeCount = negativeWords.filter(word => content.includes(word)).length;
-      
-      if (positiveCount > negativeCount) return 'positive';
-      if (negativeCount > positiveCount) return 'negative';
-      return 'neutral';
-    });
+  const [breathingActive, setBreathingActive] = useState(false);
+  const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale' | 'pause'>('inhale');
+  const [checkInCompleted, setCheckInCompleted] = useState(false);
 
-    const positiveRatio = sentiments.filter(s => s === 'positive').length / (sentiments.length || 1);
-    
-    // Writing frequency
-    const thisWeek = journalEntries.filter(entry => {
-      const entryDate = new Date(entry.created_at);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return entryDate >= weekAgo;
-    }).length;
+  // Breathing exercise timer
+  useEffect(() => {
+    if (!breathingActive) return;
 
-    // Average word count
-    const avgWordCount = Math.round(
-      recentEntries.reduce((acc, entry) => 
-        acc + (entry.content?.split(' ').length || 0), 0
-      ) / (recentEntries.length || 1)
-    );
+    const phases = [
+      { phase: 'inhale' as const, duration: 4000 },
+      { phase: 'hold' as const, duration: 4000 },
+      { phase: 'exhale' as const, duration: 4000 },
+      { phase: 'pause' as const, duration: 4000 },
+    ];
 
-    return {
-      sentiment: positiveRatio > 0.6 ? 'Positive' : positiveRatio < 0.4 ? 'Challenging' : 'Balanced',
-      sentimentEmoji: positiveRatio > 0.6 ? '😊' : positiveRatio < 0.4 ? '😔' : '😐',
-      weeklyEntries: thisWeek,
-      avgWordCount,
-      totalEntries: journalEntries.length,
-    };
-  }, [journalEntries]);
+    let currentPhaseIndex = 0;
+    const interval = setInterval(() => {
+      currentPhaseIndex = (currentPhaseIndex + 1) % phases.length;
+      setBreathPhase(phases[currentPhaseIndex].phase);
+    }, 4000);
 
-  const quickActions = [
+    return () => clearInterval(interval);
+  }, [breathingActive]);
+
+  const dailyCheckIns = [
+    "I took time for myself today",
+    "I practiced gratitude",
+    "I moved my body",
+    "I connected with someone",
+  ];
+
+  const wellnessResources = [
     {
-      id: "journal",
-      title: "Write Journal",
-      description: "Reflect on your day",
-      icon: <BookOpen className="w-5 h-5" strokeWidth={2.5} />,
-      href: "/patient/journal",
-      gradient: "from-violet-500 to-purple-600",
-      bgGradient: "from-violet-50 to-purple-50",
-      iconBg: "from-violet-400 to-purple-500",
+      title: "Grounding Techniques",
+      description: "5-4-3-2-1 sensory exercise",
+      category: "Anxiety Relief",
+      gradient: "from-blue-500 to-cyan-500",
+      icon: "🌊"
     },
     {
-      id: "mood",
-      title: "Track Mood",
-      description: "Log how you feel",
-      icon: <Heart className="w-5 h-5" strokeWidth={2.5} />,
-      href: "/patient/mood-tracker",
-      gradient: "from-pink-500 to-rose-600",
-      bgGradient: "from-pink-50 to-rose-50",
-      iconBg: "from-pink-400 to-rose-500",
+      title: "Sleep Hygiene Tips",
+      description: "Improve your rest quality",
+      category: "Better Sleep",
+      gradient: "from-indigo-500 to-purple-500",
+      icon: "🌙"
     },
     {
-      id: "progress",
-      title: "View Insights",
-      description: "See your journey",
-      icon: <TrendingUp className="w-5 h-5" strokeWidth={2.5} />,
-      href: "/patient/journal",
-      gradient: "from-cyan-500 to-blue-600",
-      bgGradient: "from-cyan-50 to-blue-50",
-      iconBg: "from-cyan-400 to-blue-500",
-    },
-    {
-      id: "goals",
-      title: "Set Goals",
-      description: "Plan your week",
-      icon: <Target className="w-5 h-5" strokeWidth={2.5} />,
-      href: "/patient/care-plan",
-      gradient: "from-emerald-500 to-teal-600",
-      bgGradient: "from-emerald-50 to-teal-50",
-      iconBg: "from-emerald-400 to-teal-500",
+      title: "Mindful Walking",
+      description: "Movement meditation guide",
+      category: "Mindfulness",
+      gradient: "from-emerald-500 to-teal-500",
+      icon: "🌿"
     },
   ];
 
+  const getBreathText = () => {
+    switch (breathPhase) {
+      case 'inhale': return 'Breathe in...';
+      case 'hold': return 'Hold...';
+      case 'exhale': return 'Breathe out...';
+      case 'pause': return 'Pause...';
+    }
+  };
+
+  const getBreathScale = () => {
+    switch (breathPhase) {
+      case 'inhale': return 'scale-125';
+      case 'hold': return 'scale-125';
+      case 'exhale': return 'scale-75';
+      case 'pause': return 'scale-75';
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm"
-      >
-        <div className="px-6 py-5 border-b border-slate-100">
-          <div className="flex items-center gap-3 mb-1">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Zap className="w-5 h-5 text-orange-500" strokeWidth={2.5} />
-            </motion.div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Quick Actions
-            </h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Breathing Exercise */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-200/60">
+          <div className="flex items-center gap-2 mb-1">
+            <Wind className="w-5 h-5 text-cyan-600" strokeWidth={1.5} />
+            <h3 className="text-lg font-serif font-semibold text-slate-800">
+              Box Breathing
+            </h3>
           </div>
-          <p className="text-sm text-slate-600 font-medium">
-            Take action on your wellness goals
+          <p className="text-sm text-slate-500">
+            4-4-4-4 technique for calm
+          </p>
+        </div>
+
+        <div className="p-8">
+          <div className="flex flex-col items-center justify-center mb-6">
+            {/* Breathing Circle */}
+            <div className="relative w-40 h-40 mb-6">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 border-2 border-cyan-200/60" />
+              
+              <div 
+                className={`absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 transition-all duration-[3800ms] ease-in-out ${getBreathScale()}`}
+                style={{ opacity: breathingActive ? 0.6 : 0 }}
+              />
+              
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-semibold text-slate-700">
+                  {breathingActive ? getBreathText() : 'Ready'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setBreathingActive(!breathingActive)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-xl shadow-md transition-all"
+            >
+              {breathingActive ? (
+                <>
+                  <Pause className="w-4 h-4" strokeWidth={2} />
+                  <span>Pause</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" strokeWidth={2} />
+                  <span>Start Exercise</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="text-center text-xs text-slate-500 leading-relaxed">
+            Follow the circle: Inhale (4s) → Hold (4s) → Exhale (4s) → Pause (4s)
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Check-in */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50">
+        <div className="px-6 py-5 border-b border-slate-200/60">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="w-5 h-5 text-emerald-600" strokeWidth={1.5} />
+            <h3 className="text-lg font-serif font-semibold text-slate-800">
+              Daily Check-in
+            </h3>
+          </div>
+          <p className="text-sm text-slate-500">
+            Track your wellness habits
           </p>
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action, index) => (
-              <motion.div
-                key={action.id}
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: index * 0.1, type: "spring", bounce: 0.4 }}
-                whileHover={{ scale: 1.05, y: -5 }}
+          <div className="space-y-3 mb-6">
+            {dailyCheckIns.map((item, index) => (
+              <label
+                key={index}
+                className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/60 cursor-pointer transition-colors group"
               >
-                <Link
-                  href={action.href}
-                  className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.bgGradient} p-4 border border-slate-200/60 hover:shadow-xl transition-all duration-300 block`}
-                >
-                  {/* Animated background orb */}
-                  <div className={`absolute -top-8 -right-8 w-24 h-24 bg-gradient-to-br ${action.gradient} opacity-20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500`} />
-                  
-                  <div className="relative z-10">
-                    <motion.div 
-                      className={`w-11 h-11 bg-gradient-to-br ${action.iconBg} rounded-xl flex items-center justify-center mb-3 shadow-lg text-white`}
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      {action.icon}
-                    </motion.div>
-                    
-                    <h3 className="font-black text-slate-900 mb-1 text-sm">
-                      {action.title}
-                    </h3>
-                    <p className="text-xs text-slate-600 font-medium">
-                      {action.description}
-                    </p>
-                  </div>
-                  
-                  {/* Hover arrow */}
-                  <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-md">
-                      <svg className="w-3.5 h-3.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                />
+                <div className="w-5 h-5 rounded-md border-2 border-slate-300 group-hover:border-emerald-500 flex items-center justify-center transition-colors">
+                  <Circle className="w-3 h-3 text-slate-400 group-hover:text-emerald-500" strokeWidth={2} />
+                </div>
+                <span className="text-sm font-medium text-slate-700">
+                  {item}
+                </span>
+              </label>
+            ))}
+          </div>
 
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                </Link>
-              </motion.div>
+          <Link
+            href="/patient/journal"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl shadow-md transition-all"
+          >
+            <span>Complete in Journal</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={2} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Wellness Resources - Full Width */}
+      <div className="md:col-span-2 bg-white/60 backdrop-blur-sm rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/50">
+        <div className="px-6 py-5 border-b border-slate-200/60">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Lightbulb className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
+                <h3 className="text-lg font-serif font-semibold text-slate-800">
+                  Wellness Resources
+                </h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                Curated guides for your journey
+              </p>
+            </div>
+            
+            <Link
+              href="/patient/resources"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 transition-colors"
+            >
+              View all
+              <ArrowRight className="w-4 h-4" strokeWidth={1.5} />
+            </Link>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {wellnessResources.map((resource, index) => (
+              <button
+                key={index}
+                className="group text-left p-5 bg-white/80 hover:bg-white rounded-2xl border border-slate-200/60 hover:border-slate-300/60 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="text-3xl">{resource.icon}</div>
+                  <span className="text-xs font-medium text-slate-500 px-2 py-1 bg-slate-100 rounded-md">
+                    {resource.category}
+                  </span>
+                </div>
+                
+                <h4 className="font-semibold text-slate-800 mb-1 leading-tight">
+                  {resource.title}
+                </h4>
+                <p className="text-xs text-slate-500 mb-3">
+                  {resource.description}
+                </p>
+
+                <div className="flex items-center gap-1 text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
+                  <span>Learn more</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" strokeWidth={2} />
+                </div>
+              </button>
             ))}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Journal Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl p-6 border border-indigo-200/60 shadow-sm"
-      >
-        <div className="flex items-start gap-4 mb-5">
-          <motion.div
-            className="w-14 h-14 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl flex-shrink-0"
-            animate={{ rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            <Brain className="w-7 h-7 text-white" strokeWidth={2.5} />
-          </motion.div>
+      {/* Therapist Recommendation */}
+      {appointments.length === 0 && (
+        <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-2xl p-6 shadow-xl">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.2),transparent_50%)]" />
           
-          <div className="flex-1">
-            <h3 className="font-black text-slate-900 text-xl mb-1">
-              Journal Insights
-            </h3>
-            <p className="text-sm text-slate-700 font-medium">
-              AI-powered analysis of your reflections
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.5, type: "spring", bounce: 0.5 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-md"
-          >
-            <div className="text-4xl mb-2">{insights.sentimentEmoji}</div>
-            <div className="text-2xl font-black text-slate-900 mb-1">
-              {insights.sentiment}
-            </div>
-            <div className="text-xs text-slate-600 font-bold uppercase tracking-wide">
-              Overall Mood
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.6, type: "spring", bounce: 0.5 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-md"
-          >
-            <div className="text-4xl font-black text-transparent bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text mb-1">
-              {insights.weeklyEntries}
-            </div>
-            <div className="text-sm font-bold text-slate-900 mb-1">
-              Entries
-            </div>
-            <div className="text-xs text-slate-600 font-bold uppercase tracking-wide">
-              This Week
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.7, type: "spring", bounce: 0.5 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-md"
-          >
-            <div className="text-4xl font-black text-transparent bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text mb-1">
-              {insights.avgWordCount}
-            </div>
-            <div className="text-sm font-bold text-slate-900 mb-1">
-              Words
-            </div>
-            <div className="text-xs text-slate-600 font-bold uppercase tracking-wide">
-              Avg. Length
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.8, type: "spring", bounce: 0.5 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/60 shadow-md"
-          >
-            <div className="text-4xl font-black text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text mb-1">
-              {insights.totalEntries}
-            </div>
-            <div className="text-sm font-bold text-slate-900 mb-1">
-              Total
-            </div>
-            <div className="text-xs text-slate-600 font-bold uppercase tracking-wide">
-              All Entries
-            </div>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.9 }}
-        >
-          <Link
-            href="/patient/journal"
-            className="group w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
-          >
-            <MessageSquare className="w-5 h-5" strokeWidth={2.5} />
-            <span>View All Entries</span>
-            <motion.svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              animate={{ x: [0, 5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </motion.svg>
-          </Link>
-        </motion.div>
-      </motion.div>
-
-      {/* Achievement Badge */}
-      {insights.weeklyEntries >= 5 && (
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ delay: 1, type: "spring", bounce: 0.6 }}
-          className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-3xl p-6 border border-amber-200/60 shadow-sm"
-        >
-          <div className="flex items-start gap-4">
-            <motion.div
-              className="w-16 h-16 bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl flex-shrink-0"
-              animate={{ 
-                rotate: [0, -10, 10, -10, 0],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Award className="w-8 h-8 text-white" strokeWidth={2.5} />
-            </motion.div>
-            
-            <div className="flex-1">
-              <h3 className="font-black text-slate-900 text-lg mb-2">
-                Consistency Champion! 🏆
-              </h3>
-              <p className="text-sm text-slate-700 mb-4 font-medium">
-                You've journaled {insights.weeklyEntries} times this week. Your dedication to self-reflection is inspiring!
-              </p>
-              
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-black text-amber-700 border border-amber-300 shadow-sm">
-                  🔥 {insights.weeklyEntries} Days
-                </div>
-                <div className="px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-black text-amber-700 border border-amber-300 shadow-sm">
-                  ⭐ Top 10%
-                </div>
-                <div className="px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-black text-amber-700 border border-amber-300 shadow-sm">
-                  🎯 Goal Crusher
-                </div>
+          <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0 text-3xl">
+                💬
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">
+                  Ready to Connect?
+                </h3>
+                <p className="text-sm text-white/90">
+                  Find a licensed therapist who understands your needs
+                </p>
               </div>
             </div>
+            
+            <Link
+              href="/patient/find-therapist"
+              className="flex-shrink-0 px-6 py-3 bg-white hover:bg-white/90 text-purple-600 font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
+            >
+              Browse Therapists
+            </Link>
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );

@@ -189,7 +189,7 @@ export default function TherapistCard({
 
         <div className="flex flex-col gap-3 flex-shrink-0">
           <Link
-            href={`/patient/therapists/${id}`}
+            href={`/patient/therapist/${id}`}
             className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center font-medium"
           >
             View Profile

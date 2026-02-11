@@ -1,6 +1,48 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, PatientProfile, TherapistProfile
+from django.utils import timezone
+from .models import User, PatientProfile, TherapistProfile, VerificationDocument
+
+
+class VerificationDocumentInline(admin.TabularInline):
+    model = VerificationDocument
+    extra = 1
+    fields = ('document_type', 'document_file', 'is_verified', 'verified_by', 'uploaded_at', 'verified_at')
+    readonly_fields = ('uploaded_at', 'verified_at')
+
+
+@admin.register(VerificationDocument)
+class VerificationDocumentAdmin(admin.ModelAdmin):
+    list_display = ['therapist_profile', 'document_type', 'is_verified', 'uploaded_at']
+    list_filter = ['document_type', 'is_verified', 'uploaded_at']
+    search_fields = ['therapist_profile__user__full_name', 'therapist_profile__user__email']
+    readonly_fields = ['uploaded_at', 'id', 'verified_at']
+    
+    fieldsets = (
+        ('Document Info', {
+            'fields': ('therapist_profile', 'document_type', 'document_file')
+        }),
+        ('Verification', {
+            'fields': ('is_verified', 'verified_by', 'verified_at')
+        }),
+        ('Timestamps', {
+            'fields': ('uploaded_at', 'id'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Custom save to set verified_by and verified_at when marking document as verified"""
+        if obj.is_verified and not obj.verified_by:
+            obj.verified_by = request.user
+            obj.verified_at = timezone.now()
+            print(f"[v0] Admin {request.user.full_name} verified document: {obj.document_type}")
+        elif not obj.is_verified:
+            obj.verified_by = None
+            obj.verified_at = None
+            print(f"[v0] Admin {request.user.full_name} unverified document: {obj.document_type}")
+        
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(User)
@@ -41,8 +83,8 @@ class PatientProfileAdmin(admin.ModelAdmin):
         'user', 
         'emergency_contact_name', 
         'terms_accepted', 
-        'city',              # ← added (useful at a glance)
-        'country',           # ← added
+        'city',
+        'country',
         'created_at'
     ]
     list_filter = ['terms_accepted', 'created_at']
@@ -50,7 +92,7 @@ class PatientProfileAdmin(admin.ModelAdmin):
         'user__email', 
         'user__full_name', 
         'emergency_contact_name',
-        'city',              # ← optional but helpful
+        'city',
         'country'
     ]
     
@@ -64,7 +106,7 @@ class PatientProfileAdmin(admin.ModelAdmin):
                 'terms_accepted',
             )
         }),
-        ('Address', {          # ← new section
+        ('Address', {
             'fields': (
                 'address_line_1',
                 'address_line_2',
@@ -85,13 +127,15 @@ class PatientProfileAdmin(admin.ModelAdmin):
 
 @admin.register(TherapistProfile)
 class TherapistProfileAdmin(admin.ModelAdmin):
+    inlines = [VerificationDocumentInline]
     list_display = [
         'user',
         'profession_type',
         'years_of_experience',
         'profile_completed',
-        'city',               # ← added
-        'country',            # ← added
+        'is_verified',
+        'city',
+        'country',
         'created_at'
     ]
     list_filter = [
@@ -105,7 +149,7 @@ class TherapistProfileAdmin(admin.ModelAdmin):
         'user__email',
         'user__full_name',
         'license_id',
-        'city',               # ← optional
+        'city',
         'country'
     ]
     
@@ -118,12 +162,17 @@ class TherapistProfileAdmin(admin.ModelAdmin):
                 'years_of_experience',
                 'phone_number',
                 'profile_completed',
+            )
+        }),
+        ('Verification Status', {
+            'fields': (
                 'is_verified',
                 'verified_at',
                 'verified_by',
-            )
+            ),
+            'description': 'Check "Is Verified" to manually verify this therapist. Therapists are also auto-verified when all required documents are verified.'
         }),
-        ('Address', {          # ← new section
+        ('Address', {
             'fields': (
                 'address_line_1',
                 'address_line_2',
@@ -142,7 +191,6 @@ class TherapistProfileAdmin(admin.ModelAdmin):
                 'availability_slots',
                 'bio',
                 'profile_picture',
-                'certificates',
             ),
             'classes': ('collapse',),
         }),
@@ -157,7 +205,21 @@ class TherapistProfileAdmin(admin.ModelAdmin):
         'updated_at', 
         'user',
         'profile_completed',
-        'is_verified',
         'verified_at',
         'verified_by',
     ]
+
+    def save_model(self, request, obj, form, change):
+        """Custom save to set verified_by and verified_at when marking therapist as verified"""
+        if obj.is_verified and not obj.verified_by:
+            # Only set verified_by if it's not already set (to avoid overwriting)
+            obj.verified_by = request.user
+            obj.verified_at = timezone.now()
+            print(f"[v0] Admin {request.user.full_name} manually verified therapist: {obj.user.full_name}")
+        elif not obj.is_verified:
+            # If manually unverifying, clear the verification info
+            obj.verified_by = None
+            obj.verified_at = None
+            print(f"[v0] Admin {request.user.full_name} removed verification from therapist: {obj.user.full_name}")
+        
+        super().save_model(request, obj, form, change)

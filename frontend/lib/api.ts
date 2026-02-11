@@ -725,8 +725,35 @@ export const paymentAPI = {
   },
 };
 
+export const therapistVerificationAPI = {
+  /**
+   * Upload verification document (citizenship, license, education)
+   */
+  uploadVerificationDocument: async (formData: FormData): Promise<any> => {
+    const response = await axiosInstance.post(
+      "/accounts/verification/upload/",
+      formData
+    );
+    return response.data;
+  },
 
-export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI,paymentAPI };
+  /**
+   * Get list of uploaded verification documents
+   */
+  getVerificationDocuments: async (): Promise<any> => {
+    try {
+      const response = await axiosInstance.get("/accounts/verification/documents/");
+      console.log("[v0] Verification documents response:", response.data);
+      return Array.isArray(response.data) ? response.data : response.data?.results || [];
+    } catch (error: any) {
+      console.log("[v0] Error fetching verification documents:", error.response?.status);
+      return [];
+    }
+  },
+};
+
+
+export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI, paymentAPI, therapistVerificationAPI };
 
 
 

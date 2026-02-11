@@ -1,9 +1,7 @@
-# accounts/serializers.py
-
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
-from .models import User, PatientProfile, TherapistProfile
+from .models import User, PatientProfile, TherapistProfile, VerificationDocument
 import json
 
 
@@ -205,7 +203,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PatientProfile
-        fields = '__all__'  # Automatically includes address fields from AddressMixin
+        fields = '__all__'
 
 
 class TherapistProfileSerializer(serializers.ModelSerializer):
@@ -216,7 +214,41 @@ class TherapistProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'profile_completed']
 
 
+class VerificationDocumentSerializer(serializers.ModelSerializer):
+    document_url = serializers.SerializerMethodField()
+    document_type_display = serializers.CharField(
+        source='get_document_type_display', 
+        read_only=True
+    )
+    
+    class Meta:
+        model = VerificationDocument
+        fields = [
+            'id', 
+            'therapist_profile',
+            'document_type', 
+            'document_type_display',
+            'document_file', 
+            'document_url', 
+            'is_verified', 
+            'verified_by',
+            'verified_at', 
+            'uploaded_at'
+        ]
+        read_only_fields = ['id', 'uploaded_at', 'document_url', 'document_type_display']
+    
+    def get_document_url(self, obj):
+        """Return the full URL to access the document"""
+        if obj.document_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.document_file.url)
+            return obj.document_file.url
+        return None
+
+
 class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
+    verification_documents = VerificationDocumentSerializer(many=True, read_only=True)
     
     class Meta:
         model = TherapistProfile
@@ -231,8 +263,8 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
             'phone_number', 
             'license_id',    
             'years_of_experience',
-            'certificates',
-            # Address fields added here so they can be updated in profile completion
+            'verification_documents',
+            'is_verified',
             'address_line_1',
             'address_line_2',
             'city',
@@ -240,7 +272,6 @@ class TherapistProfileCompleteSerializer(serializers.ModelSerializer):
             'country',
             'postal_code',
         ]
-        
 
     def to_internal_value(self, data):
         if hasattr(data, 'dict'):
@@ -328,7 +359,6 @@ class PatientProfileUpdateSerializer(serializers.ModelSerializer):
             'emergency_contact_name',
             'emergency_contact_phone',
             'basic_health_info',
-            # Address fields added
             'address_line_1',
             'address_line_2',
             'city',

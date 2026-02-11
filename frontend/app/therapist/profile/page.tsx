@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import React from "react";
+import { Upload } from "lucide-react"; // Import Upload icon
 
 import {
   User,
@@ -29,7 +30,7 @@ import {
   Award,
   Heart,
 } from "lucide-react";
-import { therapistAPI } from "@/lib/api";
+import { therapistAPI, therapistVerificationAPI } from "@/lib/api";
 
 export default function TherapistProfile() {
   const [activeTab, setActiveTab] = useState("professional");
@@ -40,10 +41,17 @@ export default function TherapistProfile() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [verificationDocuments, setVerificationDocuments] = useState<
+    { type: string; file: File | null; uploaded: boolean }[]
+  >([
+    { type: 'citizenship', file: null, uploaded: false },
+    { type: 'license', file: null, uploaded: false },
+    { type: 'education', file: null, uploaded: false },
+    { type: 'other', file: null, uploaded: false },
+  ]);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
-  const [existingCertificate, setExistingCertificate] = useState<string | null>(
-    null
-  );
+  const [existingCertificate, setExistingCertificate] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -70,27 +78,32 @@ export default function TherapistProfile() {
   const [newTag, setNewTag] = useState("");
   const [newLang, setNewLang] = useState("");
 
+  const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCertificateFile(file);
+    }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
         const data = await therapistAPI.getProfile();
+        // Ensure all fields have default empty strings instead of null
         setFormData({
-          full_name: data.user?.full_name || "",
-          email: data.user?.email || "",
+          full_name: data.full_name || "",
+          email: data.email || "",
           phone_number: data.phone_number || "",
-          profession_type: data.profession_type || "therapist",
+          profession_type: data.profession_type || "",
           license_id: data.license_id || "",
           years_of_experience: data.years_of_experience || 0,
           bio: data.bio || "",
-          consultation_fees: data.consultation_fees || "negotiable",
+          consultation_fees: data.consultation_fees || "",
           consultation_mode: data.consultation_mode || "online",
           specialization_tags: data.specialization_tags || [],
           languages_spoken: data.languages_spoken || [],
-          availability_slots:
-            typeof data.availability_slots === "string"
-              ? data.availability_slots
-              : JSON.stringify(data.availability_slots, null, 2),
+          availability_slots: data.availability_slots || "",
           is_verified: data.is_verified || false,
           address_line_1: data.address_line_1 || "",
           address_line_2: data.address_line_2 || "",
@@ -99,15 +112,30 @@ export default function TherapistProfile() {
           country: data.country || "",
           postal_code: data.postal_code || "",
         });
-
         if (data.profile_picture) {
           setPreviewUrl(data.profile_picture);
         }
-        if (data.certificates) {
-          setExistingCertificate(data.certificates);
+        
+        // Fetch verification documents
+        const docs = await therapistVerificationAPI.getVerificationDocuments();
+        console.log("[v0] Fetched verification documents:", docs);
+        if (docs && Array.isArray(docs)) {
+          console.log("[v0] Documents is array, updating state");
+          setVerificationDocuments((prev) =>
+            prev.map((doc) => {
+              const uploadedDoc = docs.find((d: any) => d.document_type === doc.type);
+              console.log("[v0] Doc type:", doc.type, "Found:", !!uploadedDoc);
+              return {
+                ...doc,
+                uploaded: uploadedDoc ? true : false
+              };
+            })
+          );
+        } else {
+          console.log("[v0] Documents is not an array:", typeof docs);
         }
       } catch (err: any) {
-        setError("Failed to load profile details.");
+        setError(err.message || "Failed to fetch profile");
       } finally {
         setLoading(false);
       }
@@ -123,10 +151,46 @@ export default function TherapistProfile() {
     }
   };
 
-  const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocumentChange = (
+    docType: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCertificateFile(file);
+      setVerificationDocuments((prev) =>
+        prev.map((doc) =>
+          doc.type === docType ? { ...doc, file } : doc
+        )
+      );
+    }
+  };
+
+  const handleUploadDocument = async (docType: string) => {
+    const doc = verificationDocuments.find((d) => d.type === docType);
+    if (!doc || !doc.file) return;
+
+    setUploadingDoc(docType);
+    try {
+      const formData = new FormData();
+      formData.append('document_type', docType);
+      formData.append('document_file', doc.file);
+
+      const response = await therapistVerificationAPI.uploadVerificationDocument(formData);
+
+      setVerificationDocuments((prev) =>
+        prev.map((d) =>
+          d.type === docType ? { ...d, uploaded: true, file: null } : d
+        )
+      );
+
+      setSuccessMessage(`${docType} document uploaded successfully!`);
+    } catch (err: any) {
+      console.error("[v0] Upload error:", err);
+      setError(
+        err.message || `Failed to upload ${docType} document`
+      );
+    } finally {
+      setUploadingDoc(null);
     }
   };
 
@@ -145,6 +209,39 @@ export default function TherapistProfile() {
     setSuccessMessage(null);
 
     try {
+      // Step 1: Upload verification documents that have been selected
+      const docsToUpload = verificationDocuments.filter((doc) => doc.file && !doc.uploaded);
+      
+      console.log("[v0] Documents to upload:", docsToUpload.length);
+      
+      if (docsToUpload.length > 0) {
+        for (const doc of docsToUpload) {
+          if (doc.file) {
+            console.log("[v0] Uploading document:", doc.type);
+            const docFormData = new FormData();
+            docFormData.append('document_type', doc.type);
+            docFormData.append('document_file', doc.file);
+
+            try {
+              await therapistVerificationAPI.uploadVerificationDocument(docFormData);
+              console.log("[v0] Successfully uploaded:", doc.type);
+              
+              // Update local state to mark as uploaded
+              setVerificationDocuments((prev) =>
+                prev.map((d) =>
+                  d.type === doc.type ? { ...d, uploaded: true, file: null } : d
+                )
+              );
+            } catch (docErr: any) {
+              console.error("[v0] Failed to upload", doc.type, docErr);
+              // Continue with other documents instead of failing completely
+              setError(`Failed to upload ${doc.type} document: ${docErr.message}`);
+            }
+          }
+        }
+      }
+
+      // Step 2: Update therapist profile
       const dataToSend = new FormData();
 
       if (profilePicture instanceof File) {
@@ -291,12 +388,12 @@ export default function TherapistProfile() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/20">
       {/* Success Modal - Jaw Dropping */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowSuccessModal(false)}
           ></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-500">
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
             {/* Animated Background Circles */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none">
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl animate-pulse"></div>
@@ -309,7 +406,7 @@ export default function TherapistProfile() {
               <div className="relative mx-auto w-24 h-24">
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-blue-500 rounded-full animate-ping opacity-20"></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-12 h-12 text-white animate-in zoom-in duration-700" />
+                  <CheckCircle2 className="w-12 h-12 text-white" />
                 </div>
                 <Sparkles className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
                 <Sparkles className="w-4 h-4 text-blue-400 absolute -bottom-1 -left-1 animate-bounce delay-100" />
@@ -317,17 +414,17 @@ export default function TherapistProfile() {
 
               {/* Success Message */}
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-800 animate-in slide-in-from-bottom-4 duration-500">
+                <h3 className="text-2xl font-bold text-slate-800">
                   Profile Updated Successfully!
                 </h3>
-                <p className="text-slate-600 animate-in slide-in-from-bottom-4 duration-500 delay-75">
+                <p className="text-slate-600">
                   Your professional profile has been updated and is ready to
                   help more people on their mental health journey.
                 </p>
               </div>
 
               {/* Stats or Additional Info */}
-              <div className="grid grid-cols-3 gap-3 py-4 animate-in slide-in-from-bottom-4 duration-500 delay-150">
+              <div className="grid grid-cols-3 gap-3 py-4">
                 <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl p-3 border border-teal-100/50">
                   <Award className="w-5 h-5 text-teal-600 mx-auto mb-1" />
                   <p className="text-xs font-semibold text-slate-700">
@@ -360,7 +457,7 @@ export default function TherapistProfile() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8 md:pt-25 md:pb-16">
         {/* Header */}
-        <div className="mb-8 md:mb-12 animate-in slide-in-from-top duration-500">
+        <div className="mb-8 md:mb-12">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-gradient-to-br from-teal-500 to-blue-500 rounded-xl">
               <Heart className="w-6 h-6 text-white" />
@@ -377,7 +474,7 @@ export default function TherapistProfile() {
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar */}
-          <div className="lg:col-span-1 animate-in slide-in-from-left duration-500">
+          <div className="lg:col-span-1">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/60 p-6 sticky top-6 hover:shadow-xl transition-all duration-300">
               {/* Profile Picture Section */}
               <div className="flex flex-col items-center mb-8 pb-6 border-b border-slate-100">
@@ -424,48 +521,40 @@ export default function TherapistProfile() {
 
               {/* Navigation */}
               <nav className="space-y-1.5">
-                {[
-                  {
-                    id: "professional",
-                    label: "Personal Info",
-                    icon: <User className="w-4 h-4" />,
-                    gradient: "from-blue-500 to-cyan-500",
-                  },
-                  {
-                    id: "practice",
-                    label: "Practice Details",
-                    icon: <Stethoscope className="w-4 h-4" />,
-                    gradient: "from-teal-500 to-emerald-500",
-                  },
-                  {
-                    id: "expertise",
-                    label: "Expertise",
-                    icon: <Award className="w-4 h-4" />,
-                    gradient: "from-purple-500 to-pink-500",
-                  },
-                  {
-                    id: "credentials",
-                    label: "Credentials",
-                    icon: <FileText className="w-4 h-4" />,
-                    gradient: "from-amber-500 to-orange-500",
-                  },
-                  {
-                    id: "availability",
-                    label: "Availability",
-                    icon: <Clock className="w-4 h-4" />,
-                    gradient: "from-rose-500 to-red-500",
-                  },
-                ].map((tab) => (
+                {[{
+                  id: "professional",
+                  label: "Personal Info",
+                  icon: <User className="w-4 h-4" />,
+                  gradient: "from-blue-500 to-cyan-500",
+                },
+                {
+                  id: "practice",
+                  label: "Practice Details",
+                  icon: <Stethoscope className="w-4 h-4" />,
+                  gradient: "from-teal-500 to-emerald-500",
+                },
+                {
+                  id: "expertise",
+                  label: "Expertise",
+                  icon: <Award className="w-4 h-4" />,
+                  gradient: "from-purple-500 to-pink-500",
+                },
+                {
+                  id: "credentials",
+                  label: "Credentials",
+                  icon: <FileText className="w-4 h-4" />,
+                  gradient: "from-amber-500 to-orange-500",
+                },
+                {
+                  id: "availability",
+                  label: "Availability",
+                  icon: <Clock className="w-4 h-4" />,
+                  gradient: "from-rose-500 to-red-500",
+                }].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
-                      activeTab === tab.id
-                        ? "bg-gradient-to-r " +
-                          tab.gradient +
-                          " text-white shadow-lg scale-105"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${activeTab === tab.id ? "bg-gradient-to-r " + tab.gradient + " text-white shadow-lg scale-105" : "text-slate-600 hover:bg-slate-50"}`}
                   >
                     <div
                       className={`${activeTab === tab.id ? "" : "group-hover:scale-110 transition-transform"}`}
@@ -480,11 +569,11 @@ export default function TherapistProfile() {
           </div>
 
           {/* Form Body */}
-          <div className="lg:col-span-3 animate-in slide-in-from-right duration-500">
+          <div className="lg:col-span-3">
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/60 p-6 md:p-10 hover:shadow-xl transition-shadow duration-300">
               {/* Error Message */}
               {error && (
-                <div className="mb-6 p-5 bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+                <div className="mb-6 p-5 bg-red-50 border-2 border-red-200 text-red-700 rounded-2xl flex items-start gap-3">
                   <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold">Error</p>
@@ -494,7 +583,7 @@ export default function TherapistProfile() {
               )}
 
               {activeTab === "professional" && (
-                <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="space-y-8">
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="p-2 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg">
@@ -689,7 +778,7 @@ export default function TherapistProfile() {
               )}
 
               {activeTab === "practice" && (
-                <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="space-y-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-lg">
                       <Stethoscope className="w-5 h-5 text-teal-600" />
@@ -772,7 +861,7 @@ export default function TherapistProfile() {
               )}
 
               {activeTab === "expertise" && (
-                <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="space-y-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg">
                       <Award className="w-5 h-5 text-purple-600" />
@@ -901,7 +990,7 @@ export default function TherapistProfile() {
               )}
 
               {activeTab === "availability" && (
-                <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="space-y-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-gradient-to-br from-rose-100 to-red-100 rounded-lg">
                       <Clock className="w-5 h-5 text-rose-600" />
@@ -976,109 +1065,156 @@ export default function TherapistProfile() {
               )}
 
               {activeTab === "credentials" && (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
-                      <FileText className="w-5 h-5 text-amber-600" />
+                <div className="space-y-8">
+                  <div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
+                        <FileText className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-slate-900">
+                          Verification Documents
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Upload required documents to get verified
+                        </p>
+                      </div>
                     </div>
+
+                    {/* Required Documents Section */}
+                    <div className="mb-10">
+                      <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        Required Documents
+                      </h3>
+                      <div className="grid md:grid-cols-3 gap-6">
+                        {verificationDocuments
+                          .filter((doc) => doc.type !== 'other')
+                          .map((doc) => (
+                            <div
+                              key={doc.type}
+                              className="p-6 border-2 border-dashed border-slate-300 rounded-2xl hover:border-teal-400 transition-all"
+                            >
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-semibold text-slate-700 capitalize">
+                                  {doc.type === 'citizenship' && 'Citizenship/ID'}
+                                  {doc.type === 'license' && 'Professional License'}
+                                  {doc.type === 'education' && 'Educational Certificate'}
+                                </h3>
+                                {doc.uploaded && (
+                                  <div className="text-green-600">
+                                    <CheckCircle2 size={20} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <label className="block cursor-pointer mb-4">
+                                <div className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all text-center">
+                                  <Plus size={24} className="mx-auto text-slate-400 mb-2" />
+                                  <p className="text-sm text-slate-600">
+                                    {doc.file?.name || "Click to upload"}
+                                  </p>
+                                </div>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => handleDocumentChange(doc.type, e)}
+                                />
+                              </label>
+
+                              {doc.file && (
+                                <button
+                                  onClick={() => handleUploadDocument(doc.type)}
+                                  disabled={uploadingDoc === doc.type}
+                                  className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-2 rounded-lg hover:from-teal-600 hover:to-blue-600 disabled:opacity-60 flex items-center justify-center gap-2"
+                                >
+                                  {uploadingDoc === doc.type ? (
+                                    <>
+                                      <Loader2 size={16} className="animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload size={16} />
+                                      Upload
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Optional Documents Section */}
                     <div>
-                      <h2 className="text-2xl font-bold text-slate-900">
-                        Professional Credentials
-                      </h2>
-                      <p className="text-sm text-slate-600">
-                        Upload your license and certifications
+                      <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                        Other Documents
+                      </h3>
+                      <p className="text-sm text-slate-600 mb-4">
+                        You can upload additional documents to strengthen your profile. These are not required for verification.
                       </p>
+                      <div className="max-w-md">
+                        {verificationDocuments
+                          .filter((doc) => doc.type === 'other')
+                          .map((doc) => (
+                            <div
+                              key={doc.type}
+                              className="p-6 border-2 border-dashed border-amber-300 rounded-2xl hover:border-amber-400 transition-all bg-amber-50/50"
+                            >
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-semibold text-slate-700">
+                                  Other Documents
+                                </h3>
+                                {doc.uploaded && (
+                                  <div className="text-green-600">
+                                    <CheckCircle2 size={20} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <label className="block cursor-pointer mb-4">
+                                <div className="p-4 bg-white rounded-xl hover:bg-slate-50 transition-all text-center border-2 border-amber-200">
+                                  <Plus size={24} className="mx-auto text-amber-400 mb-2" />
+                                  <p className="text-sm text-slate-600">
+                                    {doc.file?.name || "Click to upload"}
+                                  </p>
+                                </div>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => handleDocumentChange(doc.type, e)}
+                                />
+                              </label>
+
+                              {doc.file && (
+                                <button
+                                  onClick={() => handleUploadDocument(doc.type)}
+                                  disabled={uploadingDoc === doc.type}
+                                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-60 flex items-center justify-center gap-2"
+                                >
+                                  {uploadingDoc === doc.type ? (
+                                    <>
+                                      <Loader2 size={16} className="animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload size={16} />
+                                      Upload
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-8 border-2 border-dashed border-slate-300 rounded-2xl hover:border-teal-400 hover:bg-teal-50/30 transition-all duration-300 cursor-pointer group">
-                    {certificateFile ? (
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-teal-500 to-blue-500 rounded-2xl flex items-center justify-center">
-                          <FileText className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-lg">
-                            {certificateFile.name}
-                          </p>
-                          <p className="text-sm text-slate-500 mt-1">
-                            {(certificateFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                    ) : existingCertificate ? (
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
-                          <CheckCircle2 className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-lg">
-                            Certificate Uploaded
-                          </p>
-                          <p className="text-sm text-slate-600 mt-2">
-                            Click to replace with a new document
-                          </p>
-                        </div>
-                        <a
-                          href={existingCertificate}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-semibold mt-3"
-                        >
-                          <Download className="w-5 h-5" />
-                          View Current Document
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center group-hover:from-teal-200 group-hover:to-blue-200 transition-all duration-300">
-                          <FileText className="w-8 h-8 text-slate-600 group-hover:text-teal-600 transition-colors" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-lg">
-                            Upload Your Certificate
-                          </p>
-                          <p className="text-sm text-slate-500 mt-2">
-                            Drag and drop or click to browse
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            PDF, DOC, DOCX or image files up to 10MB
-                          </p>
-                        </div>
-                      </div>
-                    )}
 
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                      onChange={handleCertificateChange}
-                      id="certificate-input"
-                    />
-                    <label
-                      htmlFor="certificate-input"
-                      className="mt-6 block"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          document.getElementById("certificate-input")?.click()
-                        }
-                        className="mx-auto block px-8 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-xl hover:from-teal-600 hover:to-blue-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-                      >
-                        {certificateFile || existingCertificate
-                          ? "Replace Document"
-                          : "Choose File"}
-                      </button>
-                    </label>
-
-                    {certificateFile && (
-                      <p className="text-xs text-teal-600 mt-4 text-center font-medium">
-                        ✓ New file selected. Click Save to upload.
-                      </p>
-                    )}
                   </div>
 
                   <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-6 border border-blue-100">
@@ -1093,11 +1229,11 @@ export default function TherapistProfile() {
                           Document Guidelines
                         </h4>
                         <ul className="text-sm text-slate-700 space-y-1">
-                          <li>• License must be current and valid</li>
-                          <li>• Document should be clearly legible</li>
-                          <li>• Maximum file size: 10MB</li>
+                          <li>License must be current and valid</li>
+                          <li>Document should be clearly legible</li>
+                          <li>Maximum file size: 10MB</li>
                           <li>
-                            • Accepted formats: PDF, DOC, DOCX, JPG, PNG
+                            Accepted formats: PDF, DOC, DOCX, JPG, PNG
                           </li>
                         </ul>
                       </div>
