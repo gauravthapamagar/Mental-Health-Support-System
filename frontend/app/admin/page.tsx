@@ -10,7 +10,6 @@ import {
   FileText,
   ClipboardList,
   BarChart3,
-  Settings,
   LogOut,
   Calendar,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import AppointmentsTab from "@/components/admin/AppointmentsTab";
 import BlogsTab from "@/components/admin/BlogsTab";
 import JournalsTab from "@/components/admin/JournalsTab";
 import SurveysTab from "@/components/admin/SurveysTab";
-import SettingsTab from "@/components/admin/SettingsTab";
 
 const AdminDashboard = () => {
   const router = useRouter();
@@ -171,12 +169,6 @@ const AdminDashboard = () => {
             active={activeTab === "surveys"}
             onClick={() => setActiveTab("surveys")}
           />
-          <NavItem
-            icon={<Settings size={20} />}
-            label="Settings"
-            active={activeTab === "settings"}
-            onClick={() => setActiveTab("settings")}
-          />
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
@@ -216,7 +208,6 @@ const AdminDashboard = () => {
           {activeTab === "blogs" && <BlogsTab />}
           {activeTab === "journals" && <JournalsTab />}
           {activeTab === "surveys" && <SurveysTab />}
-          {activeTab === "settings" && <SettingsTab />}
         </div>
       </main>
     </div>

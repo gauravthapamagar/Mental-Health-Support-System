@@ -1,31 +1,28 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ClipboardList,
-  ExternalLink,
   Search,
-  Filter,
-  Loader2,
-  User,
   Calendar,
   AlertCircle,
   CheckCircle,
-  TrendingUp,
-  BarChart3,
   Eye,
+  User,
 } from "lucide-react";
 import { adminApiCall } from "@/lib/adminapi";
 
 const SurveysTab = () => {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
 
-  const loadSurveys = async () => {
+  const loadSurveys = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
@@ -35,24 +32,24 @@ const SurveysTab = () => {
       const res = await adminApiCall(`/admin/surveys/?${params.toString()}`);
       if (res?.ok) {
         setSurveys(res.data.surveys || res.data || []);
+      } else if (res?.status === 401) {
+        setError("Unauthorized. Please log in again.");
+      } else if (res?.status === 404) {
+        setSurveys([]);
+      } else {
+        setError(res?.data?.error || "Failed to fetch surveys");
       }
     } catch (error) {
       console.error("Failed to fetch surveys:", error);
+      setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, riskFilter, searchTerm]);
 
   useEffect(() => {
     loadSurveys();
-  }, [statusFilter, riskFilter]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      loadSurveys();
-    }, 400);
-    return () => clearTimeout(timeout);
-  }, [searchTerm]);
+  }, [statusFilter, riskFilter, searchTerm, loadSurveys]);
 
   const getRiskBadge = (riskLevel: string) => {
     const config: Record<string, { bg: string; text: string; icon: any }> = {
@@ -65,54 +62,100 @@ const SurveysTab = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-500 mr-2" size={24} />
-        <p className="text-gray-500">Loading surveys...</p>
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+        <p className="text-gray-600 font-medium">Loading survey responses...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <AlertCircle className="text-red-600" size={28} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Surveys</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => loadSurveys()}
+            className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="text-indigo-600" size={28} />
-            Survey Responses
-          </h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Monitor patient mental health assessments and risk levels
-          </p>
+      <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Survey Responses</h1>
+            <p className="text-blue-100 text-lg">Monitor patient mental health assessments and risk levels</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full">
+            <div className="w-3 h-3 rounded-full bg-cyan-300 animate-pulse"></div>
+            <span className="text-sm font-medium">{surveys.length} Surveys</span>
+          </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-          <div className="relative flex-1 md:flex-none">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard
+          label="Total Surveys"
+          value={surveys.length}
+          color="indigo"
+        />
+        <StatCard
+          label="Submitted"
+          value={surveys.filter((s) => s.status === "submitted" || s.status === "reviewed").length}
+          color="green"
+        />
+        <StatCard
+          label="In Progress"
+          value={surveys.filter((s) => s.status === "in_progress").length}
+          color="amber"
+        />
+        <StatCard
+          label="High Risk"
+          value={surveys.filter((s) => s.risk_level === "high").length}
+          color="red"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search size={18} className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search patient..."
+              placeholder="Search by patient name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full md:w-60 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
             <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
+            <option value="submitted">Submitted</option>
+            <option value="reviewed">Reviewed</option>
           </select>
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Risk Levels</option>
             <option value="low">Low Risk</option>
@@ -122,159 +165,118 @@ const SurveysTab = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-xl border border-indigo-200">
-          <p className="text-xs text-indigo-600 font-semibold uppercase mb-1">
-            Total Surveys
-          </p>
-          <p className="text-2xl font-bold text-indigo-900">{surveys.length}</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-          <p className="text-xs text-green-600 font-semibold uppercase mb-1">
-            Completed
-          </p>
-          <p className="text-2xl font-bold text-green-900">
-            {surveys.filter((s) => s.status === "completed").length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200">
-          <p className="text-xs text-amber-600 font-semibold uppercase mb-1">
-            In Progress
-          </p>
-          <p className="text-2xl font-bold text-amber-900">
-            {surveys.filter((s) => s.status === "in_progress").length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl border border-red-200">
-          <p className="text-xs text-red-600 font-semibold uppercase mb-1">
-            High Risk
-          </p>
-          <p className="text-2xl font-bold text-red-900">
-            {surveys.filter((s) => s.risk_level === "high").length}
-          </p>
-        </div>
-      </div>
-
-      {/* Survey List */}
+      {/* Survey Cards */}
       {surveys.length === 0 ? (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-          <ClipboardList className="mx-auto text-gray-300 mb-4" size={48} />
-          <p className="text-gray-500 text-lg">No survey responses found.</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Survey responses will appear here once patients complete
-            assessments.
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-200 rounded-2xl p-16 text-center">
+          <div className="p-4 bg-indigo-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <ClipboardList className="text-indigo-600" size={40} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No Survey Responses Found</h3>
+          <p className="text-gray-600">
+            {searchTerm ? "No surveys match your search." : "Survey responses will appear here once patients complete assessments."}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50/80 border-b border-gray-100">
-                <tr>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Risk Level
-                  </th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Started
-                  </th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Completed
-                  </th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {surveys.map((survey: any) => {
-                  const riskBadge = getRiskBadge(survey.risk_level);
-                  const RiskIcon = riskBadge.icon;
+        <div className="grid gap-4">
+          {surveys.map((survey) => {
+            const riskBadge = getRiskBadge(survey.risk_level);
+            const RiskIcon = riskBadge.icon;
 
-                  return (
-                    <tr
-                      key={survey.id}
-                      className="hover:bg-gray-50/50 transition-colors"
+            return (
+              <div
+                key={survey.id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all p-6"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                  {/* Patient Info */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Patient</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600">
+                        {survey.patient_name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{survey.patient_name}</p>
+                        <p className="text-xs text-gray-500">Survey #{survey.id}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Status</p>
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                        survey.status === "reviewed"
+                          ? "bg-blue-50 text-blue-700"
+                          : survey.status === "submitted"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
                     >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                            {survey.patient_name?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">
-                              {survey.patient_name}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              Survey #{survey.id}
-                            </p>
-                          </div>
+                      {survey.status === "reviewed" ? (
+                        <CheckCircle size={14} />
+                      ) : survey.status === "submitted" ? (
+                        <CheckCircle size={14} />
+                      ) : (
+                        <AlertCircle size={14} />
+                      )}
+                      {survey.status === "reviewed"
+                        ? "Reviewed"
+                        : survey.status === "submitted"
+                        ? "Submitted"
+                        : "In Progress"}
+                    </span>
+                  </div>
+
+                  {/* Risk Level */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Risk Level</p>
+                    {survey.risk_level ? (
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${riskBadge.bg} ${riskBadge.text}`}
+                      >
+                        <RiskIcon size={14} />
+                        <span className="capitalize">{survey.risk_level}</span>
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-full text-xs font-medium">N/A</span>
+                    )}
+                  </div>
+
+                  {/* Dates */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Timeline</p>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <Calendar size={14} className="text-gray-400" />
+                        Started: {new Date(survey.started_at).toLocaleDateString()}
+                      </div>
+                      {survey.completed_at ? (
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Calendar size={14} className="text-gray-400" />
+                          Ended: {new Date(survey.completed_at).toLocaleDateString()}
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            survey.status === "completed"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {survey.status === "completed"
-                            ? "Completed"
-                            : "In Progress"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        {survey.risk_level ? (
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${riskBadge.bg} ${riskBadge.text}`}
-                          >
-                            <RiskIcon size={12} />
-                            <span className="capitalize">
-                              {survey.risk_level}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                          <Calendar size={12} className="text-gray-400" />
-                          {new Date(survey.started_at).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        {survey.completed_at ? (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                            <Calendar size={12} className="text-gray-400" />
-                            {new Date(survey.completed_at).toLocaleDateString()}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">--</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <button
-                          onClick={() => setSelectedSurvey(survey)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-xs font-medium"
-                        >
-                          <Eye size={14} />
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ) : (
+                        <div className="text-xs text-amber-600 font-medium">In progress...</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex items-end justify-end">
+                    <button
+                      onClick={() => setSelectedSurvey(survey)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Eye size={16} />
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -408,6 +410,22 @@ const SurveysTab = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const StatCard = ({ label, value, color }: any) => {
+  const colors: Record<string, string> = {
+    indigo: "bg-indigo-50 border-indigo-200 text-indigo-600",
+    green: "bg-green-50 border-green-200 text-green-600",
+    amber: "bg-amber-50 border-amber-200 text-amber-600",
+    red: "bg-red-50 border-red-200 text-red-600",
+  };
+
+  return (
+    <div className={`border rounded-xl p-4 ${colors[color]}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-75">{label}</p>
+      <p className="text-3xl font-bold mt-2">{value}</p>
     </div>
   );
 };

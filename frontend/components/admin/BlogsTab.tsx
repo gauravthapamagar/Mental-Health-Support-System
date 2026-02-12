@@ -11,30 +11,40 @@ import {
   Clock,
   User,
   Calendar,
-  Loader2,
   Search,
-  Filter,
+  AlertCircle,
 } from "lucide-react";
 import { adminApiCall } from "@/lib/adminapi";
 
 const BlogsTab = () => {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBlog, setSelectedBlog] = useState<any>(null);
 
   const loadBlogs = async () => {
     setLoading(true);
+    setError(null);
     try {
       const endpoint = status === "pending" ? "/blog/pending/list/" : "/blog/";
       const res = await adminApiCall(endpoint);
       if (res?.ok) {
         const blogData = res.data.results || res.data || [];
         setBlogs(blogData);
+      } else if (res?.status === 401) {
+        setError("Unauthorized. Please log in again.");
+      } else if (res?.status === 404) {
+        setBlogs([]);
+      } else {
+        setError(res?.data?.error || "Failed to fetch blogs");
+        setBlogs([]);
       }
     } catch (error) {
       console.error("Failed to fetch blogs:", error);
+      setError("An error occurred. Please try again.");
+      setBlogs([]);
     } finally {
       setLoading(false);
     }
@@ -87,45 +97,102 @@ const BlogsTab = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-500 mr-2" size={24} />
-        <p className="text-gray-500">Loading blogs...</p>
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+        <p className="text-gray-600 font-medium">Loading blogs...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <AlertCircle className="text-red-600" size={28} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Blogs</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => loadBlogs()}
+            className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="text-purple-600" size={28} />
-            Blog Management
-          </h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Review and manage blog posts from therapists
-          </p>
+      <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Blog Management</h1>
+            <p className="text-blue-100 text-lg">Review and approve blog posts from therapists</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full">
+            <div className="w-3 h-3 rounded-full bg-cyan-300 animate-pulse"></div>
+            <span className="text-sm font-medium">{blogs.length} Blogs</span>
+          </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:flex-none">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard
+          icon={<FileText size={28} />}
+          title="Total Blogs"
+          value={blogs.length}
+          gradient="from-purple-500 to-pink-500"
+          iconBg="bg-purple-100"
+          iconColor="text-purple-600"
+        />
+        <StatCard
+          icon={<Clock size={28} />}
+          title="Pending Review"
+          value={blogs.filter((b) => b.status === "pending").length}
+          gradient="from-amber-500 to-orange-500"
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+        />
+        <StatCard
+          icon={<CheckCircle size={28} />}
+          title="Published"
+          value={blogs.filter((b) => b.status === "published").length}
+          gradient="from-green-500 to-emerald-500"
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
+        />
+        <StatCard
+          icon={<TrendingUp size={28} />}
+          title="Total Views"
+          value={blogs.reduce((sum, b) => sum + (b.views_count || 0), 0)}
+          gradient="from-blue-500 to-cyan-500"
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search size={18} className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search blogs..."
+              placeholder="Search by title or author..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="pending">Pending Approval</option>
             <option value="published">Published</option>
@@ -134,48 +201,16 @@ const BlogsTab = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border border-purple-200">
-          <p className="text-xs text-purple-600 font-semibold uppercase mb-1">
-            Total Blogs
-          </p>
-          <p className="text-2xl font-bold text-purple-900">{blogs.length}</p>
-        </div>
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200">
-          <p className="text-xs text-amber-600 font-semibold uppercase mb-1">
-            Pending Review
-          </p>
-          <p className="text-2xl font-bold text-amber-900">
-            {blogs.filter((b) => b.status === "pending").length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-          <p className="text-xs text-green-600 font-semibold uppercase mb-1">
-            Published
-          </p>
-          <p className="text-2xl font-bold text-green-900">
-            {blogs.filter((b) => b.status === "published").length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-          <p className="text-xs text-blue-600 font-semibold uppercase mb-1">
-            Total Views
-          </p>
-          <p className="text-2xl font-bold text-blue-900">
-            {blogs.reduce((sum, b) => sum + (b.views_count || 0), 0)}
-          </p>
-        </div>
-      </div>
-
       {/* Blog List */}
       {filteredBlogs.length === 0 ? (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-          <FileText className="mx-auto text-gray-300 mb-4" size={48} />
-          <p className="text-gray-500 text-lg">No blogs found.</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-dashed border-purple-200 rounded-2xl p-16 text-center">
+          <div className="p-4 bg-purple-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <FileText className="text-purple-600" size={40} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No Blogs Found</h3>
+          <p className="text-gray-600">
             {status === "pending"
-              ? "No blogs pending approval."
+              ? "No blogs pending approval at this time."
               : "Blogs will appear here once published."}
           </p>
         </div>
@@ -453,5 +488,25 @@ const BlogsTab = () => {
     </div>
   );
 };
+
+const StatCard = ({
+  icon,
+  title,
+  value,
+  gradient,
+  iconBg,
+  iconColor,
+}: any) => (
+  <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className={`bg-gradient-to-r ${gradient} h-1`}></div>
+    <div className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`p-3 rounded-xl ${iconBg}`}>{React.cloneElement(icon, { className: iconColor })}</div>
+      </div>
+      <p className="text-gray-600 text-sm font-medium mb-2">{title}</p>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+    </div>
+  </div>
+);
 
 export default BlogsTab;

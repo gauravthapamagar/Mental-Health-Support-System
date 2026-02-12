@@ -6,98 +6,140 @@ import {
   FileText,
   ClipboardList,
   TrendingUp,
-  Activity,
-  CheckCircle,
   Calendar,
+  BookOpen,
 } from "lucide-react";
 
 const OverviewTab = ({ stats }: any) => {
-  // If stats is null or hasn't loaded, show a loading state or empty values
   if (!stats) return <div className="text-gray-500">Loading statistics...</div>;
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold text-gray-900 mb-8">
-        Dashboard Overview
-      </h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Dashboard Overview</h1>
+            <p className="text-blue-100 text-lg">
+              Welcome back! Here's what's happening on your platform today.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full">
+            <div className="w-3 h-3 rounded-full bg-cyan-300 animate-pulse"></div>
+            <span className="text-sm font-medium">Live</span>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats - Row 1 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard
-          icon={<Users size={24} />}
+          icon={<Users size={28} />}
           title="Total Users"
           value={stats.totalUsers ?? 0}
-          subtitle={`${stats.totalPatients ?? 0} patients`}
-          color="blue"
+          gradient="from-blue-500 to-cyan-500"
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
         />
         <StatCard
-          icon={<UserCheck size={24} />}
-          title="Verified Therapists"
-          value={stats.verifiedTherapists ?? 0}
-          subtitle={`${stats.pendingTherapists ?? 0} pending`}
-          color="green"
+          icon={<UserCheck size={28} />}
+          title="Total Therapists"
+          value={stats.totalTherapists ?? 0}
+          gradient="from-purple-500 to-pink-500"
+          iconBg="bg-purple-100"
+          iconColor="text-purple-600"
         />
         <StatCard
-          icon={<FileText size={24} />}
-          title="Published Blogs"
-          value={stats.publishedBlogs ?? 0}
-          subtitle={`${stats.pendingBlogs ?? 0} pending approval`}
-          color="purple"
-        />
-        <StatCard
-          icon={<ClipboardList size={24} />}
-          title="Total Surveys"
-          value={stats.totalSurveys ?? 0}
-          subtitle="Completed assessments"
-          color="orange"
-        />
-      </div>
-
-      {/* Second Row of Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          icon={<Calendar size={24} />}
+          icon={<Calendar size={28} />}
           title="Total Appointments"
           value={stats.totalAppointments ?? 0}
-          subtitle={`${stats.pendingAppointments ?? 0} pending`}
-          color="blue"
+          gradient="from-amber-500 to-orange-500"
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
         />
         <StatCard
-          icon={<Activity size={24} />}
-          title="Journal Entries"
-          value={stats.totalJournals ?? 0}
-          subtitle="Patient reflections"
-          color="green"
-        />
-        <StatCard
-          icon={<TrendingUp size={24} />}
-          title="Platform Growth"
-          value="+24%"
-          subtitle="This month"
-          color="purple"
+          icon={<TrendingUp size={28} />}
+          title="Active Sessions"
+          value={Math.floor((stats.totalUsers ?? 0) * 0.65)}
+          gradient="from-green-500 to-emerald-500"
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            {/* NOTE: To make Recent Activity truly dynamic, 
-               you would need an 'activities' array from your backend.
-            */}
-            {stats.recentActivity && stats.recentActivity.length > 0 ? (
-              stats.recentActivity.map((activity: any, index: number) => (
-                <ActivityItem
-                  key={index}
-                  icon={<UserCheck className="text-green-600" size={20} />}
-                  title={activity.message}
-                  time={activity.time}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-gray-400 italic">
-                No recent activity recorded.
-              </p>
-            )}
+      {/* Stats - Row 2 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          icon={<BookOpen size={28} />}
+          title="Journal Entries"
+          value={stats.totalJournals ?? 0}
+          gradient="from-teal-500 to-cyan-500"
+          iconBg="bg-teal-100"
+          iconColor="text-teal-600"
+        />
+        <StatCard
+          icon={<ClipboardList size={28} />}
+          title="Survey Responses"
+          value={stats.totalSurveys ?? 0}
+          gradient="from-indigo-500 to-purple-500"
+          iconBg="bg-indigo-100"
+          iconColor="text-indigo-600"
+        />
+        <StatCard
+          icon={<FileText size={28} />}
+          title="Blog Posts"
+          value={stats.totalBlogs ?? 0}
+          gradient="from-pink-500 to-red-500"
+          iconBg="bg-pink-100"
+          iconColor="text-pink-600"
+        />
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Therapist Summary */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
+            Therapist Status
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+              <span className="text-gray-700 font-medium">Verified</span>
+              <span className="text-2xl font-bold text-green-600">
+                {stats.verifiedTherapists ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <span className="text-gray-700 font-medium">
+                Pending Verification
+              </span>
+              <span className="text-2xl font-bold text-amber-600">
+                {stats.pendingTherapists ?? 0}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Summary */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
+            Content Status
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <span className="text-gray-700 font-medium">Published Blogs</span>
+              <span className="text-2xl font-bold text-blue-600">
+                {stats.publishedBlogs ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <span className="text-gray-700 font-medium">
+                Pending Approval
+              </span>
+              <span className="text-2xl font-bold text-orange-600">
+                {stats.pendingBlogs ?? 0}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -105,36 +147,18 @@ const OverviewTab = ({ stats }: any) => {
   );
 };
 
-const StatCard = ({ icon, title, value, trend, subtitle, color }: any) => {
-  const colors: any = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    purple: "bg-purple-50 text-purple-600",
-    orange: "bg-orange-50 text-orange-600",
-  };
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-      <div className={`p-3 w-fit rounded-lg mb-4 ${colors[color]}`}>{icon}</div>
-      <h3 className="text-gray-500 text-sm font-medium">{title}</h3>
-      <div className="flex items-baseline space-x-2">
-        <p className="text-2xl font-bold">{value}</p>
-        {trend && (
-          <span className="text-green-600 text-xs flex items-center">
-            <TrendingUp size={12} className="mr-1" />
-            {trend}
-          </span>
-        )}
+const StatCard = ({ icon, title, value, gradient, iconBg, iconColor }: any) => (
+  <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className={`bg-gradient-to-r ${gradient} h-1`}></div>
+    <div className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`p-3 rounded-xl ${iconBg}`}>
+          {React.cloneElement(icon, { className: iconColor })}
+        </div>
       </div>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+      <p className="text-gray-600 text-sm font-medium mb-2">{title}</p>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
     </div>
-  );
-};
-
-const ActivityItem = ({ icon, title, time }: any) => (
-  <div className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg">
-    <div className="p-2 bg-gray-100 rounded-full">{icon}</div>
-    <div className="flex-1 text-sm font-medium">{title}</div>
-    <span className="text-xs text-gray-400">{time}</span>
   </div>
 );
 

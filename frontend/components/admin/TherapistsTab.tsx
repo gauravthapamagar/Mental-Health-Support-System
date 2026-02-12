@@ -12,11 +12,7 @@ import {
   MapPin,
   Globe,
   Eye,
-  Loader2,
   Search,
-  Filter,
-  FileText,
-  User,
 } from "lucide-react";
 import { adminApiCall } from "@/lib/adminapi";
 
@@ -104,45 +100,74 @@ const TherapistsTab = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-500 mr-2" size={24} />
-        <p className="text-gray-500">Loading therapists...</p>
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+        <p className="text-gray-600 font-medium">Loading therapists...</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Award className="text-green-600" size={28} />
-            Therapist Verification
-          </h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Review and approve professional credentials for therapists
-          </p>
+      <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Therapist Verification</h1>
+            <p className="text-blue-100 text-lg">Review and approve professional credentials</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full">
+            <div className="w-3 h-3 rounded-full bg-cyan-300 animate-pulse"></div>
+            <span className="text-sm font-medium">{therapists.length} Therapists</span>
+          </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:flex-none">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          icon={<Award size={28} />}
+          title="Total Therapists"
+          value={therapists.length}
+          gradient="from-green-500 to-emerald-500"
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
+        />
+        <StatCard
+          icon={<Clock size={28} />}
+          title="Pending Verification"
+          value={filter === "unverified" ? therapists.length : 0}
+          gradient="from-amber-500 to-orange-500"
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+        />
+        <StatCard
+          icon={<Award size={28} />}
+          title="Avg Experience"
+          value={`${therapists.length > 0 ? Math.round(therapists.reduce((sum, t) => sum + (t.years_of_experience || 0), 0) / therapists.length) : 0} yrs`}
+          gradient="from-blue-500 to-cyan-500"
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search size={18} className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search therapists..."
+              placeholder="Search by name or profession..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="unverified">Pending Verification</option>
             <option value="verified">Verified</option>
@@ -150,54 +175,21 @@ const TherapistsTab = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
-          <p className="text-xs text-green-600 font-semibold uppercase mb-1">
-            Total Therapists
-          </p>
-          <p className="text-2xl font-bold text-green-900">
-            {therapists.length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200">
-          <p className="text-xs text-amber-600 font-semibold uppercase mb-1">
-            Pending Verification
-          </p>
-          <p className="text-2xl font-bold text-amber-900">
-            {filter === "unverified" ? therapists.length : 0}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
-          <p className="text-xs text-blue-600 font-semibold uppercase mb-1">
-            Avg Experience
-          </p>
-          <p className="text-2xl font-bold text-blue-900">
-            {therapists.length > 0
-              ? Math.round(
-                  therapists.reduce(
-                    (sum, t) => sum + (t.years_of_experience || 0),
-                    0,
-                  ) / therapists.length,
-                )
-              : 0}{" "}
-            yrs
-          </p>
-        </div>
-      </div>
-
       {/* Therapist List */}
       {filteredTherapists.length === 0 ? (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-          <CheckCircle className="mx-auto text-gray-300 mb-4" size={48} />
-          <p className="text-gray-500 text-lg">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-dashed border-green-200 rounded-2xl p-16 text-center">
+          <div className="p-4 bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <Award className="text-green-600" size={40} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">No Therapists Found</h3>
+          <p className="text-gray-600">
             {filter === "unverified"
-              ? "No pending verification requests."
+              ? "No pending verification requests at this time."
               : "No verified therapists found."}
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {filteredTherapists.map((therapist: any) => (
             <div
               key={therapist.id}
@@ -541,5 +533,25 @@ const TherapistsTab = () => {
     </div>
   );
 };
+
+const StatCard = ({
+  icon,
+  title,
+  value,
+  gradient,
+  iconBg,
+  iconColor,
+}: any) => (
+  <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className={`bg-gradient-to-r ${gradient} h-1`}></div>
+    <div className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`p-3 rounded-xl ${iconBg}`}>{React.cloneElement(icon, { className: iconColor })}</div>
+      </div>
+      <p className="text-gray-600 text-sm font-medium mb-2">{title}</p>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+    </div>
+  </div>
+);
 
 export default TherapistsTab;

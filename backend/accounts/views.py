@@ -48,10 +48,13 @@ class PublicTherapistListView(generics.ListAPIView):
 @permission_classes([IsAuthenticated, IsAdminUser])
 def admin_stats(request):
     """Endpoint for the OverviewTab statistics and Recent Activity"""
-    
+    from booking.models import Appointment
+    from journal.models import JournalEntry
+    from surveys.models import SurveyResponse
+
     # Get the 5 most recent blog posts for the activity feed
     recent_blogs = BlogPost.objects.select_related('author').order_by('-created_at')[:3]
-    
+
     recent_activity = []
     for blog in recent_blogs:
         recent_activity.append({
@@ -67,21 +70,46 @@ def admin_stats(request):
             "time": latest_user.created_at.strftime("%b %d, %H:%M"),
         })
 
+    # Get dynamic appointment, journal, and survey statistics
+    total_appointments = Appointment.objects.count()
+    confirmed_appointments = Appointment.objects.filter(status='confirmed').count()
+    pending_appointments = Appointment.objects.filter(status='pending').count()
+    completed_appointments = Appointment.objects.filter(status='completed').count()
+
+    total_journals = JournalEntry.objects.count()
+
+    total_surveys = SurveyResponse.objects.count()
+    completed_surveys = SurveyResponse.objects.filter(status='submitted').count() + SurveyResponse.objects.filter(status='reviewed').count()
+    in_progress_surveys = SurveyResponse.objects.filter(status='in_progress').count()
+
     return Response({
         'totalUsers': User.objects.count(),
         'totalPatients': User.objects.filter(role='patient').count(),
         'totalTherapists': User.objects.filter(role='therapist').count(),
         'verifiedTherapists': TherapistProfile.objects.filter(is_verified=True).count(),
         'pendingTherapists': TherapistProfile.objects.filter(is_verified=False).count(),
-        
+
         # Blog Statistics
-        'totalBlogs': BlogPost.objects.count(), 
+        'totalBlogs': BlogPost.objects.count(),
         'publishedBlogs': BlogPost.objects.filter(status='published').count(),
         'pendingBlogs': BlogPost.objects.filter(status='pending').count(),
-        
+
+        # Appointment Statistics
+        'totalAppointments': total_appointments,
+        'confirmedAppointments': confirmed_appointments,
+        'pendingAppointments': pending_appointments,
+        'completedAppointments': completed_appointments,
+
+        # Journal Statistics
+        'totalJournals': total_journals,
+
+        # Survey Statistics
+        'totalSurveys': total_surveys,
+        'completedSurveys': completed_surveys,
+        'inProgressSurveys': in_progress_surveys,
+
         # Activity Feed
         'recentActivity': recent_activity,
-        'totalSurveys': 0, 
     }, status=status.HTTP_200_OK)
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -427,6 +455,169 @@ def list_unverified_therapists(request):
         'count': len(therapists_data),
         'therapists': therapists_data
     }, status=status.HTTP_200_OK)
- 
- 
+
+
+# ============================================
+# ADMIN ENDPOINTS - For Admin Dashboard
+# ============================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_appointments(request):
+    """Admin endpoint to view ALL appointments on the platform"""
+    try:
+        from booking.models import Appointment
+
+        appointments = Appointment.objects.select_related(
+            'patient', 'therapist'
+        ).order_by('-appointment_date', '-start_time')
+
+        # Filter by status
+        status_filter = request.query_params.get('status')
+        if status_filter and status_filter != 'all':
+            appointments = appointments.filter(status=status_filter)
+
+        # Search
+        search_term = request.query_params.get('search')
+        if search_term:
+            appointments = appointments.filter(
+                Q(patient__full_name__icontains=search_term) |
+                Q(therapist__full_name__icontains=search_term) |
+                Q(patient__email__icontains=search_term) |
+                Q(therapist__email__icontains=search_term)
+            )
+
+        # Format response with flattened patient/therapist data
+        appointments_data = []
+        for apt in appointments:
+            appointments_data.append({
+                'id': apt.id,
+                'patient_name': apt.patient.full_name,
+                'patient_email': apt.patient.email,
+                'therapist_name': apt.therapist.full_name,
+                'therapist_email': apt.therapist.email,
+                'appointment_date': apt.appointment_date,
+                'start_time': apt.start_time,
+                'end_time': apt.end_time,
+                'appointment_type': apt.appointment_type,
+                'session_mode': apt.session_mode,
+                'status': apt.status,
+                'created_at': apt.created_at,
+            })
+
+        return Response({
+            'appointments': appointments_data,
+            'count': len(appointments_data)
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_journals(request):
+    """Admin endpoint to view ALL journal entries from all patients"""
+    try:
+        from journal.models import JournalEntry
+
+        entries = JournalEntry.objects.select_related('patient__user').order_by('-created_at')
+
+        # Filter by mood
+        mood_filter = request.query_params.get('mood')
+        if mood_filter and mood_filter != 'all':
+            entries = entries.filter(mood=mood_filter)
+
+        # Search
+        search_term = request.query_params.get('search')
+        if search_term:
+            entries = entries.filter(
+                Q(title__icontains=search_term) |
+                Q(patient__user__full_name__icontains=search_term) |
+                Q(patient__user__email__icontains=search_term)
+            )
+
+        # Format the response
+        entries_data = []
+        for entry in entries:
+            entries_data.append({
+                'id': entry.id,
+                'title': entry.title,
+                'content': entry.content[:500],  # Preview
+                'mood': entry.mood,
+                'mood_intensity': entry.mood_intensity,
+                'tags': entry.tags or [],
+                'created_at': entry.created_at,
+                'patient_name': entry.patient.user.full_name,
+                'patient_email': entry.patient.user.email,
+                'patient_id': entry.patient.user.id,
+            })
+
+        return Response({
+            'entries': entries_data,
+            'count': len(entries_data)
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_surveys(request):
+    """Admin endpoint to view ALL survey responses from all patients"""
+    try:
+        from surveys.models import SurveyResponse
+
+        responses = SurveyResponse.objects.select_related(
+            'patient', 'survey'
+        ).order_by('-created')
+
+        # Filter by status (in_progress, submitted, reviewed)
+        status_filter = request.query_params.get('status')
+        if status_filter and status_filter != 'all':
+            responses = responses.filter(status=status_filter)
+
+        # Search by patient name or email
+        search_term = request.query_params.get('search')
+        if search_term:
+            responses = responses.filter(
+                Q(patient__full_name__icontains=search_term) |
+                Q(patient__email__icontains=search_term)
+            )
+
+        # Format the response with risk level based on status
+        surveys_data = []
+        for response in responses:
+            # Determine risk level based on status (for display purposes)
+            # In_progress = pending, submitted = review needed, reviewed = reviewed
+            status_to_risk = {
+                'in_progress': 'low',
+                'submitted': 'medium',
+                'reviewed': 'low'
+            }
+            risk_level = status_to_risk.get(response.status, 'medium')
+
+            surveys_data.append({
+                'id': response.id,
+                'patient_name': response.patient.full_name,
+                'patient_email': response.patient.email,
+                'patient_id': response.patient.id,
+                'survey_id': response.survey.id if response.survey else None,
+                'survey_title': response.survey.title if response.survey else 'Unknown Survey',
+                'status': response.status,
+                'risk_level': risk_level,
+                'started_at': response.created,
+                'completed_at': response.completed_at,
+                'total_score': response.total_score,
+                'retake_count': response.retake_count,
+                'analysis_summary': getattr(response, 'analysis_summary', None),
+            })
+
+        return Response({
+            'surveys': surveys_data,
+            'count': len(surveys_data)
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
