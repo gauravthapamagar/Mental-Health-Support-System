@@ -78,8 +78,8 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'mental_health_db',
-#         'USER': 'your_db_user',
+#         'NAME': 'carepair',
+#         'USER': ' ',
 #         'PASSWORD': 'your_db_password',
 #         'HOST': 'localhost',
 #         'PORT': '5432',
@@ -216,3 +216,15 @@ KHALTI_SECRET_KEY = os.getenv("KHALTI_SECRET_KEY")
 
 
 FRONTEND_URL = 'http://localhost:3000'  # Your Next.js URL
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+
+# Only create Fernet if key exists, otherwise skip (for migrations)
+if ENCRYPTION_KEY:
+    try:
+        from cryptography.fernet import Fernet
+        fernet = Fernet(ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENCRYPTION_KEY)
+    except Exception as e:
+        print(f"Warning: Fernet initialization failed: {e}")
+        fernet = None
+else:
+    fernet = None

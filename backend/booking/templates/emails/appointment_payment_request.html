@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #007bff; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; background-color: #f8f9fa; border-radius: 5px; margin-top: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Payment Required to Confirm Your Appointment</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hi {{ greeting_name }},</p>
+            
+            <p>Your appointment with <strong>{{ therapist_name }}</strong> has been confirmed by the therapist. To complete the booking, we need you to pay the consultation fee.</p>
+            
+            <h3>Appointment Details:</h3>
+            <ul>
+                <li><strong>Date & Time:</strong> {{ appointment_datetime }}</li>
+                <li><strong>Therapist:</strong> {{ therapist_name }}</li>
+                <li><strong>Session Type:</strong> Online</li>
+                <li><strong>Fee:</strong> {{ therapist_fee }}</li>
+                <li><strong>Timezone:</strong> {{ timezone }}</li>
+            </ul>
+            
+            <p>Please complete the payment to confirm your appointment. Once payment is verified, both you and the therapist will receive a confirmation notification.</p>
+            
+            <p style="text-align: center;">
+                <a href="{{ payment_url }}" class="button">Pay Now and Confirm Appointment</a>
+            </p>
+            
+            <p><strong>Payment Details:</strong></p>
+            <ul>
+                <li>Amount: {{ therapist_fee }}</li>
+                <li>Secure Payment Gateway: Khalti</li>
+            </ul>
+            
+            <p>If you have any questions, please reach out to us at support@cairpair.com</p>
+            
+            <p>Best regards,<br>{{ system_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ system_name }}. All rights reserved.</p>
+            <p><a href="{{ platform_url }}">View Your Appointments</a></p>
+        </div>
+    </div>
+</body>
+</html>

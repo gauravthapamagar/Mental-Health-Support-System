@@ -2,6 +2,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
+
+
 urlpatterns = [
     path('auth/register/patient/', views.patient_registration, name='patient-register'),
     path('auth/register/therapist/', views.therapist_registration, name='therapist-register'),
@@ -20,9 +22,16 @@ urlpatterns = [
     path('public/therapists/', views.PublicTherapistListView.as_view(), name='public-therapist-list'),
     path('public/therapists/<int:pk>/', views.PublicTherapistDetailView.as_view(), name='therapist-detail'),
     path('therapists/<int:therapist_id>/unverify/', views.unverify_therapist, name='unverify-therapist'),
+<<<<<<< HEAD
 
     # Admin Endpoints
     path('admin/appointments/', views.admin_appointments, name='admin-appointments'),
     path('admin/journals/', views.admin_journals, name='admin-journals'),
     path('admin/surveys/', views.admin_surveys, name='admin-surveys'),
+=======
+    
+    
+    
+   
+>>>>>>> origin/safe-backup
 ]

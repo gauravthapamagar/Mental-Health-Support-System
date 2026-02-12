@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { matchingAPI, type MatchResult, type MatchingAPIResponse, type TherapistMatchDetails } from '@/lib/api'
+import BookAppointmentModal from '@/components/patient/BookAppointmentModal/page'
 
 type SortOption = 'match' | 'experience' | 'price'
 
@@ -257,7 +258,7 @@ function TherapistMatchCard({
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="flex-1 h-11 border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="flex-1 h-11 border-slate-300 text-slate-700 hover:bg-slate-50 bg-transparent"
                   onClick={() => onViewProfile(therapist.id)}
                 >
                   <User className="h-4 w-4 mr-2" />
@@ -265,7 +266,7 @@ function TherapistMatchCard({
                 </Button>
                 <Button
                   variant="outline"
-                  className="sm:w-11 h-11 border-slate-300 hover:bg-slate-50"
+                  className="sm:w-11 h-11 border-slate-300 hover:bg-slate-50 bg-transparent"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
                   {isExpanded ? <ChevronUp className="h-5 w-5 text-slate-600" /> : <ChevronDown className="h-5 w-5 text-slate-600" />}
@@ -425,6 +426,10 @@ export default function TherapistMatchesPage({
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('match')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [selectedTherapistForBooking, setSelectedTherapistForBooking] = useState<{
+    id: number
+    name: string
+  } | null>(null)
 
   const fetchMatches = useCallback(async () => {
     if (!responseId) {
@@ -498,11 +503,17 @@ export default function TherapistMatchesPage({
   }
 
   const handleBookSession = (therapistId: number) => {
-    router.push(`/patient/book-session?therapist_id=${therapistId}`)
+    const therapist = matches.find(m => m.therapist.id === therapistId)
+    if (therapist) {
+      setSelectedTherapistForBooking({
+        id: therapistId,
+        name: therapist.therapist.full_name,
+      })
+    }
   }
 
   const handleViewProfile = (therapistId: number) => {
-    router.push(`/therapist/${therapistId}`)
+    router.push(`/patient/therapists/${therapistId}`)
   }
 
   const matches = matchData?.data?.matches || []
@@ -625,7 +636,7 @@ export default function TherapistMatchesPage({
               size="icon"
               onClick={handleRefresh}
               disabled={isRefreshing || isLoading}
-              className="h-11 w-11 border-slate-300 hover:bg-slate-50"
+              className="h-11 w-11 border-slate-300 hover:bg-slate-50 bg-transparent"
             >
               <RefreshCw className={`h-4 w-4 text-slate-600 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -679,8 +690,8 @@ export default function TherapistMatchesPage({
                   match={match}
                   reasons={matchReasons[match.therapist.id]}
                   rank={index + 1}
-                  onBookSession={handleBookSession}
-                  onViewProfile={handleViewProfile}
+                  onBookSession={(id) => handleBookSession(id)}
+                  onViewProfile={(id) => handleViewProfile(id)}
                 />
               ))
             ) : (
@@ -737,6 +748,19 @@ export default function TherapistMatchesPage({
           </Card>
         )}
       </main>
+
+      {/* Booking Modal */}
+      {selectedTherapistForBooking && (
+        <BookAppointmentModal
+          therapistId={selectedTherapistForBooking.id}
+          therapistName={selectedTherapistForBooking.name}
+          onClose={() => setSelectedTherapistForBooking(null)}
+          onSuccess={() => {
+            alert('Appointment request sent!')
+            setSelectedTherapistForBooking(null)
+          }}
+        />
+      )}
     </div>
   )
 }

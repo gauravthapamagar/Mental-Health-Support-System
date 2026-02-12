@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from . import views_payment
 
@@ -29,5 +29,7 @@ urlpatterns = [
 
     # Check payment status for an appointment (both patient and therapist)
     path('payments/status/<int:appointment_id>/', views_payment.payment_status, name='payment-status'),
+    
+   
     
 ]

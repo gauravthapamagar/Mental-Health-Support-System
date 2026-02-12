@@ -455,6 +455,7 @@ def list_unverified_therapists(request):
         'count': len(therapists_data),
         'therapists': therapists_data
     }, status=status.HTTP_200_OK)
+<<<<<<< HEAD
 
 
 # ============================================
@@ -620,4 +621,6 @@ def admin_surveys(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+=======
+>>>>>>> origin/safe-backup
 

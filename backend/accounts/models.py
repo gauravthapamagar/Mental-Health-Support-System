@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.core.validators import RegexValidator
-
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -106,12 +106,7 @@ class TherapistProfile(AddressMixin, models.Model):
         null=True, 
         blank=True
     )
-    certificates = models.FileField(
-        upload_to='therapist_certificates/',
-        null=True,
-        blank=True,
-        help_text="Upload your license, degree, or other credentials"
-    )
+    
     CONSULTATION_MODE_CHOICES = [
         ('online', 'Online'),
         ('offline', 'Offline'),
@@ -157,7 +152,7 @@ class TherapistProfile(AddressMixin, models.Model):
     
     is_verified = models.BooleanField(
         default=False,
-        help_text="Verified therapists can publish blogs directly without approval"
+        help_text="Auto-verified when all required documents are verified"
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
@@ -172,6 +167,21 @@ class TherapistProfile(AddressMixin, models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def check_verification_status(self):
+        """Check if all required documents are verified"""
+        required_types = ['citizenship', 'license', 'education']
+        verified_docs = self.verification_documents.filter(
+            document_type__in=required_types,
+            is_verified=True
+        ).values_list('document_type', flat=True)
+        
+        if len(verified_docs) == len(required_types):
+            self.is_verified = True
+            self.verified_at = timezone.now()
+            self.save()
+            return True
+        return False
 
     def __str__(self):
         return f"Therapist Profile: {self.user.full_name}"
@@ -180,6 +190,51 @@ class TherapistProfile(AddressMixin, models.Model):
         db_table = 'therapist_profiles'
         
         
+from django.contrib.postgres.fields import ArrayField
+import os
+from cryptography.fernet import Fernet
 
-
-        
+class VerificationDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('citizenship', 'Citizenship/ID'),
+        ('license', 'Professional License'),
+        ('education', 'Educational Certificate'),
+        ('other', 'Other'),
+    ]
+    
+    therapist_profile = models.ForeignKey(
+        TherapistProfile, 
+        on_delete=models.CASCADE, 
+        related_name='verification_documents'
+    )
+    document_type = models.CharField(
+        max_length=20, 
+        choices=DOCUMENT_TYPES
+    )
+    document_file = models.FileField(
+        upload_to='verification_documents/',
+        null=True,
+        blank=True
+    )
+    encrypted_file_path = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Encrypted file path"
+    )
+    is_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='verified_documents',
+        limit_choices_to={'role': 'admin'}
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('therapist_profile', 'document_type')
+    
+    def __str__(self):
+        return f"{self.therapist_profile.user.full_name} - {self.get_document_type_display()}"     

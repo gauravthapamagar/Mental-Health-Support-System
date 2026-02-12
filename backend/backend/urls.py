@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/chat/', include('chatbot.urls')),
     path('api/journal/', include('journal.urls')),
     path('api/matching/', include('matching.urls')),
+    path('api/accounts/', include('accounts.verification_urls')),
     
     
 ]
