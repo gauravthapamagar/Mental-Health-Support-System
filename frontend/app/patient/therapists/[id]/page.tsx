@@ -13,7 +13,7 @@ import {
   MapPin,
 } from "lucide-react";
 import Link from "next/link";
-import BookAppointmentModal from "@/components/patient/BookAppointmentModal";
+import BookAppointmentModal from "@/components/patient/BookAppointmentModal/page";
 
 export default function PatientTherapistProfilePage() {
   const { id } = useParams();

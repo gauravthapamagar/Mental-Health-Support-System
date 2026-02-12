@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, time
 from django.db import models
 from .models import (
     TherapistAvailability, TimeOffPeriod, Appointment, 
-    AppointmentHistory, AppointmentFeedback
+    AppointmentHistory, AppointmentFeedback, AppointmentReview
 )
 from accounts.models import User
 
@@ -412,3 +412,4 @@ class VerifyPaymentSerializer(serializers.Serializer):
     """Validates the verify payment request"""
     pidx = serializers.CharField(max_length=100)
     appointment_id = serializers.IntegerField()
+

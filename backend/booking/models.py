@@ -341,3 +341,78 @@ class Payment(models.Model):
     def amount_in_rupees(self):
         """Convert paisa to NPR"""
         return self.amount / 100
+    
+    
+from django.core.validators import MinValueValidator, MaxValueValidator
+class AppointmentReview(models.Model):
+    """
+    Model to store reviews from both patient and therapist after appointment completion.
+    Both can leave a 1-10 rating and written review about their experience.
+    """
+    REVIEWER_CHOICES = [
+        ('patient', 'Patient'),
+        ('therapist', 'Therapist'),
+    ]
+
+    appointment = models.ForeignKey(
+        'Appointment',
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    
+    # Who is leaving the review
+    reviewer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews_written'
+    )
+    reviewer_type = models.CharField(
+        max_length=10,
+        choices=REVIEWER_CHOICES,
+        help_text="Whether the review is from patient or therapist"
+    )
+    
+    # The person being reviewed (opposite party)
+    reviewed_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews_received'
+    )
+    
+    # Rating from 1-10
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        help_text="Rating from 1 (poor match/experience) to 10 (excellent match/experience)"
+    )
+    
+    # Written review/feedback
+    review_text = models.TextField(
+        help_text="Detailed feedback about the appointment and match quality"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('appointment', 'reviewer')  # Each person can only review once per appointment
+        ordering = ['-created_at']
+        verbose_name = "Appointment Review"
+        verbose_name_plural = "Appointment Reviews"
+        indexes = [
+            models.Index(fields=['appointment', 'reviewer_type']),
+            models.Index(fields=['reviewed_user', 'reviewer_type']),
+        ]
+    
+    def __str__(self):
+        return f"Review by {self.reviewer.get_full_name()} for appointment {self.appointment.id}"
+    
+    @property
+    def other_user_review(self):
+        """Get the review from the other party (if it exists)"""
+        return self.appointment.reviews.exclude(id=self.id).first()
+    
+    @property
+    def is_bidirectional_review_complete(self):
+        """Check if both parties have left reviews"""
+        return self.appointment.reviews.count() >= 2

@@ -513,7 +513,7 @@ export default function TherapistMatchesPage({
   }
 
   const handleViewProfile = (therapistId: number) => {
-    router.push(`/patient/therapist/${therapistId}`)
+    router.push(`/patient/therapists/${therapistId}`)
   }
 
   const matches = matchData?.data?.matches || []
