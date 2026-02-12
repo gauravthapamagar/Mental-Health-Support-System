@@ -19,6 +19,7 @@ from accounts.permissions import IsPatient
 from .models import Appointment, Payment, AppointmentHistory
 from .khalti_service import KhaltiService
 from .serializers import PaymentSerializer  # Add to your existing serializers imports
+from .email_utils import send_payment_confirmation_emails  # NEW: import confirmation email function
 
 
 # ──────────────────────────────────────────────
@@ -223,6 +224,13 @@ def verify_payment(request):
             new_status='confirmed',
             notes=f'Khalti payment completed. Transaction ID: {khalti_data.get("transaction_id")}'
         )
+
+        # Send confirmation emails to both parties after payment
+        try:
+            send_payment_confirmation_emails(appointment)
+        except Exception as e:
+            print(f"Confirmation email after payment failed: {e}")
+            # Don't fail the response if email fails
 
         return Response({
             'message': 'Payment verified successfully',

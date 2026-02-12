@@ -169,7 +169,7 @@ export default function UpcomingSessions({ appointments }: UpcomingSessionsProps
               Your Sessions
             </h2>
             <p className="text-sm text-slate-500">
-              {upcomingCount} upcoming appointment{upcomingCount !== 1 ? 's' : ''}
+              upcoming appointment{upcomingCount !== 1 ? 's' : ''}
             </p>
           </div>
           

@@ -221,7 +221,7 @@ export default function Header() {
                     </Link>
                   </>
                 )}
-                {userRole === "therapist" && (
+                {/* {userRole === "therapist" && (
                   <Link
                     href="/therapist/my-patients"
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all active:scale-95"
@@ -229,7 +229,7 @@ export default function Header() {
                     <Users className="w-4 h-4" />
                     <span>My Patients</span>
                   </Link>
-                )}
+                )} */}
 
                 {/* Notifications */}
                 <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors relative">

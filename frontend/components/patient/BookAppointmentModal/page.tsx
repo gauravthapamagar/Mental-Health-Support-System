@@ -124,9 +124,8 @@ export default function BookAppointmentModal({
       await bookingAPI.createAppointment(formPayload);
 
       setIsBooked(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 3000);
+      // Don't call onSuccess() here - let user click the button to proceed
+      // This prevents any automatic redirects that might trigger localhost messages
     } catch (err: any) {
       console.error("Booking error:", err);
       let errorMsg = "Booking failed. ";
@@ -171,7 +170,10 @@ export default function BookAppointmentModal({
             You will be notified when the therapist confirms.
           </p>
           <button
-            onClick={() => router.push("/patient/appointments")}
+            onClick={() => {
+              onSuccess();
+              router.push("/patient/appointments");
+            }}
             className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all"
           >
             Go to My Appointments <ArrowRight size={18} />

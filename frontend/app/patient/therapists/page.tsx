@@ -145,7 +145,7 @@ export default function TherapistsPage() {
           therapistName={selectedTherapist.name}
           onClose={() => setSelectedTherapist(null)}
           onSuccess={() => {
-            alert("Appointment request sent!");
+            // alert("Appointment request sent!");
             setSelectedTherapist(null);
           }}
         />

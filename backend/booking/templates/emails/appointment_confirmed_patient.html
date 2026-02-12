@@ -1,44 +1,60 @@
-
-
-{% block subject %}Your Appointment is Confirmed{% endblock %}
-
-{% block content %}
-<h2 style="color: #2d3748; margin-bottom: 24px;">Appointment Confirmed!</h2>
-
-<p>Dear {{ greeting_name }},</p>
-
-<p>Great news — your appointment has been <strong>confirmed</strong> by your therapist.</p>
-
-<div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-  <div style="margin-bottom: 12px;">
-    <strong style="color: #4a5568;">Date & Time:</strong><br>
-    {{ appointment_datetime }} ({{ timezone }})
-  </div>
-  <div style="margin-bottom: 12px;">
-    <strong style="color: #4a5568;">Therapist:</strong><br>
-    {{ therapist_name }}
-  </div>
-  {% if meeting_link and meeting_link != "To be provided / check platform" %}
-  <div>
-    <strong style="color: #4a5568;">Meeting Link:</strong><br>
-    <a href="{{ meeting_link }}" style="color: #3182ce; text-decoration: underline;">Join the session</a>
-  </div>
-  {% else %}
-  <div style="color: #718096;">
-    <strong>Meeting Link:</strong> Will be provided soon — please check your dashboard.
-  </div>
-  {% endif %}
-</div>
-
-<p>You can view all details or manage your appointments here:</p>
-<p><a href="{{ platform_url }}" style="color: #3182ce;">Go to My Appointments</a></p>
-
-<p style="margin-top: 32px; color: #718096; font-size: 14px;">
-  If you have any questions, feel free to contact us at {{ support_email }}.
-</p>
-
-<p style="margin-top: 24px;">
-  Best regards,<br>
-  <strong>{{ system_name }} Team</strong>
-</p>
-{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #28a745; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; background-color: #f8f9fa; border-radius: 5px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        .meeting-link { background-color: #e7f3ff; padding: 15px; border-left: 4px solid #2196F3; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Your Appointment is Confirmed! ✓</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hi {{ greeting_name }},</p>
+            
+            <p>Great news! Your appointment with <strong>{{ therapist_name }}</strong> has been confirmed.</p>
+            
+            <h3>Appointment Details:</h3>
+            <ul>
+                <li><strong>Date & Time:</strong> {{ appointment_datetime }}</li>
+                <li><strong>{{ other_party_role | title }}:</strong> {{ other_party_name }}</li>
+                <li><strong>Timezone:</strong> {{ timezone }}</li>
+            </ul>
+            
+            {% if meeting_link %}
+            <div class="meeting-link">
+                <strong>Meeting Link:</strong><br>
+                <a href="{{ meeting_link }}" target="_blank">{{ meeting_link }}</a>
+            </div>
+            {% endif %}
+            
+            <p><strong>What to do next:</strong></p>
+            <ul>
+                <li>Mark your calendar for this appointment</li>
+                <li>Join a few minutes early</li>
+                <li>Ensure you have a quiet, comfortable space</li>
+                {% if meeting_link %}<li>Click the meeting link above to join at the scheduled time</li>{% endif %}
+            </ul>
+            
+            <p>If you need to reschedule or cancel, please do so at least 24 hours in advance through your dashboard.</p>
+            
+            <p>If you have any questions, contact us at {{ support_email }}</p>
+            
+            <p>Best regards,<br>{{ system_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ system_name }}. All rights reserved.</p>
+            <p><a href="{{ platform_url }}">View Your Appointments</a></p>
+        </div>
+    </div>
+</body>
+</html>

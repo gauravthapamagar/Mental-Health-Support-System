@@ -78,8 +78,8 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'mental_health_db',
-#         'USER': 'your_db_user',
+#         'NAME': 'carepair',
+#         'USER': ' ',
 #         'PASSWORD': 'your_db_password',
 #         'HOST': 'localhost',
 #         'PORT': '5432',

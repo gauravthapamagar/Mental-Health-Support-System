@@ -170,7 +170,8 @@ def get_available_slots(request, therapist_id):
     # Use timezone-aware 'now'
     now_aware = timezone.now()
     start_date = now_aware.date()
-    end_date = start_date + timedelta(days=30)
+    # Limit to 14 days ahead (2 weeks) instead of 30 days
+    end_date = start_date + timedelta(days=14)
     
     # Get time-off periods
     time_off_periods = TimeOffPeriod.objects.filter(
@@ -193,21 +194,9 @@ def get_available_slots(request, therapist_id):
     available_slots = []
     current_date = start_date
     
-    # Day name mapping (case-insensitive)
-    day_mapping = {
-        'monday': 'Monday',
-        'tuesday': 'Tuesday',
-        'wednesday': 'Wednesday',
-        'thursday': 'Thursday',
-        'friday': 'Friday',
-        'saturday': 'Saturday',
-        'sunday': 'Sunday'
-    }
-    
     while current_date <= end_date:
-        # Get day name
-        day_name_lower = current_date.strftime('%A').lower()
-        day_name_capitalized = day_mapping.get(day_name_lower)
+        # Get day name (as it appears in the availability_schedule)
+        day_name_full = current_date.strftime('%A')
         
         # Check if therapist is on time-off
         is_time_off = time_off_periods.filter(
@@ -215,9 +204,9 @@ def get_available_slots(request, therapist_id):
             end_date__gte=current_date
         ).exists()
         
-        if not is_time_off and day_name_capitalized in availability_schedule:
+        if not is_time_off and day_name_full in availability_schedule:
             # Get time ranges for this day
-            time_ranges = availability_schedule[day_name_capitalized]
+            time_ranges = availability_schedule[day_name_full]
             
             for time_range in time_ranges:
                 # Parse time range like "09:00 - 10:00"
@@ -225,8 +214,18 @@ def get_available_slots(request, therapist_id):
                     start_str, end_str = time_range.split(' - ')
                     start_time = datetime.strptime(start_str.strip(), '%H:%M').time()
                     end_time = datetime.strptime(end_str.strip(), '%H:%M').time()
-                except (ValueError, AttributeError):
+                except (ValueError, AttributeError) as e:
+                    print(f"[v0] DEBUG: Failed to parse time range '{time_range}': {e}")
                     continue  # Skip malformed time ranges
+                
+                # Validate that end_time is after start_time
+                # If end_time < start_time, assume it's the next day (e.g., "23:00 - 02:00")
+                start_total_seconds = start_time.hour * 3600 + start_time.minute * 60
+                end_total_seconds = end_time.hour * 3600 + end_time.minute * 60
+                
+                if end_total_seconds < start_total_seconds:
+                    print(f"[v0] DEBUG: End time is before start time for range '{time_range}'. Skipping.")
+                    continue  # Skip invalid ranges like "12:00 - 01:00"
                 
                 # Create aware datetime objects
                 slot_start_dt = timezone.make_aware(datetime.combine(current_date, start_time))
@@ -263,12 +262,14 @@ def get_available_slots(request, therapist_id):
                     # Check if slot is in the past
                     is_past = current_dt < now_aware
                     
-                    available_slots.append({
-                        'date': current_date,
-                        'start_time': slot_start_time,
-                        'end_time': slot_end_time,
-                        'is_available': not (is_booked or is_in_booked_slots) and not is_past
-                    })
+                    # Only add slots that are actually available
+                    if not (is_booked or is_in_booked_slots or is_past):
+                        available_slots.append({
+                            'date': current_date,
+                            'start_time': slot_start_time,
+                            'end_time': slot_end_time,
+                            'is_available': True
+                        })
                     
                     # Move to next hour
                     current_dt = slot_end_dt_temp
