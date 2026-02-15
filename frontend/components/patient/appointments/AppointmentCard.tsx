@@ -17,6 +17,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { bookingAPI } from "@/lib/api";
 
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
@@ -54,6 +55,7 @@ export default function AppointmentCard({
   onPayNow,
   isPaymentLoading = false,
 }: AppointmentCardProps) {
+  const router = useRouter();
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -404,12 +406,15 @@ export default function AppointmentCard({
 
               {/* COMPLETED STATUS */}
               {status === "completed" && (
-                <button
-                  onClick={() => setShowDetailsModal(true)}
-                  className="w-full lg:w-auto px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-slate-400 transition-all"
-                >
-                  Review Session
-                </button>
+                <div className="flex flex-col gap-2 w-full lg:w-auto">
+                  <button
+                    onClick={() => router.push("/patient/progress")}
+                    className="w-full lg:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                  >
+                    <Eye size={18} />
+                    Check Progress
+                  </button>
+                </div>
               )}
 
               {/* CANCELLED STATUS */}

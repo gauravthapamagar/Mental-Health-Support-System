@@ -6,7 +6,7 @@ from .models import (
     AppointmentHistory, AppointmentFeedback
 )
 from surveys.models import SurveyResponse  # For linking in admin
-
+from .session_reports import SessionReport
 
 @admin.register(TherapistAvailability)
 class TherapistAvailabilityAdmin(admin.ModelAdmin):
@@ -229,3 +229,156 @@ class AppointmentFeedbackAdmin(admin.ModelAdmin):
             obj.rating
         )
     rating_stars.short_description = "Rating"
+    
+
+@admin.register(SessionReport)
+class SessionReportAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'patient_name',
+        'therapist_name',
+        'appointment_date',
+        'mood_rating_display',
+        'session_outcome_badge',
+        'patient_visible_indicator',
+        'created_at'
+    ]
+    list_filter = [
+        'session_outcome',
+        'patient_visible',
+        'created_at',
+        'mood_rating'
+    ]
+    search_fields = [
+        'patient__full_name',
+        'patient__email',
+        'therapist__full_name',
+        'therapist__email',
+        'session_summary',
+        'homework_assigned',
+        'triggers_identified'
+    ]
+    readonly_fields = [
+        'created_at',
+        'updated_at',
+        'appointment_date',
+        'appointment_link'
+    ]
+    raw_id_fields = ['appointment', 'therapist', 'patient']
+    list_per_page = 20
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('Session Information', {
+            'fields': ('appointment_link', 'therapist', 'patient', 'appointment_date')
+        }),
+        ('Session Summary', {
+            'fields': ('session_summary',)
+        }),
+        ('Progress Indicators', {
+            'fields': ('mood_rating', 'symptom_improvement', 'treatment_goals_addressed')
+        }),
+        ('Session Outcome & Clinical Notes', {
+            'fields': (
+                'session_outcome',
+                'clinical_observations'
+            )
+        }),
+        ('Patient Assignments & Follow-up', {
+            'fields': (
+                'homework_assigned',
+                'triggers_identified',
+                'notes_for_next_session'
+            )
+        }),
+        ('Patient Visibility', {
+            'fields': ('patient_visible',),
+            'description': 'If enabled, patient will see an anonymized summary of this session report'
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def patient_name(self, obj):
+        return obj.patient.full_name if obj.patient else "-"
+    patient_name.short_description = "Patient"
+    patient_name.admin_order_field = 'patient__full_name'
+
+    def therapist_name(self, obj):
+        return obj.therapist.full_name if obj.therapist else "-"
+    therapist_name.short_description = "Therapist"
+    therapist_name.admin_order_field = 'therapist__full_name'
+
+    def appointment_date(self, obj):
+        return obj.appointment.appointment_date if obj.appointment else "-"
+    appointment_date.short_description = "Appointment Date"
+    appointment_date.admin_order_field = 'appointment__appointment_date'
+
+    def appointment_link(self, obj):
+        if not obj.appointment:
+            return "-"
+        url = reverse("admin:booking_appointment_change", args=[obj.appointment.id])
+        return format_html(
+            '<a href="{}">Appointment #{} on {}</a>',
+            url,
+            obj.appointment.id,
+            obj.appointment.appointment_date
+        )
+    appointment_link.short_description = "Appointment"
+    appointment_link.allow_tags = True
+
+    def mood_rating_display(self, obj):
+        mood_emoji = ['😢', '😞', '😔', '😐', '🙂', '😊', '😄', '😁', '😃', '🤩']
+        emoji = mood_emoji[obj.mood_rating - 1] if 1 <= obj.mood_rating <= 10 else '❓'
+        color = 'red' if obj.mood_rating <= 3 else 'orange' if obj.mood_rating <= 5 else 'yellow' if obj.mood_rating <= 7 else 'green'
+        return format_html(
+            '<span style="color: {}; font-size: 1.2em;">{}</span> <strong>{}/10</strong>',
+            color,
+            emoji,
+            obj.mood_rating
+        )
+    mood_rating_display.short_description = "Mood"
+    mood_rating_display.admin_order_field = 'mood_rating'
+
+    def session_outcome_badge(self, obj):
+        colors = {
+            'productive': '#10b981',     # green
+            'breakthrough': '#8b5cf6',   # purple
+            'needs_follow_up': '#f59e0b', # amber
+            'blocked': '#ef4444',        # red
+        }
+        color = colors.get(obj.session_outcome, '#6b7280')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 12px; '
+            'border-radius: 12px; font-weight: bold; font-size: 0.9em;">{}</span>',
+            color,
+            obj.get_session_outcome_display()
+        )
+    session_outcome_badge.short_description = "Outcome"
+    session_outcome_badge.admin_order_field = 'session_outcome'
+
+    def patient_visible_indicator(self, obj):
+        if obj.patient_visible:
+            return format_html(
+                '<span style="color: #10b981; font-weight: bold;">✓ Visible</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: #6b7280;">✗ Hidden</span>'
+            )
+    patient_visible_indicator.short_description = "Patient Access"
+    patient_visible_indicator.admin_order_field = 'patient_visible'
+
+    actions = ['make_visible_to_patient', 'hide_from_patient']
+
+    def make_visible_to_patient(self, request, queryset):
+        updated = queryset.update(patient_visible=True)
+        self.message_user(request, f'{updated} session report(s) are now visible to patient(s).')
+    make_visible_to_patient.short_description = "Make visible to patients"
+
+    def hide_from_patient(self, request, queryset):
+        updated = queryset.update(patient_visible=False)
+        self.message_user(request, f'{updated} session report(s) are now hidden from patient(s).')
+    hide_from_patient.short_description = "Hide from patients"

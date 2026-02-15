@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { bookingAPI, paymentAPI } from "@/lib/api";
 import AppointmentCard from "@/components/patient/appointments/AppointmentCard";
+import SessionProgressCard from "@/components/patient/SessionProgressCard";
 import {
   Calendar,
   Plus,
@@ -11,14 +12,17 @@ import {
   Clock,
   XCircle,
   CreditCard,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-toastify"; // Import toast for error notifications
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
+  const [sessionReports, setSessionReports] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
   const [loading, setLoading] = useState(true);
+  const [reportsLoading, setReportsLoading] = useState(false);
   const [payingAppointmentId, setPayingAppointmentId] = useState<number | null>(null);
   const [tabCounts, setTabCounts] = useState({
     pending: 0,
@@ -32,26 +36,54 @@ export default function AppointmentsPage() {
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch all upcoming appointments to manually filter
-      const upcomingData = await bookingAPI.getMyAppointments("upcoming");
-      const allUpcoming = upcomingData.results || [];
+      const now = new Date();
       
       if (activeTab === "pending") {
-        const pendingAppts = allUpcoming.filter(
+        const upcomingData = await bookingAPI.getMyAppointments("upcoming");
+        const pendingAppts = (upcomingData.results || []).filter(
           (apt: any) => apt.status === "pending"
         );
         setAppointments(pendingAppts);
       } else if (activeTab === "pay_now") {
-        // Fetch awaiting_payment appointments
-        const awaitingPayment = allUpcoming.filter(
+        const upcomingData = await bookingAPI.getMyAppointments("upcoming");
+        const awaitingPayment = (upcomingData.results || []).filter(
           (apt: any) => apt.status === "awaiting_payment"
         );
         setAppointments(awaitingPayment);
       } else if (activeTab === "upcoming") {
-        const confirmedUpcoming = allUpcoming.filter(
-          (apt: any) => apt.status === "confirmed"
-        );
+        const upcomingData = await bookingAPI.getMyAppointments("upcoming");
+        const confirmedUpcoming = (upcomingData.results || []).filter((apt: any) => {
+          if (apt.status !== "confirmed") return false;
+          const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
+          return appointmentDateTime > now;
+        });
         setAppointments(confirmedUpcoming);
+      } else if (activeTab === "past") {
+        // Try fetching past appointments directly, fallback to upcoming and filter
+        try {
+          const pastData = await bookingAPI.getMyAppointments("past");
+          const pastAppts = pastData.results || pastData || [];
+          setAppointments(pastAppts);
+        } catch (error) {
+          // Fallback: fetch upcoming and filter for past times
+          const upcomingData = await bookingAPI.getMyAppointments("upcoming").catch(() => ({ results: [] }));
+          const allUpcoming = upcomingData.results || [];
+          
+          const completedAppts = allUpcoming.filter((apt: any) => {
+            if (apt.status !== "confirmed" && apt.status !== "completed") return false;
+            const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
+            return appointmentDateTime <= now;
+          });
+          
+          setAppointments(completedAppts);
+        }
+      } else if (activeTab === "cancelled") {
+        // Fetch only cancelled appointments
+        const cancelledData = await bookingAPI.getMyAppointments("cancelled");
+        const cancelledAppts = (cancelledData.results || []).filter(
+          (apt: any) => apt.status === "cancelled"
+        );
+        setAppointments(cancelledAppts);
       } else {
         const data = await bookingAPI.getMyAppointments(activeTab);
         setAppointments(data.results || []);
@@ -67,14 +99,12 @@ export default function AppointmentsPage() {
   // Fetch counts for all tabs
   const fetchTabCounts = useCallback(async () => {
     try {
-      const [upcomingData, pastData, cancelledData] = await Promise.all([
+      const [upcomingData, cancelledData] = await Promise.all([
         bookingAPI.getMyAppointments("upcoming").catch(() => ({ results: [] })),
-        bookingAPI.getMyAppointments("past").catch(() => ({ results: [] })),
         bookingAPI.getMyAppointments("cancelled").catch(() => ({ results: [] })),
       ]);
 
       const allUpcoming = upcomingData.results || [];
-      const allPast = pastData.results || [];
       const allCancelled = cancelledData.results || [];
       const now = new Date();
 
@@ -94,30 +124,70 @@ export default function AppointmentsPage() {
         return appointmentDateTime > now;
       }).length;
 
+      let completedCount = 0;
+      try {
+        const pastData = await bookingAPI.getMyAppointments("past");
+        const pastAppts = pastData.results || pastData || [];
+        completedCount = pastAppts.length;
+      } catch (error) {
+        // Fallback: count from upcoming
+        const completedFromUpcoming = allUpcoming.filter((apt: any) => {
+          if (apt.status !== "confirmed" && apt.status !== "completed") return false;
+          const appointmentDateTime = new Date(
+            `${apt.appointment_date}T${apt.start_time}`
+          );
+          return appointmentDateTime <= now;
+        }).length;
+        completedCount = completedFromUpcoming;
+      }
+
+      const cancelledCount = allCancelled.filter(
+        (apt: any) => apt.status === "cancelled"
+      ).length;
+
       setTabCounts({
         pending: pendingCount,
         pay_now: payNowCount,
         upcoming: upcomingCount,
-        past: allPast.length,
-        cancelled: allCancelled.length,
+        past: completedCount,
+        cancelled: cancelledCount,
       });
     } catch (error) {
       console.error("Failed to fetch tab counts", error);
     }
   }, []);
 
+  // Fetch patient's shared session reports
+  const fetchSessionReports = useCallback(async () => {
+    setReportsLoading(true);
+    try {
+      const response = await bookingAPI.getPatientProgress();
+      const reports = response.results || response || [];
+      // Filter only patient-visible reports
+      const visibleReports = reports.filter((r: any) => r.patient_visible === true);
+      setSessionReports(visibleReports);
+    } catch (error) {
+      console.error("Failed to fetch session reports", error);
+      setSessionReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAppointments();
     fetchTabCounts();
+    fetchSessionReports();
     
     // Poll for updates every 10 seconds to catch status changes from therapist
     const pollInterval = setInterval(() => {
       fetchTabCounts();
       fetchAppointments();
+      fetchSessionReports();
     }, 10000);
     
     return () => clearInterval(pollInterval);
-  }, [fetchAppointments, fetchTabCounts]);
+  }, [fetchAppointments, fetchTabCounts, fetchSessionReports]);
 
   const refreshAppointments = () => {
     fetchAppointments();
@@ -183,7 +253,7 @@ export default function AppointmentsPage() {
     },
     {
       id: "past",
-      label: "Past",
+      label: "Completed",
       icon: CheckCircle2,
       color: "green",
       activeColor: "bg-green-600",
@@ -199,30 +269,23 @@ export default function AppointmentsPage() {
     },
   ];
 
-  // Updated status mapping
+  // Updated status mapping - determines display status for the card
   const getAppointmentStatus = (
     apt: any
   ): "pending" | "awaiting_payment" | "upcoming" | "completed" | "cancelled" | "confirmed" => {
-    if (activeTab === "pending") return "pending";
-    if (activeTab === "pay_now") return "awaiting_payment";
-    if (activeTab === "cancelled") return "cancelled";
-    if (activeTab === "past") return "completed";
-    if (activeTab === "upcoming") return "confirmed";
-
     if (apt.status === "pending") return "pending";
     if (apt.status === "awaiting_payment") return "awaiting_payment";
     if (apt.status === "cancelled") return "cancelled";
 
-    const now = new Date();
-    const appointmentDateTime = new Date(
-      `${apt.appointment_date}T${apt.start_time}`
-    );
-
     if (apt.status === "confirmed") {
-      return appointmentDateTime <= now ? "completed" : "confirmed";
+      const now = new Date();
+      const appointmentDateTime = new Date(
+        `${apt.appointment_date}T${apt.start_time}`
+      );
+      return appointmentDateTime <= now ? "completed" : "upcoming";
     }
 
-    return "confirmed";
+    return apt.status as any;
   };
 
   return (
@@ -425,6 +488,40 @@ export default function AppointmentsPage() {
           )}
         </div>
       )}
+
+      {/* Session Progress Reports Section */}
+      {sessionReports.length > 0 && (
+        <div className="mt-16 pt-12 border-t-2 border-slate-200">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+                <TrendingUp size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-slate-900">Your Progress</h2>
+                <p className="text-slate-600 mt-1">Session reports shared by your therapist</p>
+              </div>
+            </div>
+          </div>
+
+          {reportsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
+              <p className="text-slate-500 animate-pulse">Loading your progress...</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {sessionReports.map((report: any) => (
+                <SessionProgressCard
+                  key={report.id}
+                  report={report}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+  

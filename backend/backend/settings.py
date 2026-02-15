@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'chatbot',
     'journal',
     'matching',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -79,8 +80,8 @@ DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'carepair',
-#         'USER': ' ',
-#         'PASSWORD': 'your_db_password',
+#         'USER': 'postgres',
+#         'PASSWORD': 'mypostgresql',
 #         'HOST': 'localhost',
 #         'PORT': '5432',
 #     }
@@ -182,17 +183,19 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-LLAMA_API_URL = 'http://localhost:11434/api/generate'
-LLAMA_MODEL_NAME = 'llama3'  
-LLAMA_TIMEOUT = 30
-MAX_DYNAMIC_QUESTIONS = 5
+# LLAMA_API_URL = 'http://localhost:11434/api/generate'
+# LLAMA_MODEL_NAME = 'llama3'  
+# LLAMA_TIMEOUT = 30
+# MAX_DYNAMIC_QUESTIONS = 5
+
+
+# Ollama Configuration for Chatbot
+OLLAMA_API_URL = 'http://localhost:11434/api/generate'
+OLLAMA_MODEL = 'tinyllama'
+OLLAMA_TIMEOUT = 30
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Quiz Generation Settings
-QUESTIONS_PER_QUIZ = 5  # Number of questions to generate per blog
-VERIFICATION_POINTS_THRESHOLD = 100  # Points needed for auto-verification
 
 
 STATIC_URL = '/static/'

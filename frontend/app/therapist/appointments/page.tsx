@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { bookingAPI } from "@/lib/api";
 import Header from "@/components/Header";
+import SessionReportModal from "@/components/therapist/SessionReportModal";
 import AppointmentDetailModal from "@/components/therapist/AppointmentDetailModal";
 import {
   CheckCircle,
@@ -28,6 +29,8 @@ const TherapistAppointments = () => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailAppointmentId, setDetailAppointmentId] = useState<number | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportAppointmentId, setReportAppointmentId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -45,9 +48,13 @@ const TherapistAppointments = () => {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
         // Include both confirmed AND awaiting_payment in upcoming for therapist view
         return (apt.status === "confirmed" || apt.status === "awaiting_payment") && appointmentDateTime > now;
+      } else if (activeTab === "confirmed") {
+        // Show all confirmed appointments regardless of date
+        return apt.status === "confirmed";
       } else if (activeTab === "history") {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-        return (apt.status === "confirmed" || apt.status === "completed") && appointmentDateTime <= now;
+        // Show only completed appointments in history
+        return apt.status === "completed" && appointmentDateTime <= now;
       }
       return false;
     });
@@ -62,8 +69,8 @@ const TherapistAppointments = () => {
         }
         // Fallback to ID if created_at doesn't exist (higher ID = more recent)
         return (b.id || 0) - (a.id || 0);
-      } else if (activeTab === "upcoming") {
-        // For upcoming: earliest appointment first (sort by date and time ascending)
+      } else if (activeTab === "upcoming" || activeTab === "confirmed") {
+        // For upcoming and confirmed: earliest appointment first (sort by date and time ascending)
         const dateTimeA = new Date(`${a.appointment_date}T${a.start_time}`).getTime();
         const dateTimeB = new Date(`${b.appointment_date}T${b.start_time}`).getTime();
         return dateTimeA - dateTimeB;
@@ -129,6 +136,17 @@ const TherapistAppointments = () => {
     setShowDetailModal(true);
   };
 
+  const handleWriteReport = (id: number) => {
+    setReportAppointmentId(id);
+    setShowReportModal(true);
+  };
+
+  const handleReportSubmitted = () => {
+    setShowReportModal(false);
+    setReportAppointmentId(null);
+    fetchAppointments();
+  };
+
   const handleCancel = async () => {
     const selectedAppointment = appointments.find((apt: any) => apt.id === selectedAppointmentId);
 
@@ -176,6 +194,7 @@ const TherapistAppointments = () => {
 
   const tabs = [
     { id: "upcoming", label: "Upcoming", color: "blue", count: appointments.length },
+    { id: "confirmed", label: "Confirmed", color: "teal", count: appointments.length },
     { id: "pending", label: "Pending", color: "amber", count: appointments.length },
     { id: "history", label: "History", color: "slate", count: appointments.length },
   ];
@@ -209,13 +228,22 @@ const TherapistAppointments = () => {
                   Manage and review all your patient sessions in one place
                 </p>
               </div>
-              <button
-                onClick={() => router.push("/therapist/profile")}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                <Plus className="w-5 h-5" />
-                Set Availability
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push("/therapist/session-reports")}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <Eye className="w-5 h-5" />
+                  View Reports
+                </button>
+                <button
+                  onClick={() => router.push("/therapist/profile")}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <Plus className="w-5 h-5" />
+                  Set Availability
+                </button>
+              </div>
             </div>
           </div>
 
@@ -373,8 +401,18 @@ const TherapistAppointments = () => {
                         </>
                       )}
 
-                      {apt.status === "confirmed" && (
+                      {apt.status === "completed" && (
                         <>
+                          {/* Write Report Button for History Tab */}
+                          {activeTab === "history" && (
+                            <button
+                              onClick={() => handleWriteReport(apt.id)}
+                              className="flex items-center px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-sm hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                            >
+                              <Sparkles size={18} className="mr-2" />
+                              Write Report
+                            </button>
+                          )}
                           
                           <div className="relative group/cancel">
                             <button
@@ -431,6 +469,26 @@ const TherapistAppointments = () => {
             onConfirm={handleConfirm}
           />
         )}
+
+        {/* Session Report Modal */}
+        {showReportModal && reportAppointmentId && 
+          (() => {
+            const apt = appointments.find((a: any) => a.id === reportAppointmentId);
+            return apt ? (
+              <SessionReportModal
+                isOpen={showReportModal}
+                appointmentId={reportAppointmentId}
+                patientName={apt.patient_name || "Patient"}
+                appointmentDate={new Date(`${apt.appointment_date}T${apt.start_time}`).toLocaleDateString()}
+                onClose={() => {
+                  setShowReportModal(false);
+                  setReportAppointmentId(null);
+                }}
+                onSuccess={handleReportSubmitted}
+              />
+            ) : null;
+          })()
+        }
 
         {/* Cancel Modal */}
         {showCancelModal && (

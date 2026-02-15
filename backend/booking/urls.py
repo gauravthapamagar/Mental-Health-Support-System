@@ -1,6 +1,6 @@
 from django.urls import path, include
 from . import views
-from . import views_payment
+from . import views_payment, session_report_urls
 
 urlpatterns = [
     # Public - Therapist discovery
@@ -30,6 +30,8 @@ urlpatterns = [
     # Check payment status for an appointment (both patient and therapist)
     path('payments/status/<int:appointment_id>/', views_payment.payment_status, name='payment-status'),
     
+    
+    
    
     
-]
+]+ session_report_urls.urlpatterns

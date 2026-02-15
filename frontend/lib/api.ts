@@ -344,6 +344,80 @@ export const bookingAPI = {
     );
     return response.data;
   },
+
+  // Create a session report
+  createSessionReport: async (data: any) => {
+    const response = await axiosInstance.post(
+      '/booking/session-reports/create/',
+      data
+    );
+    return response.data;
+  },
+
+  // Get all session reports for therapist
+  getTherapistReports: async (params?: {
+    patient_id?: number;
+    session_outcome?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+  }) => {
+    const response = await axiosInstance.get(
+      '/booking/session-reports/',
+      { params }
+    );
+    return response.data;
+  },
+
+  // Get specific session report details
+  getReportDetail: async (reportId: number) => {
+    const response = await axiosInstance.get(
+      `/booking/session-reports/${reportId}/`
+    );
+    return response.data;
+  },
+
+  // Update session report
+  updateReport: async (reportId: number, data: any) => {
+    const response = await axiosInstance.patch(
+      `/booking/session-reports/${reportId}/update/`,
+      data
+    );
+    return response.data;
+  },
+
+  // Delete session report
+  deleteReport: async (reportId: number) => {
+    const response = await axiosInstance.delete(
+      `/booking/session-reports/${reportId}/delete/`
+    );
+    return response.data;
+  },
+
+  // Get completed appointments that need reports
+  getCompletedAppointmentsForReports: async (page?: number) => {
+    const response = await axiosInstance.get(
+      '/booking/appointments/completed-for-reports/',
+      { params: { page } }
+    );
+    return response.data;
+  },
+
+  // Patient progress endpoints
+  getPatientProgress: async (page?: number) => {
+    const response = await axiosInstance.get(
+      '/booking/patient/progress/',
+      { params: { page } }
+    );
+    return response.data;
+  },
+
+  getPatientProgressAnalytics: async () => {
+    const response = await axiosInstance.get(
+      '/booking/patient/progress-analytics/'
+    );
+    return response.data;
+  },
 };
 
 // Journal API
@@ -753,7 +827,142 @@ export const therapistVerificationAPI = {
 };
 
 
-export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI, paymentAPI, therapistVerificationAPI };
+// Session Report API
+export const sessionReportAPI = {
+  // Create a new session report
+  createSessionReport: async (data: any) => {
+    const response = await axiosInstance.post(
+      '/booking/session-reports/create/',
+      data
+    );
+    return response.data;
+  },
+
+  // Get all session reports for therapist
+  getTherapistReports: async (params?: {
+    patient_id?: number;
+    session_outcome?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+  }) => {
+    const response = await axiosInstance.get(
+      '/booking/session-reports/',
+      { params }
+    );
+    return response.data;
+  },
+
+  // Get specific session report details
+  getReportDetail: async (reportId: number) => {
+    const response = await axiosInstance.get(
+      `/booking/session-reports/${reportId}/`
+    );
+    return response.data;
+  },
+
+  // Update session report
+  updateReport: async (reportId: number, data: any) => {
+    const response = await axiosInstance.patch(
+      `/booking/session-reports/${reportId}/update/`,
+      data
+    );
+    return response.data;
+  },
+
+  // Delete session report
+  deleteReport: async (reportId: number) => {
+    const response = await axiosInstance.delete(
+      `/booking/session-reports/${reportId}/delete/`
+    );
+    return response.data;
+  },
+
+  // Get completed appointments that need reports
+  getCompletedAppointmentsForReports: async (page?: number) => {
+    const response = await axiosInstance.get(
+      '/booking/appointments/completed-for-reports/',
+      { params: { page } }
+    );
+    return response.data;
+  },
+
+  // Patient endpoints
+  getPatientProgress: async (page?: number) => {
+    const response = await axiosInstance.get(
+      '/booking/patient/progress/',
+      { params: { page } }
+    );
+    return response.data;
+  },
+
+  getPatientProgressAnalytics: async () => {
+    const response = await axiosInstance.get(
+      '/booking/patient/progress-analytics/'
+    );
+    return response.data;
+  },
+
+  // Create a session report
+  createSessionReport: async (data: any) => {
+    const response = await axiosInstance.post(
+      '/booking/session-reports/create/',
+      data
+    );
+    return response.data;
+  },
+
+  // Get all session reports for therapist
+  getTherapistReports: async (params?: {
+    patient_id?: number;
+    session_outcome?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+  }) => {
+    const response = await axiosInstance.get(
+      '/booking/session-reports/',
+      { params }
+    );
+    return response.data;
+  },
+
+  // Get specific session report details
+  getReportDetail: async (reportId: number) => {
+    const response = await axiosInstance.get(
+      `/booking/session-reports/${reportId}/`
+    );
+    return response.data;
+  },
+
+  // Update session report
+  updateReport: async (reportId: number, data: any) => {
+    const response = await axiosInstance.patch(
+      `/booking/session-reports/${reportId}/update/`,
+      data
+    );
+    return response.data;
+  },
+
+  // Delete session report
+  deleteReport: async (reportId: number) => {
+    const response = await axiosInstance.delete(
+      `/booking/session-reports/${reportId}/delete/`
+    );
+    return response.data;
+  },
+
+  // Get completed appointments that need reports
+  getCompletedAppointmentsForReports: async (page?: number) => {
+    const response = await axiosInstance.get(
+      '/booking/appointments/completed-for-reports/',
+      { params: { page } }
+    );
+    return response.data;
+  },
+};
+
+export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI, paymentAPI, therapistVerificationAPI, sessionReportAPI };
 
 
 

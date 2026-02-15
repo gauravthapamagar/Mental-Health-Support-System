@@ -416,3 +416,6 @@ class AppointmentReview(models.Model):
     def is_bidirectional_review_complete(self):
         """Check if both parties have left reviews"""
         return self.appointment.reviews.count() >= 2
+    
+    
+    
