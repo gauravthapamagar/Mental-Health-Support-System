@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { bookingAPI } from "@/lib/api";
 import Header from "@/components/Header";
-import SessionReportModal from "@/components/therapist/SessionReportModal";
+import SessionReportModal from "@/components/therapist/SessionReportViewModal";
 import AppointmentDetailModal from "@/components/therapist/AppointmentDetailModal";
 import {
   CheckCircle,

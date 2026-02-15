@@ -8,45 +8,30 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  TrendingUp,
   X,
   FileText,
   Edit,
 } from "lucide-react";
-import { bookingAPI } from "@/lib/api";
+import { sessionReportAPI, PaginatedResponse, SessionReport } from "@/lib/api";
 import { toast } from "react-toastify";
 import EditSessionReportModal from "./EditSessionReportModal";
 
-interface SessionReport {
-  id: number;
-  patient: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-  appointment_date: string;
-  mood_rating: number;
-  session_outcome: string;
+interface SessionReportDisplay extends SessionReport {
   session_outcome_display?: string;
-  session_summary?: string;
-  homework_assigned?: string;
-  triggers_identified?: string;
-  notes_for_next_session?: string;
-  clinical_observations?: string;
-  patient_visible: boolean;
-  created_at: string;
 }
 
 export default function SessionReportsDashboard() {
-  const [reports, setReports] = useState<SessionReport[]>([]);
+  const [reports, setReports] = useState<SessionReportDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOutcome, setFilterOutcome] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedReport, setSelectedReport] = useState<SessionReport | null>(null);
-  const [showDetailView, setShowDetailView] = useState(false);
-  const [editingReport, setEditingReport] = useState<SessionReport | null>(null);
+  const [viewingReportId, setViewingReportId] = useState<number | null>(null);
+  const [editingReportId, setEditingReportId] = useState<number | null>(null);
+  const [viewingReport, setViewingReport] = useState<SessionReport | null>(null);
+  const [viewingLoading, setViewingLoading] = useState(false);
+  const [viewingError, setViewingError] = useState<string | null>(null);
 
   const fetchReports = useCallback(async (page = 1, outcome = "") => {
     setLoading(true);
@@ -54,12 +39,18 @@ export default function SessionReportsDashboard() {
       const params: any = { page };
       if (outcome) params.session_outcome = outcome;
 
-      const response = await bookingAPI.getTherapistReports(params);
-      setReports(response.results || response || []);
+      const response: PaginatedResponse<SessionReport> = await sessionReportAPI.getTherapistReports(params);
+      
+      const displayReports = response.results.map(report => ({
+        ...report,
+        session_outcome_display: report.session_outcome_display || formatOutcome(report.session_outcome)
+      }));
+      
+      setReports(displayReports);
       setTotalPages(Math.ceil((response.count || 0) / 10));
       setCurrentPage(page);
     } catch (error) {
-      console.error("[v0] Failed to fetch reports:", error);
+      console.error("[SessionReportsDashboard] Failed to fetch reports:", error);
       toast.error("Failed to load session reports");
     } finally {
       setLoading(false);
@@ -70,6 +61,32 @@ export default function SessionReportsDashboard() {
     fetchReports(currentPage, filterOutcome);
   }, [filterOutcome, currentPage, fetchReports]);
 
+  // Fetch report details when viewing
+  useEffect(() => {
+    if (viewingReportId) {
+      fetchViewingReport();
+    }
+  }, [viewingReportId]);
+
+  const fetchViewingReport = async () => {
+    if (!viewingReportId) return;
+    setViewingLoading(true);
+    setViewingError(null);
+    try {
+      const report = await sessionReportAPI.getReportDetail(viewingReportId);
+      setViewingReport(report);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || 
+                       err.response?.data?.error || 
+                       'Failed to load report details';
+      setViewingError(errorMsg);
+      console.error('[SessionReportsDashboard] Error fetching report:', err);
+      toast.error(errorMsg);
+    } finally {
+      setViewingLoading(false);
+    }
+  };
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
@@ -77,6 +94,16 @@ export default function SessionReportsDashboard() {
   const filteredReports = reports.filter((report) =>
     report.patient.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const formatOutcome = (outcome: string): string => {
+    const outcomeMap: Record<string, string> = {
+      productive: "Productive Session",
+      breakthrough: "Breakthrough Moment",
+      needs_follow_up: "Needs Follow-Up",
+      blocked: "Blocked/Stuck",
+    };
+    return outcomeMap[outcome] || outcome;
+  };
 
   const getOutcomeColor = (outcome: string) => {
     switch (outcome) {
@@ -118,13 +145,19 @@ export default function SessionReportsDashboard() {
     }
 
     try {
-      await bookingAPI.deleteReport(reportId);
+      await sessionReportAPI.deleteReport(reportId);
       toast.success("Report deleted successfully");
       fetchReports(currentPage, filterOutcome);
     } catch (error: any) {
-      console.error("[v0] Delete error:", error);
+      console.error("[SessionReportsDashboard] Delete error:", error);
       toast.error(error.response?.data?.error || "Failed to delete report");
     }
+  };
+
+  const closeViewModal = () => {
+    setViewingReportId(null);
+    setViewingReport(null);
+    setViewingError(null);
   };
 
   return (
@@ -233,26 +266,23 @@ export default function SessionReportsDashboard() {
                   {/* Actions */}
                   <div className="flex gap-3 lg:justify-end flex-wrap">
                     <button
-                      onClick={() => {
-                        setSelectedReport(report);
-                        setShowDetailView(true);
-                      }}
+                      onClick={() => setViewingReportId(report.id)}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition-colors"
-                      title="View Details"
+                      title="View Full Details"
                     >
                       <Eye size={18} />
                       <span className="hidden sm:inline">View</span>
                     </button>
+
                     <button
-                      onClick={() => {
-                        setEditingReport(report);
-                      }}
+                      onClick={() => setEditingReportId(report.id)}
                       className="flex items-center gap-2 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg font-medium transition-colors"
                       title="Edit Report"
                     >
                       <Edit size={18} />
                       <span className="hidden sm:inline">Edit</span>
                     </button>
+
                     <button
                       onClick={() => handleDeleteReport(report.id)}
                       className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg font-medium transition-colors"
@@ -292,108 +322,187 @@ export default function SessionReportsDashboard() {
         )}
       </div>
 
-      {/* Detail Modal */}
-      {showDetailView && selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* ✅ View Modal - INLINED (No import needed) */}
+      {viewingReportId && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowDetailView(false)}
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={closeViewModal}
           />
-          <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 flex items-center justify-between border-b border-slate-200">
-              <h2 className="text-2xl font-bold">Session Report</h2>
-              <button
-                onClick={() => setShowDetailView(false)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
 
-            <div className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold uppercase">Patient</p>
-                  <p className="text-slate-900 text-lg font-bold">{selectedReport.patient.full_name}</p>
+          <div className="relative min-h-screen flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 flex items-center justify-between border-b border-slate-200 z-10">
+                <div className="flex items-center gap-3">
+                  <Eye size={24} />
+                  <h2 className="text-2xl font-bold">Session Report Details</h2>
                 </div>
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold uppercase">Date</p>
-                  <p className="text-slate-900 text-lg font-bold">
-                    {new Date(selectedReport.appointment_date).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold uppercase">Mood Rating</p>
-                  <p className={`text-lg font-bold ${getMoodColor(selectedReport.mood_rating)}`}>
-                    {getMoodEmoji(selectedReport.mood_rating)} {selectedReport.mood_rating}/10
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold uppercase">Outcome</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${getOutcomeColor(selectedReport.session_outcome)}`}>
-                    {selectedReport.session_outcome_display || selectedReport.session_outcome}
-                  </span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6 space-y-6">
-                {selectedReport.session_summary && (
-                  <div>
-                    <h4 className="text-slate-900 font-bold text-sm uppercase mb-2">Session Summary</h4>
-                    <p className="text-slate-700 leading-relaxed">{selectedReport.session_summary}</p>
-                  </div>
-                )}
-
-                {selectedReport.clinical_observations && (
-                  <div>
-                    <h4 className="text-slate-900 font-bold text-sm uppercase mb-2">Clinical Observations</h4>
-                    <p className="text-slate-700 leading-relaxed">{selectedReport.clinical_observations}</p>
-                  </div>
-                )}
-
-                {selectedReport.triggers_identified && (
-                  <div>
-                    <h4 className="text-slate-900 font-bold text-sm uppercase mb-2">Triggers Identified</h4>
-                    <p className="text-slate-700 leading-relaxed">{selectedReport.triggers_identified}</p>
-                  </div>
-                )}
-
-                {selectedReport.homework_assigned && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="text-blue-900 font-bold text-sm uppercase mb-2">Homework</h4>
-                    <p className="text-blue-800 leading-relaxed">{selectedReport.homework_assigned}</p>
-                  </div>
-                )}
-
-                {selectedReport.notes_for_next_session && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h4 className="text-amber-900 font-bold text-sm uppercase mb-2">Notes for Next Session</h4>
-                    <p className="text-amber-800 leading-relaxed">{selectedReport.notes_for_next_session}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
                 <button
-                  onClick={() => setShowDetailView(false)}
-                  className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-lg font-semibold transition-colors"
+                  onClick={closeViewModal}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                 >
-                  Close
+                  <X size={24} />
                 </button>
+              </div>
+
+              <div className="p-8">
+                {viewingLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 size={40} className="text-blue-600 animate-spin mb-4" />
+                    <p className="text-slate-600 font-semibold">Loading report details...</p>
+                  </div>
+                ) : viewingError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <h3 className="font-bold text-red-900 mb-2">Error Loading Report</h3>
+                    <p className="text-red-700 mb-4">{viewingError}</p>
+                    <button
+                      onClick={fetchViewingReport}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : viewingReport ? (
+                  <div className="space-y-6">
+                    {/* Header Info */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-lg border border-slate-200">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-600 uppercase mb-1">Patient</p>
+                        <p className="text-lg font-bold text-slate-900">{viewingReport.patient.full_name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-600 uppercase mb-1">Date</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {new Date(viewingReport.appointment_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-600 uppercase mb-1">Mood</p>
+                        <p className={`text-lg font-bold ${getMoodColor(viewingReport.mood_rating)}`}>
+                          {getMoodEmoji(viewingReport.mood_rating)} {viewingReport.mood_rating}/10
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-600 uppercase mb-1">Outcome</p>
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${getOutcomeColor(viewingReport.session_outcome)}`}>
+                          {viewingReport.session_outcome_display || viewingReport.session_outcome}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-200"></div>
+
+                    {/* Session Summary */}
+                    {viewingReport.session_summary && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Session Summary</h3>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{viewingReport.session_summary}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Treatment Goals */}
+                    {viewingReport.treatment_goals_addressed && viewingReport.treatment_goals_addressed.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Treatment Goals</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {viewingReport.treatment_goals_addressed.map((goal, index) => (
+                            <div key={index} className="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-medium border border-emerald-300">
+                              ✓ {goal}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Symptom Improvement */}
+                    {viewingReport.symptom_improvement && Object.keys(viewingReport.symptom_improvement).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Symptom Improvement</h3>
+                        <div className="space-y-3">
+                          {Object.entries(viewingReport.symptom_improvement).map(([symptom, score]) => (
+                            <div key={symptom}>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-slate-700 capitalize">{symptom}</span>
+                                <span className="font-bold text-lg text-blue-600">{score}/10</span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-3">
+                                <div
+                                  className="h-3 rounded-full bg-blue-500"
+                                  style={{ width: `${(score / 10) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Clinical Observations */}
+                    {viewingReport.clinical_observations && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Clinical Observations</h3>
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{viewingReport.clinical_observations}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Triggers */}
+                    {viewingReport.triggers_identified && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Triggers Identified</h3>
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{viewingReport.triggers_identified}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Homework */}
+                    {viewingReport.homework_assigned && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Homework</h3>
+                        <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{viewingReport.homework_assigned}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes for Next Session */}
+                    {viewingReport.notes_for_next_session && (
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Notes for Next Session</h3>
+                        <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{viewingReport.notes_for_next_session}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-6 border-t border-slate-200">
+                      <button
+                        onClick={closeViewModal}
+                        className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-lg font-semibold transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Session Report Modal */}
-      {editingReport && (
+      {/* Edit Modal */}
+      {editingReportId && (
         <EditSessionReportModal
-          report={editingReport}
-          isOpen={!!editingReport}
-          onClose={() => setEditingReport(null)}
+          isOpen={!!editingReportId}
+          reportId={editingReportId}
+          onClose={() => setEditingReportId(null)}
           onSuccess={() => {
-            setEditingReport(null);
+            setEditingReportId(null);
             fetchReports(currentPage, filterOutcome);
           }}
         />

@@ -1,6 +1,6 @@
 import axiosInstance from "./axios";
 
-// Types for API requests and responses
+// ============ AUTHENTICATION ============
 export interface PatientRegistrationData {
   email: string;
   password: string;
@@ -51,63 +51,27 @@ export interface AuthResponse {
   profile_completed?: boolean;
 }
 
-// Journal Types
-export interface JournalEntryData {
-  title: string;
-  content: string;
-  mood: string;
-  mood_intensity?: number;
-  tags?: string[];
-}
-
-export interface JournalEntry extends JournalEntryData {
-  id: number;
-  created_at: string;
-  updated_at: string;
-  patient: number;
-}
-
-export interface MoodAnalytics {
-  mood: string;
-  count: number;
-  percentage: number;
-  date?: string;
-}
-
-// API Functions
 export const authAPI = {
-  // Register Patient
-  registerPatient: async (
-    data: PatientRegistrationData,
-  ): Promise<AuthResponse> => {
+  registerPatient: async (data: PatientRegistrationData): Promise<AuthResponse> => {
     const response = await axiosInstance.post("/auth/register/patient/", data);
     return response.data;
   },
 
-  // Register Therapist
-  registerTherapist: async (
-    data: TherapistRegistrationData,
-  ): Promise<AuthResponse> => {
-    const response = await axiosInstance.post(
-      "/auth/register/therapist/",
-      data,
-    );
+  registerTherapist: async (data: TherapistRegistrationData): Promise<AuthResponse> => {
+    const response = await axiosInstance.post("/auth/register/therapist/", data);
     return response.data;
   },
 
-  // Login
   login: async (data: LoginData): Promise<AuthResponse> => {
     const response = await axiosInstance.post("/auth/login/", data);
     return response.data;
   },
 
-  // Get Current User
   getCurrentUser: async () => {
     const response = await axiosInstance.get("/auth/me/");
     return response.data;
   },
 
-  // Refresh Token
   refreshToken: async (refreshToken: string) => {
     const response = await axiosInstance.post("/auth/token/refresh/", {
       refresh: refreshToken,
@@ -115,83 +79,66 @@ export const authAPI = {
     return response.data;
   },
 
-  // Logout (client-side token removal)
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
   },
 };
 
+// ============ PATIENT API ============
 export const patientAPI = {
-  // Get Patient Profile (Matches your Django path: patient/profile/me/)
   getProfile: async () => {
     const response = await axiosInstance.get("/patient/profile/me/");
     return response.data;
   },
 
-  // Update Patient Profile (Matches your Django path: patient/profile/update/)
   updateProfile: async (data: {
     emergency_contact_name: string;
     emergency_contact_phone: string;
     basic_health_info?: string;
   }) => {
-    const response = await axiosInstance.patch(
-      "/patient/profile/update/",
-      data,
-    );
+    const response = await axiosInstance.patch("/patient/profile/update/", data);
     return response.data;
   },
 };
 
+// ============ THERAPIST API ============
 export interface TherapistProfile {
   [key: string]: any;
 }
 
 export const therapistAPI = {
-  // Get Therapist Profile
-  async getProfile(): Promise<TherapistProfile> {
+  getProfile: async (): Promise<TherapistProfile> => {
     const response = await axiosInstance.get("/therapist/profile/me/");
     return response.data;
   },
+
   getDashboardStats: async () => {
     const response = await axiosInstance.get("/booking/stats/");
     return response.data;
   },
 
-  // Complete Therapist Profile
   completeProfile: async (data: any) => {
-    const response = await axiosInstance.post(
-      "/therapist/profile/complete/",
-      data,
-    );
+    const response = await axiosInstance.post("/therapist/profile/complete/", data);
     return response.data;
   },
 
-  // Update Therapist Profile - Handle both JSON and FormData
   updateProfile: async (data: FormData | any) => {
     const isFormData = data instanceof FormData;
-
-    const response = await axiosInstance.put(
-      "/therapist/profile/update/",
-      data,
-      isFormData
-        ? {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        : {},
+    const response = await axiosInstance.put("/therapist/profile/update/", data, isFormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : {}
     );
     return response.data;
   },
 
-  // Get My Patients
   getMyPatients: async () => {
     const response = await axiosInstance.get("/booking/therapist/patients/");
     return response.data;
   },
 };
 
+// ============ BLOG API ============
 export interface RecommendedBlog {
   blog: {
     id: number;
@@ -222,35 +169,26 @@ export const blogAPI = {
     return response.data;
   },
 
-  getBlogBySlug: async (slug: string) => {
-    const response = await axiosInstance.get(`/blog/${slug}/`);
-    return response.data;
-  },
-
   toggleLike: async (slug: string) => {
     const response = await axiosInstance.post(`/blog/like/${slug}/`);
     return response.data;
   },
 };
 
+// ============ BOOKING API ============
 export const bookingAPI = {
-  // Get therapists for the booking list
+  // Therapist discovery
   listTherapists: async (params?: {
     specialization?: string;
     mode?: string;
     page?: number;
   }) => {
-    const response = await axiosInstance.get("/booking/therapists/", {
-      params,
-    });
+    const response = await axiosInstance.get("/booking/therapists/", { params });
     return response.data;
   },
 
-  // Get slots for a specific therapist
   getAvailableSlots: async (therapistId: number) => {
-    const response = await axiosInstance.get(
-      `/booking/therapists/${therapistId}/slots/`,
-    );
+    const response = await axiosInstance.get(`/booking/therapists/${therapistId}/slots/`);
     return response.data;
   },
 
@@ -261,17 +199,12 @@ export const bookingAPI = {
     return response.data;
   },
 
-  // Create the appointment
+  // Appointments
   createAppointment: async (data: any) => {
-    const response = await axiosInstance.post(
-    "/booking/appointments/create/",
-    data
-    // No config needed - axios detects FormData automatically
-  );
-  return response.data;
+    const response = await axiosInstance.post("/booking/appointments/create/", data);
+    return response.data;
   },
 
-  // Fetch appointments for the current user (Patient perspective)
   getMyAppointments: async (filterType: string) => {
     const response = await axiosInstance.get("/booking/appointments/my/", {
       params: { filter: filterType },
@@ -279,179 +212,114 @@ export const bookingAPI = {
     return response.data;
   },
 
-  // Fetch appointments for the therapist dashboard
-  // Fetch appointments for the therapist dashboard
   getTherapistAppointments: async (filterType: string) => {
     const params: any = {};
-    
-    // Smart mapping for frontend tabs
     if (filterType === 'pending') {
       params.status = 'pending';
     } else if (filterType === 'history') {
       params.filter = 'past';
-    } else if (filterType === 'all') {
-      // No filter means get all
-    } else {
-      // Pass through for 'upcoming', 'today' etc.
+    } else if (filterType !== 'all') {
       params.filter = filterType;
     }
-
-    const response = await axiosInstance.get(
-      "/booking/therapist/appointments/",
-      { params },
-    );
+    const response = await axiosInstance.get("/booking/therapist/appointments/", { params });
     return response.data;
   },
 
-  // Confirm an appointment (Therapist action)
-  confirmAppointment: async (
-    id: number,
-    data: { meeting_link: string; therapist_notes: string },
-  ) => {
-    const response = await axiosInstance.post(
-      `/booking/therapist/appointments/${id}/confirm/`,
-      data,
-    );
+  confirmAppointment: async (id: number, data: { meeting_link: string; therapist_notes: string }) => {
+    const response = await axiosInstance.post(`/booking/therapist/appointments/${id}/confirm/`, data);
     return response.data;
   },
 
-  // Cancel an appointment
   cancelAppointment: async (id: number, reason: string) => {
-    const response = await axiosInstance.post(
-      `/booking/appointments/${id}/cancel/`,
-      {
-        cancellation_reason: reason,
-      },
-    );
+    const response = await axiosInstance.post(`/booking/appointments/${id}/cancel/`, {
+      cancellation_reason: reason,
+    });
     return response.data;
   },
 
   getAppointmentDetail: async (appointmentId: string): Promise<any> => {
-    const response = await axiosInstance.get(
-      `/booking/appointments/${appointmentId}/`
-    );
+    const response = await axiosInstance.get(`/booking/appointments/${appointmentId}/`);
     return response.data;
   },
 
-  // Reschedule an appointment
   rescheduleAppointment: async (
     id: number,
-    data: { new_date: string; new_start_time: string; reason?: string },
+    data: { new_date: string; new_start_time: string; reason?: string }
   ) => {
-    const response = await axiosInstance.post(
-      `/booking/appointments/${id}/reschedule/`,
-      data,
-    );
+    const response = await axiosInstance.post(`/booking/appointments/${id}/reschedule/`, data);
     return response.data;
   },
 
-  // Create a session report
-  createSessionReport: async (data: any) => {
-    const response = await axiosInstance.post(
-      '/booking/session-reports/create/',
-      data
-    );
+  // Payments
+  initiatePayment: async (appointmentId: number) => {
+    const response = await axiosInstance.post("/booking/payments/initiate/", {
+      appointment_id: appointmentId,
+    });
     return response.data;
   },
 
-  // Get all session reports for therapist
-  getTherapistReports: async (params?: {
-    patient_id?: number;
-    session_outcome?: string;
-    start_date?: string;
-    end_date?: string;
-    page?: number;
-  }) => {
-    const response = await axiosInstance.get(
-      '/booking/session-reports/',
-      { params }
-    );
+  verifyPayment: async (pidx: string, appointmentId: number) => {
+    const response = await axiosInstance.post("/booking/payments/verify/", {
+      pidx,
+      appointment_id: appointmentId,
+    });
     return response.data;
   },
 
-  // Get specific session report details
-  getReportDetail: async (reportId: number) => {
-    const response = await axiosInstance.get(
-      `/booking/session-reports/${reportId}/`
-    );
-    return response.data;
-  },
-
-  // Update session report
-  updateReport: async (reportId: number, data: any) => {
-    const response = await axiosInstance.patch(
-      `/booking/session-reports/${reportId}/update/`,
-      data
-    );
-    return response.data;
-  },
-
-  // Delete session report
-  deleteReport: async (reportId: number) => {
-    const response = await axiosInstance.delete(
-      `/booking/session-reports/${reportId}/delete/`
-    );
-    return response.data;
-  },
-
-  // Get completed appointments that need reports
-  getCompletedAppointmentsForReports: async (page?: number) => {
-    const response = await axiosInstance.get(
-      '/booking/appointments/completed-for-reports/',
-      { params: { page } }
-    );
-    return response.data;
-  },
-
-  // Patient progress endpoints
-  getPatientProgress: async (page?: number) => {
-    const response = await axiosInstance.get(
-      '/booking/patient/progress/',
-      { params: { page } }
-    );
-    return response.data;
-  },
-
-  getPatientProgressAnalytics: async () => {
-    const response = await axiosInstance.get(
-      '/booking/patient/progress-analytics/'
-    );
+  getPaymentStatus: async (appointmentId: number) => {
+    const response = await axiosInstance.get(`/booking/payments/status/${appointmentId}/`);
     return response.data;
   },
 };
 
-// Journal API
+// ============ JOURNAL API ============
+export interface JournalEntryData {
+  title: string;
+  content: string;
+  mood: string;
+  mood_intensity?: number;
+  tags?: string[];
+}
+
+export interface JournalEntry extends JournalEntryData {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  patient: number;
+}
+
+export interface MoodAnalytics {
+  mood: string;
+  count: number;
+  percentage: number;
+  date?: string;
+}
+
 export const journalAPI = {
-  // Create a new journal entry
   createEntry: async (data: JournalEntryData): Promise<JournalEntry> => {
     const response = await axiosInstance.post("/journal/entries/", data);
     return response.data;
   },
 
-  // Get all journal entries for the patient
   getEntries: async (params?: { page?: number; limit?: number }) => {
     const response = await axiosInstance.get("/journal/entries/", { params });
     return response.data;
   },
 
-  // Get a specific journal entry
   getEntry: async (id: number): Promise<JournalEntry> => {
     const response = await axiosInstance.get(`/journal/entries/${id}/`);
     return response.data;
   },
 
-  // Update a journal entry
   updateEntry: async (id: number, data: Partial<JournalEntryData>): Promise<JournalEntry> => {
     const response = await axiosInstance.patch(`/journal/entries/${id}/`, data);
     return response.data;
   },
 
-  // Delete a journal entry
   deleteEntry: async (id: number): Promise<void> => {
     await axiosInstance.delete(`/journal/entries/${id}/`);
   },
 
-  // Get mood analytics
   getMoodAnalytics: async (days?: number): Promise<MoodAnalytics[]> => {
     const response = await axiosInstance.get("/journal/analytics/mood/", {
       params: { days: days || 30 },
@@ -459,7 +327,6 @@ export const journalAPI = {
     return response.data;
   },
 
-  // Get mood trend over time
   getMoodTrend: async (days?: number) => {
     const response = await axiosInstance.get("/journal/analytics/trend/", {
       params: { days: days || 30 },
@@ -467,14 +334,13 @@ export const journalAPI = {
     return response.data;
   },
 
-  // Get summary statistics
   getSummary: async () => {
     const response = await axiosInstance.get("/journal/analytics/summary/");
     return response.data;
   },
 };
 
-// Survey Types
+// ============ SURVEY API ============
 export interface SurveyQuestion {
   id: number;
   question_text: string;
@@ -535,43 +401,36 @@ export interface SurveyResponse {
 }
 
 export const surveyAPI = {
-  // Get all active surveys
   getSurveys: async (): Promise<Survey[]> => {
     const response = await axiosInstance.get('/surveys/surveys/');
     return response.data;
   },
 
-  // Get specific survey with details
   getSurveyDetail: async (surveyId: number): Promise<Survey> => {
     const response = await axiosInstance.get(`/surveys/surveys/${surveyId}/`);
     return response.data;
   },
 
-  // Get active survey for therapist matching
   getActiveAssessment: async (): Promise<Survey> => {
     const response = await axiosInstance.get('/surveys/surveys/active_survey/');
     return response.data;
   },
 
-  // Start or continue therapist matching assessment
   startAssessment: async (): Promise<SurveyResponse> => {
     const response = await axiosInstance.post('/surveys/responses/start_assessment/');
     return response.data;
   },
 
-  // Get current assessment (in-progress or latest)
   getCurrentAssessment: async (): Promise<SurveyResponse> => {
     const response = await axiosInstance.get('/surveys/responses/current_assessment/');
     return response.data;
   },
 
-  // Get assessment history
   getAssessmentHistory: async () => {
     const response = await axiosInstance.get('/surveys/responses/assessment_history/');
     return response.data;
   },
 
-  // Save a single answer and get dynamic questions
   saveAnswer: async (responseId: number, questionId: number, answerData: any) => {
     const response = await axiosInstance.post('/surveys/responses/save_answer/', {
       response_id: responseId,
@@ -581,7 +440,6 @@ export const surveyAPI = {
     return response.data;
   },
 
-  // Submit completed assessment
   submitAssessment: async (responseId: number): Promise<SurveyResponse> => {
     const response = await axiosInstance.post('/surveys/responses/submit_assessment/', {
       response_id: responseId,
@@ -589,33 +447,29 @@ export const surveyAPI = {
     return response.data;
   },
 
-  // Check if patient can retake assessment
   canRetake: async () => {
     const response = await axiosInstance.get('/surveys/responses/can_retake/');
     return response.data;
   },
 
-  // Get specific survey response
   getResponse: async (responseId: number): Promise<SurveyResponse> => {
     const response = await axiosInstance.get(`/surveys/responses/${responseId}/`);
     return response.data;
   },
+
   deleteAssessment: async (responseId: number): Promise<void> => {
     try {
       await axiosInstance.delete(`/surveys/responses/${responseId}/`);
-      // 204 = success with no content
     } catch (error: any) {
       console.error("Failed to delete assessment:", error);
       throw new Error(
-        error.response?.data?.detail || 
-        "Failed to delete assessment. Please try again."
+        error.response?.data?.detail || "Failed to delete assessment. Please try again."
       );
     }
   },
 };
 
 // ============ MATCHING API ============
-// Types for matching API responses
 export interface TherapistMatchDetails {
   id: number;
   email: string;
@@ -678,10 +532,6 @@ export interface MatchingAPIResponse {
 }
 
 export const matchingAPI = {
-  /**
-   * Find therapist matches for a patient's survey response
-   * POST /api/matching/matches/find_matches/
-   */
   findMatches: async (surveyResponseId: number): Promise<MatchingAPIResponse> => {
     const response = await axiosInstance.post('/matching/matches/find_matches/', {
       survey_response_id: surveyResponseId,
@@ -689,43 +539,28 @@ export const matchingAPI = {
     return response.data;
   },
 
-  /**
-   * Get the latest match for the current patient
-   * GET /api/matching/matches/latest/
-   */
   getLatestMatch: async (): Promise<MatchingAPIResponse> => {
     const response = await axiosInstance.get('/matching/matches/latest/');
     return response.data;
   },
 
-  /**
-   * Get specific match by ID
-   * GET /api/matching/matches/{id}/
-   */
   getMatchDetails: async (matchId: number): Promise<MatchingAPIResponse> => {
     const response = await axiosInstance.get(`/matching/matches/${matchId}/`);
     return response.data;
   },
 
-  /**
-   * Get all matches for the current patient
-   * GET /api/matching/matches/
-   */
   getAllMatches: async (): Promise<MatchingAPIResponse[]> => {
     const response = await axiosInstance.get('/matching/matches/');
     return response.data;
   },
 
-  /**
-   * Re-run matching algorithm for an existing match
-   * POST /api/matching/matches/{id}/rematch/
-   */
   rematch: async (matchId: number): Promise<MatchingAPIResponse> => {
     const response = await axiosInstance.post(`/matching/matches/${matchId}/rematch/`);
     return response.data;
   },
 };
 
+// ============ PAYMENT API ============
 export interface PaymentInitiateResponse {
   payment_url: string;
   pidx: string;
@@ -765,12 +600,7 @@ export interface PaymentStatusResponse {
   } | null;
 }
 
-// ──── Payment API ────
 export const paymentAPI = {
-  /**
-   * Initiate a Khalti payment for an awaiting_payment appointment.
-   * Redirects user to Khalti payment page.
-   */
   initiatePayment: async (appointmentId: number): Promise<PaymentInitiateResponse> => {
     const response = await axiosInstance.post("/booking/payments/initiate/", {
       appointment_id: appointmentId,
@@ -778,10 +608,6 @@ export const paymentAPI = {
     return response.data;
   },
 
-  /**
-   * Verify a payment after Khalti redirects back.
-   * Called from the payment verification page.
-   */
   verifyPayment: async (pidx: string, appointmentId: number): Promise<PaymentVerifyResponse> => {
     const response = await axiosInstance.post("/booking/payments/verify/", {
       pidx,
@@ -790,96 +616,144 @@ export const paymentAPI = {
     return response.data;
   },
 
-  /**
-   * Check payment status for a specific appointment.
-   */
   getPaymentStatus: async (appointmentId: number): Promise<PaymentStatusResponse> => {
     const response = await axiosInstance.get(`/booking/payments/status/${appointmentId}/`);
     return response.data;
   },
 };
 
+// ============ THERAPIST VERIFICATION API ============
 export const therapistVerificationAPI = {
-  /**
-   * Upload verification document (citizenship, license, education)
-   */
   uploadVerificationDocument: async (formData: FormData): Promise<any> => {
-    const response = await axiosInstance.post(
-      "/accounts/verification/upload/",
-      formData
-    );
+    const response = await axiosInstance.post("/accounts/verification/upload/", formData);
     return response.data;
   },
 
-  /**
-   * Get list of uploaded verification documents
-   */
   getVerificationDocuments: async (): Promise<any> => {
     try {
       const response = await axiosInstance.get("/accounts/verification/documents/");
-      console.log("[v0] Verification documents response:", response.data);
       return Array.isArray(response.data) ? response.data : response.data?.results || [];
     } catch (error: any) {
-      console.log("[v0] Error fetching verification documents:", error.response?.status);
+      console.log("[api] Error fetching verification documents:", error.response?.status);
       return [];
     }
   },
 };
 
+// ============ SESSION REPORT API ============
+/**
+ * Session Report Types and API
+ * Therapists create, read, update reports for each completed appointment
+ * Patients can view anonymized summaries if patient_visible=True
+ */
 
-// Session Report API
+export interface SessionReportData {
+  appointment: number;
+  session_summary: string;
+  mood_rating: number;
+  symptom_improvement?: Record<string, number>;
+  treatment_goals_addressed?: string[];
+  session_outcome: 'productive' | 'breakthrough' | 'needs_follow_up' | 'blocked';
+  homework_assigned?: string;
+  triggers_identified?: string;
+  notes_for_next_session?: string;
+  clinical_observations?: string;
+  patient_visible?: boolean;
+}
+
+export interface SessionReport {
+  id: number;
+  appointment: number;
+  appointment_date: string;
+  therapist: {
+    id: number;
+    full_name: string;
+    email: string;
+    profession: string;
+  };
+  patient: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  session_summary: string;
+  mood_rating: number;
+  symptom_improvement: Record<string, number>;
+  treatment_goals_addressed: string[];
+  session_outcome: string;
+  session_outcome_display: string;
+  homework_assigned: string;
+  triggers_identified: string;
+  notes_for_next_session: string;
+  clinical_observations: string;
+  patient_visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export const sessionReportAPI = {
-  // Create a new session report
-  createSessionReport: async (data: any) => {
-    const response = await axiosInstance.post(
-      '/booking/session-reports/create/',
-      data
-    );
+  /**
+   * Create a new session report for a completed appointment
+   * POST /booking/session-reports/create/
+   */
+  createSessionReport: async (data: SessionReportData): Promise<{ message: string; report: SessionReport }> => {
+    const response = await axiosInstance.post('/booking/session-reports/create/', data);
     return response.data;
   },
 
-  // Get all session reports for therapist
+  /**
+   * Get all session reports for the current therapist (with filtering & pagination)
+   * GET /booking/session-reports/
+   */
   getTherapistReports: async (params?: {
     patient_id?: number;
     session_outcome?: string;
     start_date?: string;
     end_date?: string;
     page?: number;
-  }) => {
-    const response = await axiosInstance.get(
-      '/booking/session-reports/',
-      { params }
-    );
+  }): Promise<PaginatedResponse<SessionReport>> => {
+    const response = await axiosInstance.get('/booking/session-reports/', { params });
     return response.data;
   },
 
-  // Get specific session report details
-  getReportDetail: async (reportId: number) => {
-    const response = await axiosInstance.get(
-      `/booking/session-reports/${reportId}/`
-    );
+  /**
+   * Get a specific session report with ALL details (for viewing/editing)
+   * GET /booking/session-reports/{reportId}/
+   */
+  getReportDetail: async (reportId: number): Promise<SessionReport> => {
+    const response = await axiosInstance.get(`/booking/session-reports/${reportId}/`);
     return response.data;
   },
 
-  // Update session report
-  updateReport: async (reportId: number, data: any) => {
-    const response = await axiosInstance.patch(
-      `/booking/session-reports/${reportId}/update/`,
-      data
-    );
+  /**
+   * Update a session report
+   * PATCH /booking/session-reports/{reportId}/update/
+   */
+  updateReport: async (reportId: number, data: Partial<SessionReportData>): Promise<{ message: string; report: SessionReport }> => {
+    const response = await axiosInstance.patch(`/booking/session-reports/${reportId}/update/`, data);
     return response.data;
   },
 
-  // Delete session report
-  deleteReport: async (reportId: number) => {
-    const response = await axiosInstance.delete(
-      `/booking/session-reports/${reportId}/delete/`
-    );
-    return response.data;
+  /**
+   * Delete a session report
+   * DELETE /booking/session-reports/{reportId}/delete/
+   */
+  deleteReport: async (reportId: number): Promise<void> => {
+    await axiosInstance.delete(`/booking/session-reports/${reportId}/delete/`);
   },
 
-  // Get completed appointments that need reports
-  getCompletedAppointmentsForReports: async (page?: number) => {
+  /**
+   * Get completed appointments that need session reports
+   * GET /booking/appointments/completed-for-reports/
+   */
+  getCompletedAppointmentsForReports: async (page?: number): Promise<any> => {
     const response = await axiosInstance.get(
       '/booking/appointments/completed-for-reports/',
       { params: { page } }
@@ -887,8 +761,11 @@ export const sessionReportAPI = {
     return response.data;
   },
 
-  // Patient endpoints
-  getPatientProgress: async (page?: number) => {
+  /**
+   * Get patient's visible session progress
+   * GET /booking/patient/progress/
+   */
+  getPatientProgress: async (page?: number): Promise<PaginatedResponse<SessionReport>> => {
     const response = await axiosInstance.get(
       '/booking/patient/progress/',
       { params: { page } }
@@ -896,75 +773,29 @@ export const sessionReportAPI = {
     return response.data;
   },
 
-  getPatientProgressAnalytics: async () => {
+  /**
+   * Get patient's progress analytics (mood trends, symptom improvements, etc.)
+   * GET /booking/patient/progress-analytics/
+   */
+  getPatientProgressAnalytics: async (): Promise<any> => {
     const response = await axiosInstance.get(
       '/booking/patient/progress-analytics/'
     );
     return response.data;
   },
-
-  // Create a session report
-  createSessionReport: async (data: any) => {
-    const response = await axiosInstance.post(
-      '/booking/session-reports/create/',
-      data
-    );
-    return response.data;
-  },
-
-  // Get all session reports for therapist
-  getTherapistReports: async (params?: {
-    patient_id?: number;
-    session_outcome?: string;
-    start_date?: string;
-    end_date?: string;
-    page?: number;
-  }) => {
-    const response = await axiosInstance.get(
-      '/booking/session-reports/',
-      { params }
-    );
-    return response.data;
-  },
-
-  // Get specific session report details
-  getReportDetail: async (reportId: number) => {
-    const response = await axiosInstance.get(
-      `/booking/session-reports/${reportId}/`
-    );
-    return response.data;
-  },
-
-  // Update session report
-  updateReport: async (reportId: number, data: any) => {
-    const response = await axiosInstance.patch(
-      `/booking/session-reports/${reportId}/update/`,
-      data
-    );
-    return response.data;
-  },
-
-  // Delete session report
-  deleteReport: async (reportId: number) => {
-    const response = await axiosInstance.delete(
-      `/booking/session-reports/${reportId}/delete/`
-    );
-    return response.data;
-  },
-
-  // Get completed appointments that need reports
-  getCompletedAppointmentsForReports: async (page?: number) => {
-    const response = await axiosInstance.get(
-      '/booking/appointments/completed-for-reports/',
-      { params: { page } }
-    );
-    return response.data;
-  },
 };
 
-export default { authAPI, therapistAPI, patientAPI, blogAPI, bookingAPI, journalAPI, surveyAPI, matchingAPI, paymentAPI, therapistVerificationAPI, sessionReportAPI };
-
-
-
-
-
+// ============ MAIN EXPORT ============
+export default {
+  authAPI,
+  therapistAPI,
+  patientAPI,
+  blogAPI,
+  bookingAPI,
+  journalAPI,
+  surveyAPI,
+  matchingAPI,
+  paymentAPI,
+  therapistVerificationAPI,
+  sessionReportAPI,
+};

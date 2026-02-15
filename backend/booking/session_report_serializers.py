@@ -82,10 +82,10 @@ class SessionReportCreateSerializer(serializers.ModelSerializer):
 
 
 class SessionReportListSerializer(serializers.ModelSerializer):
-    """Serializer for listing session reports"""
+    """Serializer for listing session reports - shows summary view"""
     therapist = TherapistMinimalSerializer(read_only=True)
     patient = PatientMinimalSerializer(read_only=True)
-    appointment_date = serializers.DateField(read_only=True)
+    appointment_date = serializers.DateField(source='appointment.appointment_date', read_only=True)
     session_outcome_display = serializers.CharField(source='get_session_outcome_display', read_only=True)
     
     class Meta:
@@ -107,10 +107,10 @@ class SessionReportListSerializer(serializers.ModelSerializer):
 
 
 class SessionReportDetailSerializer(serializers.ModelSerializer):
-    """Detailed session report for therapist view"""
+    """Detailed session report for therapist view - FULL DETAILS"""
     therapist = TherapistMinimalSerializer(read_only=True)
     patient = PatientMinimalSerializer(read_only=True)
-    appointment_date = serializers.DateField(read_only=True)
+    appointment_date = serializers.DateField(source='appointment.appointment_date', read_only=True)
     session_outcome_display = serializers.CharField(source='get_session_outcome_display', read_only=True)
     
     class Meta:
@@ -135,15 +135,30 @@ class SessionReportDetailSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['therapist', 'patient', 'created_at', 'updated_at']
+        read_only_fields = ['therapist', 'patient', 'appointment', 'created_at', 'updated_at', 'appointment_date']
 
 
 class SessionReportUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating session reports"""
+    """Serializer for updating session reports - includes all editable fields"""
+    # Include therapist and patient for context (read-only)
+    therapist = TherapistMinimalSerializer(read_only=True)
+    patient = PatientMinimalSerializer(read_only=True)
+    appointment_date = serializers.DateField(source='appointment.appointment_date', read_only=True)
+    session_outcome_display = serializers.CharField(source='get_session_outcome_display', read_only=True)
     
     class Meta:
         model = SessionReport
         fields = [
+            # Read-only context fields
+            'id',
+            'appointment',
+            'appointment_date',
+            'therapist',
+            'patient',
+            'session_outcome_display',
+            'created_at',
+            'updated_at',
+            # Editable fields
             'session_summary',
             'mood_rating',
             'symptom_improvement',
@@ -155,17 +170,23 @@ class SessionReportUpdateSerializer(serializers.ModelSerializer):
             'clinical_observations',
             'patient_visible',
         ]
+        read_only_fields = ['therapist', 'patient', 'appointment', 'appointment_date', 'session_outcome_display', 'created_at', 'updated_at']
     
     def validate_mood_rating(self, value):
         if value < 1 or value > 10:
             raise serializers.ValidationError("Mood rating must be between 1 and 10")
+        return value
+    
+    def validate_session_summary(self, value):
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError("Session summary must be at least 10 characters")
         return value
 
 
 class PatientSessionSummarySerializer(serializers.ModelSerializer):
     """Anonymized session summary for patient view"""
     session_outcome_display = serializers.CharField(source='get_session_outcome_display', read_only=True)
-    appointment_date = serializers.DateField(read_only=True)
+    appointment_date = serializers.DateField(source='appointment.appointment_date', read_only=True)
     
     class Meta:
         model = SessionReport
