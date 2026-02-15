@@ -1,0 +1,187 @@
+INFO 2026-02-15 21:58:39,657 video_service Generating tokens for appointment 77: patient_uid=1000014, therapist_uid=2000009
+INFO 2026-02-15 21:58:39,658 video_service Generated Agora token for channel=appointment_77_3fb49e92, uid=1000014, role=publisher
+INFO 2026-02-15 21:58:39,659 video_service Generated Agora token for channel=appointment_77_3fb49e92, uid=2000009, role=publisher
+INFO 2026-02-15 21:58:39,666 video_service Tokens saved for appointment 77
+INFO 2026-02-15 21:58:39,680 video_service Generating tokens for appointment 77: patient_uid=1000014, therapist_uid=2000009
+INFO 2026-02-15 21:58:39,681 video_service Generated Agora token for channel=appointment_77_73492f7c, uid=1000014, role=publisher
+INFO 2026-02-15 21:58:39,681 video_service Generated Agora token for channel=appointment_77_73492f7c, uid=2000009, role=publisher
+INFO 2026-02-15 21:58:39,688 video_service Tokens saved for appointment 77
+INFO 2026-02-15 22:10:28,057 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:10:28,058 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:10:28,060 video_service Generated Agora token for channel=appointment_81_7dfb4724, uid=1000017, role=publisher
+INFO 2026-02-15 22:10:28,060 video_service Generated Agora token for channel=appointment_81_7dfb4724, uid=1000017, role=publisher
+INFO 2026-02-15 22:10:28,061 video_service Generated Agora token for channel=appointment_81_7dfb4724, uid=2000020, role=publisher
+INFO 2026-02-15 22:10:28,061 video_service Generated Agora token for channel=appointment_81_7dfb4724, uid=2000020, role=publisher
+INFO 2026-02-15 22:10:28,071 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:10:28,072 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:10:28,083 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:10:28,084 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:10:34,480 views_video Session already started for appointment 81, allowing user 20 to rejoin
+INFO 2026-02-15 22:12:07,751 views_video Clearing old tokens for appointment 81
+INFO 2026-02-15 22:12:07,758 views_video Clearing old tokens for appointment 81
+INFO 2026-02-15 22:12:07,765 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:12:07,768 video_service Generated Agora token for channel=appointment_81_ba49ba45, uid=1000017, role=publisher
+INFO 2026-02-15 22:12:07,768 video_service Generated Agora token for channel=appointment_81_ba49ba45, uid=2000020, role=publisher
+INFO 2026-02-15 22:12:07,773 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:12:07,774 video_service Generated Agora token for channel=appointment_81_939de265, uid=1000017, role=publisher
+INFO 2026-02-15 22:12:07,774 video_service Generated Agora token for channel=appointment_81_939de265, uid=2000020, role=publisher
+INFO 2026-02-15 22:12:07,788 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:12:07,789 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:12:07,806 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:12:07,807 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:12:10,440 views_video Video session started for appointment 81 by user 20
+INFO 2026-02-15 22:12:10,478 views_video Session already started for appointment 81, allowing user 20 to rejoin
+INFO 2026-02-15 22:13:07,487 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:13:07,488 video_service Generated Agora token for channel=appointment_81_939de265, uid=1000017, role=publisher
+INFO 2026-02-15 22:13:07,489 video_service Generated Agora token for channel=appointment_81_939de265, uid=2000020, role=publisher
+INFO 2026-02-15 22:13:07,496 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:13:07,497 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:13:07,512 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:13:07,514 video_service Generated Agora token for channel=appointment_81_939de265, uid=1000017, role=publisher
+INFO 2026-02-15 22:13:07,515 video_service Generated Agora token for channel=appointment_81_939de265, uid=2000020, role=publisher
+INFO 2026-02-15 22:13:07,525 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:13:07,527 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:13:08,700 views_video Session already started for appointment 81, allowing user 20 to rejoin
+INFO 2026-02-15 22:14:05,458 views_video Clearing old tokens for appointment 81
+INFO 2026-02-15 22:14:05,462 views_video Clearing old tokens for appointment 81
+INFO 2026-02-15 22:14:05,471 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:05,473 video_service Generated Agora token for channel=appointment_81_730b4978, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:05,473 video_service Generated Agora token for channel=appointment_81_730b4978, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:05,484 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:05,484 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:14:05,496 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:05,498 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:05,499 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:05,508 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:05,509 views_video Token generated for appointment 81, user=20 (role=therapist), uid=2000020
+INFO 2026-02-15 22:14:07,682 views_video Video session started for appointment 81 by user 20
+INFO 2026-02-15 22:14:07,705 views_video Session already started for appointment 81, allowing user 20 to rejoin
+INFO 2026-02-15 22:14:21,667 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:21,667 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:21,667 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:21,676 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:21,676 views_video Token generated for appointment 81, user=17 (role=patient), uid=1000017
+INFO 2026-02-15 22:14:21,686 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:21,688 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:21,688 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:21,698 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:21,698 views_video Token generated for appointment 81, user=17 (role=patient), uid=1000017
+INFO 2026-02-15 22:14:26,971 views_video Session already started for appointment 81, allowing user 17 to rejoin
+INFO 2026-02-15 22:14:31,752 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:31,753 video_service Generating tokens for appointment 81: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:14:31,753 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:31,754 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=1000017, role=publisher
+INFO 2026-02-15 22:14:31,754 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:31,755 video_service Generated Agora token for channel=appointment_81_ee40c26b, uid=2000020, role=publisher
+INFO 2026-02-15 22:14:31,773 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:31,773 views_video Token generated for appointment 81, user=17 (role=patient), uid=1000017
+INFO 2026-02-15 22:14:31,800 video_service Tokens saved for appointment 81
+INFO 2026-02-15 22:14:31,802 views_video Token generated for appointment 81, user=17 (role=patient), uid=1000017
+INFO 2026-02-15 22:14:33,579 views_video Session already started for appointment 81, allowing user 17 to rejoin
+INFO 2026-02-15 22:14:53,327 views_video Video session ended for appointment 81 by user 20. Duration: 0 min
+INFO 2026-02-15 22:22:20,876 video_service Generating tokens for appointment 79: patient_uid=1000007, therapist_uid=2000011
+INFO 2026-02-15 22:22:20,877 video_service Generated Agora token for channel=appointment_79_94f63021, uid=1000007, role=publisher
+INFO 2026-02-15 22:22:20,877 video_service Generated Agora token for channel=appointment_79_94f63021, uid=2000011, role=publisher
+INFO 2026-02-15 22:22:20,883 video_service Tokens saved for appointment 79
+INFO 2026-02-15 22:27:10,688 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:27:10,694 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:27:10,700 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:27:10,702 video_service Generated Agora token for channel=appointment_82_ee87c6ed, uid=1000017, role=publisher
+INFO 2026-02-15 22:27:10,703 video_service Generated Agora token for channel=appointment_82_ee87c6ed, uid=2000020, role=publisher
+INFO 2026-02-15 22:27:10,710 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:27:10,711 video_service Generated Agora token for channel=appointment_82_fa2d5dde, uid=1000017, role=publisher
+INFO 2026-02-15 22:27:10,711 video_service Generated Agora token for channel=appointment_82_fa2d5dde, uid=2000020, role=publisher
+INFO 2026-02-15 22:27:10,724 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:27:10,725 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:27:10,745 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:27:10,746 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:27:21,091 views_video Session started for appointment 82
+INFO 2026-02-15 22:27:21,106 views_video Session started for appointment 82
+INFO 2026-02-15 22:27:34,132 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:27:34,148 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:27:34,150 video_service Generated Agora token for channel=appointment_82_e53e19e7, uid=1000017, role=publisher
+INFO 2026-02-15 22:27:34,151 video_service Generated Agora token for channel=appointment_82_e53e19e7, uid=2000020, role=publisher
+INFO 2026-02-15 22:27:34,155 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:27:34,169 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:27:34,170 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:27:34,184 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:27:34,185 video_service Generated Agora token for channel=appointment_82_a843e60a, uid=1000017, role=publisher
+INFO 2026-02-15 22:27:34,186 video_service Generated Agora token for channel=appointment_82_a843e60a, uid=2000020, role=publisher
+INFO 2026-02-15 22:27:34,204 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:27:34,205 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:27:40,555 views_video User 17 rejoining active session 82
+INFO 2026-02-15 22:27:40,625 views_video User 17 rejoining active session 82
+INFO 2026-02-15 22:28:00,656 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:00,663 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:00,664 video_service Generated Agora token for channel=appointment_82_c59969ba, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:00,664 video_service Generated Agora token for channel=appointment_82_c59969ba, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:00,675 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:00,675 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:28:00,693 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:00,707 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:00,709 video_service Generated Agora token for channel=appointment_82_1abeb283, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:00,710 video_service Generated Agora token for channel=appointment_82_1abeb283, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:00,723 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:00,725 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:28:01,761 views_video User 20 rejoining active session 82
+INFO 2026-02-15 22:28:02,864 views_video User 20 rejoining active session 82
+INFO 2026-02-15 22:28:25,003 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:25,008 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:25,021 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:25,023 video_service Generated Agora token for channel=appointment_82_80b48c7a, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:25,025 video_service Generated Agora token for channel=appointment_82_80b48c7a, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:25,037 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:25,039 video_service Generated Agora token for channel=appointment_82_67236d45, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:25,042 video_service Generated Agora token for channel=appointment_82_67236d45, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:25,058 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:25,059 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:28:25,078 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:25,079 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:28:27,576 views_video User 20 rejoining active session 82
+INFO 2026-02-15 22:28:27,824 views_video User 20 rejoining active session 82
+INFO 2026-02-15 22:28:34,560 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:34,561 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:28:34,577 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:34,578 video_service Generated Agora token for channel=appointment_82_0bc3a164, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:34,579 video_service Generated Agora token for channel=appointment_82_0bc3a164, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:34,596 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:34,599 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:28:34,625 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:28:34,627 video_service Generated Agora token for channel=appointment_82_ab0b821c, uid=1000017, role=publisher
+INFO 2026-02-15 22:28:34,629 video_service Generated Agora token for channel=appointment_82_ab0b821c, uid=2000020, role=publisher
+INFO 2026-02-15 22:28:34,654 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:28:34,657 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:28:36,099 views_video User 17 rejoining active session 82
+INFO 2026-02-15 22:28:36,248 views_video User 17 rejoining active session 82
+INFO 2026-02-15 22:34:48,864 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:34:48,865 video_service Generated Agora token for channel=appointment_82_b6830ebf, uid=1000017, role=publisher
+INFO 2026-02-15 22:34:48,866 video_service Generated Agora token for channel=appointment_82_b6830ebf, uid=2000020, role=publisher
+INFO 2026-02-15 22:34:48,872 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:38:13,061 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:38:13,063 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:38:13,072 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:38:13,076 video_service Generated Agora token for channel=appointment_82_ed1a1261, uid=1000017, role=publisher
+INFO 2026-02-15 22:38:13,076 video_service Generated Agora token for channel=appointment_82_ed1a1261, uid=2000020, role=publisher
+INFO 2026-02-15 22:38:13,083 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:38:13,083 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:38:13,096 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:38:13,097 video_service Generated Agora token for channel=appointment_82_3c1cb26a, uid=1000017, role=publisher
+INFO 2026-02-15 22:38:13,097 video_service Generated Agora token for channel=appointment_82_3c1cb26a, uid=2000020, role=publisher
+INFO 2026-02-15 22:38:13,106 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:38:13,107 views_video Token generated for appointment 82, user=20, uid=2000020
+INFO 2026-02-15 22:38:24,984 views_video Session started for appointment 82
+INFO 2026-02-15 22:38:25,008 views_video Session started for appointment 82
+INFO 2026-02-15 22:38:35,522 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:38:35,524 views_video Generating fresh tokens for appointment 82
+INFO 2026-02-15 22:38:35,534 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:38:35,534 video_service Generated Agora token for channel=appointment_82_f5634c9f, uid=1000017, role=publisher
+INFO 2026-02-15 22:38:35,534 video_service Generated Agora token for channel=appointment_82_f5634c9f, uid=2000020, role=publisher
+INFO 2026-02-15 22:38:35,547 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:38:35,547 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:38:35,558 video_service Generating tokens for appointment 82: patient_uid=1000017, therapist_uid=2000020
+INFO 2026-02-15 22:38:35,559 video_service Generated Agora token for channel=appointment_82_03749d95, uid=1000017, role=publisher
+INFO 2026-02-15 22:38:35,560 video_service Generated Agora token for channel=appointment_82_03749d95, uid=2000020, role=publisher
+INFO 2026-02-15 22:38:35,569 video_service Tokens saved for appointment 82
+INFO 2026-02-15 22:38:35,569 views_video Token generated for appointment 82, user=17, uid=1000017
+INFO 2026-02-15 22:38:40,400 views_video User 17 rejoining active session 82
+INFO 2026-02-15 22:38:40,473 views_video User 17 rejoining active session 82

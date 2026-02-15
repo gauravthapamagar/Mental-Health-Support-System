@@ -1,6 +1,6 @@
 from django.urls import path, include
 from . import views
-from . import views_payment, session_report_urls
+from . import views_payment, session_report_urls,views_video
 
 urlpatterns = [
     # Public - Therapist discovery
@@ -30,7 +30,10 @@ urlpatterns = [
     # Check payment status for an appointment (both patient and therapist)
     path('payments/status/<int:appointment_id>/', views_payment.payment_status, name='payment-status'),
     
-    
+    path('appointments/<int:appointment_id>/video/token/', views_video.generate_video_token, name='generate-video-token'),
+    path('appointments/<int:appointment_id>/video/start/', views_video.start_video_session, name='start-video-session'),
+    path('appointments/<int:appointment_id>/video/end/', views_video.end_video_session, name='end-video-session'),
+    path('appointments/<int:appointment_id>/video/status/', views_video.get_video_session_status, name='get-session-status'),
     
    
     

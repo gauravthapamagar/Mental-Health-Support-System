@@ -5,6 +5,7 @@ import { bookingAPI } from "@/lib/api";
 import Header from "@/components/Header";
 import SessionReportForm from "@/components/therapist/SessionReportForm";
 import AppointmentDetailModal from "@/components/therapist/AppointmentDetailModal";
+import VideoCallButton from "@/components/video/VideoCallButton";
 import {
   CheckCircle,
   XCircle,
@@ -387,6 +388,15 @@ const TherapistAppointments = () => {
                         </>
                       )}
 
+                      {/* ✅ VIDEO CALL BUTTON for confirmed online sessions */}
+                      {apt.status === "confirmed" && apt.session_mode === "online" && (
+                        <VideoCallButton
+                          appointmentId={apt.id}
+        sessionMode={apt.session_mode}
+        status={apt.status}
+                        />
+                      )}
+
                       {apt.status === "completed" && (
                         <>
                           {activeTab === "history" && (
@@ -451,7 +461,7 @@ const TherapistAppointments = () => {
           />
         )}
 
-        {/* ✅ Write Session Report Form Modal - FIXED */}
+        {/* ✅ Write Session Report Form Modal */}
         {showReportForm && reportAppointmentId && 
           (() => {
             const apt = appointments.find((a: any) => a.id === reportAppointmentId);

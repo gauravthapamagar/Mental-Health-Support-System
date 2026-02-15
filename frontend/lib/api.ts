@@ -232,8 +232,66 @@ export const blogAPI = {
     return response.data;
   },
 };
+export interface VideoTokenResponse {
+  token: string;
+  channel_name: string;
+  app_id: string;
+  uid: number;
+  expires_at: number;
+  can_start: boolean;
+  message: string;
+  role: "patient" | "therapist";
+  other_participant: {
+    name: string;
+    role: string;
+  };
+  error?: string;
+}
 
+export interface VideoSessionStatusResponse {
+  is_active: boolean;
+  can_start: boolean;
+  can_start_reason: string;
+  session_started_at: string | null;
+  session_ended_at: string | null;
+  duration_minutes: number | null;
+  appointment_date: string;
+  start_time: string;
+  session_mode: string;
+  status: string;
+}
 export const bookingAPI = {
+
+  generateVideoToken: async (appointmentId: number): Promise<VideoTokenResponse> => {
+    const response = await axiosInstance.post(
+      `/booking/appointments/${appointmentId}/video/token/`
+    );
+    return response.data;
+  },
+
+  startVideoSession: async (appointmentId: number): Promise<any> => {
+    const response = await axiosInstance.post(
+      `/booking/appointments/${appointmentId}/video/start/`
+    );
+    return response.data;
+  },
+
+  endVideoSession: async (appointmentId: number, recordingSid?: string): Promise<any> => {
+    const response = await axiosInstance.post(
+      `/booking/appointments/${appointmentId}/video/end/`,
+      recordingSid ? { recording_sid: recordingSid } : {}
+    );
+    return response.data;
+  },
+
+  getVideoSessionStatus: async (appointmentId: number): Promise<VideoSessionStatusResponse> => {
+    const response = await axiosInstance.get(
+      `/booking/appointments/${appointmentId}/video/status/`
+    );
+    return response.data;
+  },
+
+
   // Get therapists for the booking list
   listTherapists: async (params?: {
     specialization?: string;

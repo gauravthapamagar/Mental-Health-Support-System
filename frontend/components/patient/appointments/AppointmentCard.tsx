@@ -19,7 +19,8 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { bookingAPI } from "@/lib/api";
-
+// import VideoCallButton from "./VideoCallButton";
+import VideoCallButton from "@/components/video/VideoCallButton";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
 
 interface AppointmentCardProps {
@@ -82,14 +83,14 @@ export default function AppointmentCard({
 
     setLoading(true);
     try {
-      console.log("[v0] Sending cancel request with reason:", cancelReason);
+      console.log("[AppointmentCard] Sending cancel request with reason:", cancelReason);
       await bookingAPI.cancelAppointment(parseInt(id), cancelReason);
-      console.log("[v0] Cancel successful");
+      console.log("[AppointmentCard] Cancel successful");
       setShowCancelModal(false);
       setCancelReason("");
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      console.log("[v0] Cancel error:", err.response?.status, err.response?.data);
+      console.log("[AppointmentCard] Cancel error:", err.response?.status, err.response?.data);
 
       let errorMsg = "Failed to cancel appointment. Please try again.";
       const responseData = err.response?.data;
@@ -315,10 +316,10 @@ export default function AppointmentCard({
             </div>
 
             {/* Right Section - Actions */}
-            <div className="flex items-center gap-3 lg:flex-col lg:items-end">
+            <div className="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
               {/* PENDING STATUS - Limited Actions */}
               {status === "pending" && (
-                <>
+                <div className="flex gap-3 w-full lg:w-auto">
                   <button
                     onClick={() => setShowDetailsModal(true)}
                     className="flex-1 lg:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-slate-300 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-slate-400 transition-all shadow-sm"
@@ -334,12 +335,12 @@ export default function AppointmentCard({
                   >
                     <X size={22} />
                   </button>
-                </>
+                </div>
               )}
 
               {/* AWAITING PAYMENT STATUS - Payment Action */}
               {status === "awaiting_payment" && (
-                <>
+                <div className="flex gap-3 w-full lg:w-auto">
                   <button
                     onClick={() => setShowCancelModal(true)}
                     className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300"
@@ -365,23 +366,23 @@ export default function AppointmentCard({
                       </>
                     )}
                   </button>
-                </>
+                </div>
               )}
 
-              {/* UPCOMING STATUS - Full Actions */}
+              {/* UPCOMING STATUS - Full Actions + Video Call Button */}
               {status === "upcoming" && (
-                <>
-                  <div className="flex gap-2">
+                <div className="flex flex-col gap-3 w-full lg:w-auto lg:flex-row lg:items-end">
+                  <div className="flex gap-2 w-full lg:w-auto">
                     <button
                       onClick={() => setShowRescheduleModal(true)}
-                      className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border-2 border-slate-200 hover:border-blue-300"
+                      className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border-2 border-slate-200 hover:border-blue-300 flex-1 lg:flex-initial"
                       title="Reschedule"
                     >
                       <RefreshCw size={20} />
                     </button>
                     <button
                       onClick={() => setShowCancelModal(true)}
-                      className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300"
+                      className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border-2 border-slate-200 hover:border-red-300 flex-1 lg:flex-initial"
                       title="Cancel"
                     >
                       <X size={20} />
@@ -395,21 +396,24 @@ export default function AppointmentCard({
                     <Eye size={18} />
                     Details
                   </button>
-
+                  
+                  {/* ✅ VIDEO CALL BUTTON - Only for video format */}
                   {format === "video" && (
-                    <button className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:scale-105">
-                      <Video size={18} /> Join Call
-                    </button>
+                    <VideoCallButton
+  appointmentId={parseInt(id)}
+  sessionMode={format === "video" ? "online" : "offline"}
+  status={status}
+/>
                   )}
-                </>
+                </div>
               )}
 
               {/* COMPLETED STATUS */}
               {status === "completed" && (
-                <div className="flex flex-col gap-2 w-full lg:w-auto">
+                <div className="w-full lg:w-auto">
                   <button
                     onClick={() => router.push("/patient/progress")}
-                    className="w-full lg:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                   >
                     <Eye size={18} />
                     Check Progress

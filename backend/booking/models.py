@@ -149,6 +149,43 @@ class Appointment(models.Model):
     # Meeting details (for online sessions)
     meeting_link = models.URLField(blank=True, null=True)
     meeting_id = models.CharField(max_length=100, blank=True, null=True)
+    video_channel_name = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        help_text="Agora channel name"
+    )
+    video_token_patient = models.TextField(
+        blank=True, 
+        null=True, 
+        help_text="Agora token for patient"
+    )
+    video_token_therapist = models.TextField(
+        blank=True, 
+        null=True, 
+        help_text="Agora token for therapist"
+    )
+    session_started_at = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="When video session actually started"
+    )
+    session_ended_at = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="When video session ended"
+    )
+    session_duration_minutes = models.IntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Actual session duration"
+    )
+    recording_sid = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        help_text="Agora recording ID if recorded"
+    )
     
     # Therapist notes
     therapist_notes = models.TextField(blank=True, help_text="Notes from therapist")
@@ -180,6 +217,8 @@ class Appointment(models.Model):
             models.Index(fields=['patient', 'appointment_date']),
             models.Index(fields=['therapist', 'appointment_date']),
             models.Index(fields=['status', 'appointment_date']),
+            models.Index(fields=['video_channel_name']),
+            models.Index(fields=['session_started_at']),
         ]
     
     def __str__(self):

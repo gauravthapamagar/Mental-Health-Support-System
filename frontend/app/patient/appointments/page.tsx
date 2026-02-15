@@ -15,7 +15,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { toast } from "react-toastify"; // Import toast for error notifications
+import { toast } from "react-toastify";
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
@@ -59,13 +59,11 @@ export default function AppointmentsPage() {
         });
         setAppointments(confirmedUpcoming);
       } else if (activeTab === "past") {
-        // Try fetching past appointments directly, fallback to upcoming and filter
         try {
           const pastData = await bookingAPI.getMyAppointments("past");
           const pastAppts = pastData.results || pastData || [];
           setAppointments(pastAppts);
         } catch (error) {
-          // Fallback: fetch upcoming and filter for past times
           const upcomingData = await bookingAPI.getMyAppointments("upcoming").catch(() => ({ results: [] }));
           const allUpcoming = upcomingData.results || [];
           
@@ -78,7 +76,6 @@ export default function AppointmentsPage() {
           setAppointments(completedAppts);
         }
       } else if (activeTab === "cancelled") {
-        // Fetch only cancelled appointments
         const cancelledData = await bookingAPI.getMyAppointments("cancelled");
         const cancelledAppts = (cancelledData.results || []).filter(
           (apt: any) => apt.status === "cancelled"
@@ -130,7 +127,6 @@ export default function AppointmentsPage() {
         const pastAppts = pastData.results || pastData || [];
         completedCount = pastAppts.length;
       } catch (error) {
-        // Fallback: count from upcoming
         const completedFromUpcoming = allUpcoming.filter((apt: any) => {
           if (apt.status !== "confirmed" && apt.status !== "completed") return false;
           const appointmentDateTime = new Date(
@@ -163,7 +159,6 @@ export default function AppointmentsPage() {
     try {
       const response = await bookingAPI.getPatientProgress();
       const reports = response.results || response || [];
-      // Filter only patient-visible reports
       const visibleReports = reports.filter((r: any) => r.patient_visible === true);
       setSessionReports(visibleReports);
     } catch (error) {
@@ -174,19 +169,12 @@ export default function AppointmentsPage() {
     }
   }, []);
 
+  // ✅ REMOVED AUTO-REFRESH POLLING
+  // Only fetch on component mount and when tab changes
   useEffect(() => {
     fetchAppointments();
     fetchTabCounts();
     fetchSessionReports();
-    
-    // Poll for updates every 10 seconds to catch status changes from therapist
-    const pollInterval = setInterval(() => {
-      fetchTabCounts();
-      fetchAppointments();
-      fetchSessionReports();
-    }, 10000);
-    
-    return () => clearInterval(pollInterval);
   }, [fetchAppointments, fetchTabCounts, fetchSessionReports]);
 
   const refreshAppointments = () => {
@@ -194,38 +182,28 @@ export default function AppointmentsPage() {
     fetchTabCounts();
   };
 
-  // NEW: Handle Khalti payment
+  // Handle Khalti payment
   const handlePayNow = async (appointmentId: number) => {
     setPayingAppointmentId(appointmentId);
     try {
-      console.log("[v0] Initiating payment for appointment:", appointmentId);
+      console.log("[AppointmentsPage] Initiating payment for appointment:", appointmentId);
       const response = await paymentAPI.initiatePayment(appointmentId);
-      console.log("[v0] Payment response:", response);
+      console.log("[AppointmentsPage] Payment response:", response);
       if (response.payment_url) {
         window.location.href = response.payment_url;
       } else {
-        console.error("[v0] No payment_url in response:", response);
-        toast?.toast({
-          title: "Payment Error",
-          description: "Invalid payment response from server",
-          variant: "destructive",
-        });
+        console.error("[AppointmentsPage] No payment_url in response:", response);
+        toast.error("Invalid payment response from server");
       }
     } catch (error: any) {
-      console.error("[v0] Payment failed:", error);
-      console.error("[v0] Error status:", error.response?.status);
-      console.error("[v0] Error data:", error.response?.data);
-      toast?.toast({
-        title: "Payment Error",
-        description: error.response?.data?.detail || "Failed to initiate payment. Check backend.",
-        variant: "destructive",
-      });
+      console.error("[AppointmentsPage] Payment failed:", error);
+      toast.error(error.response?.data?.detail || "Failed to initiate payment. Check backend.");
     } finally {
       setPayingAppointmentId(null);
     }
   };
 
-  // Tab configuration with icons and colors
+  // Tab configuration
   const tabs = [
     {
       id: "pending",
@@ -269,7 +247,7 @@ export default function AppointmentsPage() {
     },
   ];
 
-  // Updated status mapping - determines display status for the card
+  // Status mapping
   const getAppointmentStatus = (
     apt: any
   ): "pending" | "awaiting_payment" | "upcoming" | "completed" | "cancelled" | "confirmed" => {
@@ -377,7 +355,7 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* NEW: Pay Now Tab Info Banner */}
+      {/* Pay Now Tab Info Banner */}
       {activeTab === "pay_now" && appointments.length > 0 && (
         <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
           <div className="flex items-start gap-3">
@@ -524,4 +502,3 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-  

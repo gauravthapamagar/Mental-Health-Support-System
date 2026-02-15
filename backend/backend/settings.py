@@ -232,3 +232,44 @@ if ENCRYPTION_KEY:
         fernet = None
 else:
     fernet = None
+    
+    
+    
+AGORA_APP_ID = '9df604db93df484692073dad4c009238'  # Get from Agora Console
+AGORA_APP_CERTIFICATE = '0fc3a49bc95542c1a7febc0553323cbf' 
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'video_calling.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'booking.services.video_service': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'booking.views_video': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
