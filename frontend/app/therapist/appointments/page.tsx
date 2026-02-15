@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { bookingAPI } from "@/lib/api";
 import Header from "@/components/Header";
-import SessionReportModal from "@/components/therapist/SessionReportViewModal";
+import SessionReportForm from "@/components/therapist/SessionReportForm";
 import AppointmentDetailModal from "@/components/therapist/AppointmentDetailModal";
 import {
   CheckCircle,
@@ -16,6 +16,7 @@ import {
   Sparkles,
   Filter,
   AlertTriangle,
+  X,
 } from "lucide-react";
 
 const TherapistAppointments = () => {
@@ -29,7 +30,7 @@ const TherapistAppointments = () => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailAppointmentId, setDetailAppointmentId] = useState<number | null>(null);
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
   const [reportAppointmentId, setReportAppointmentId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -46,41 +47,31 @@ const TherapistAppointments = () => {
         return apt.status === "pending";
       } else if (activeTab === "upcoming") {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-        // Include both confirmed AND awaiting_payment in upcoming for therapist view
         return (apt.status === "confirmed" || apt.status === "awaiting_payment") && appointmentDateTime > now;
       } else if (activeTab === "confirmed") {
-        // Show all confirmed appointments regardless of date
         return apt.status === "confirmed";
       } else if (activeTab === "history") {
         const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.start_time}`);
-        // Show only completed appointments in history
         return apt.status === "completed" && appointmentDateTime <= now;
       }
       return false;
     });
 
-    // Sort appointments based on the active tab
     return filtered.sort((a: any, b: any) => {
       if (activeTab === "pending") {
-        // For pending: newest requests first (sort by created_at or id descending)
-        // If you have a created_at field, use that. Otherwise, use id as a proxy
         if (a.created_at && b.created_at) {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         }
-        // Fallback to ID if created_at doesn't exist (higher ID = more recent)
         return (b.id || 0) - (a.id || 0);
       } else if (activeTab === "upcoming" || activeTab === "confirmed") {
-        // For upcoming and confirmed: earliest appointment first (sort by date and time ascending)
         const dateTimeA = new Date(`${a.appointment_date}T${a.start_time}`).getTime();
         const dateTimeB = new Date(`${b.appointment_date}T${b.start_time}`).getTime();
         return dateTimeA - dateTimeB;
       } else if (activeTab === "history") {
-        // For history: most recent sessions first (sort by date and time descending)
         const dateTimeA = new Date(`${a.appointment_date}T${a.start_time}`).getTime();
         const dateTimeB = new Date(`${b.appointment_date}T${b.start_time}`).getTime();
         return dateTimeB - dateTimeA;
       }
-
       return 0;
     });
   };
@@ -138,11 +129,11 @@ const TherapistAppointments = () => {
 
   const handleWriteReport = (id: number) => {
     setReportAppointmentId(id);
-    setShowReportModal(true);
+    setShowReportForm(true);
   };
 
   const handleReportSubmitted = () => {
-    setShowReportModal(false);
+    setShowReportForm(false);
     setReportAppointmentId(null);
     fetchAppointments();
   };
@@ -204,7 +195,6 @@ const TherapistAppointments = () => {
       <Header />
 
       <main className="pt-20 min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
           <div className="absolute top-40 right-10 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -212,7 +202,6 @@ const TherapistAppointments = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-          {/* Header Section */}
           <div className="mb-8 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
@@ -247,7 +236,6 @@ const TherapistAppointments = () => {
             </div>
           </div>
 
-          {/* Filter Tabs */}
           <div className="mb-8 animate-slide-up">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/50 inline-flex gap-2">
               {tabs.map((tab) => (
@@ -267,6 +255,8 @@ const TherapistAppointments = () => {
                           ? "from-blue-500 to-blue-600"
                           : tab.color === "amber"
                           ? "from-amber-500 to-amber-600"
+                          : tab.color === "teal"
+                          ? "from-teal-500 to-teal-600"
                           : "from-slate-500 to-slate-600"
                       } rounded-xl`}
                     ></div>
@@ -284,7 +274,6 @@ const TherapistAppointments = () => {
             </div>
           </div>
 
-          {/* Content Area */}
           {loading ? (
             <div className="text-center py-20 animate-fade-in">
               <div className="relative w-24 h-24 mx-auto mb-6">
@@ -316,12 +305,10 @@ const TherapistAppointments = () => {
                   className="group relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 border-2 border-transparent hover:border-blue-200 hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-1"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  {/* Hover gradient effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-teal-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
                   <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                     <div className="flex items-start gap-5 flex-1">
-                      {/* Enhanced Patient Avatar */}
                       <div className="relative flex-shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-teal-400 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
                         <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-xl group-hover:scale-110 transition-transform">
@@ -374,7 +361,6 @@ const TherapistAppointments = () => {
                     </div>
 
                     <div className="flex items-center gap-3 flex-wrap">
-                      {/* View Details Button */}
                       <button
                         onClick={() => openDetailModal(apt.id)}
                         className="flex items-center px-5 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:border-blue-300 hover:bg-blue-50 transition-all group/btn"
@@ -403,7 +389,6 @@ const TherapistAppointments = () => {
 
                       {apt.status === "completed" && (
                         <>
-                          {/* Write Report Button for History Tab */}
                           {activeTab === "history" && (
                             <button
                               onClick={() => handleWriteReport(apt.id)}
@@ -454,10 +439,6 @@ const TherapistAppointments = () => {
           )}
         </div>
 
-        {/* ──────────────────────────────────────────────── */}
-        {/*             Modals moved outside z-10             */}
-        {/* ──────────────────────────────────────────────── */}
-
         {/* Detail Modal */}
         {showDetailModal && detailAppointmentId && (
           <AppointmentDetailModal
@@ -470,22 +451,51 @@ const TherapistAppointments = () => {
           />
         )}
 
-        {/* Session Report Modal */}
-        {showReportModal && reportAppointmentId && 
+        {/* ✅ Write Session Report Form Modal - FIXED */}
+        {showReportForm && reportAppointmentId && 
           (() => {
             const apt = appointments.find((a: any) => a.id === reportAppointmentId);
             return apt ? (
-              <SessionReportModal
-                isOpen={showReportModal}
-                appointmentId={reportAppointmentId}
-                patientName={apt.patient_name || "Patient"}
-                appointmentDate={new Date(`${apt.appointment_date}T${apt.start_time}`).toLocaleDateString()}
-                onClose={() => {
-                  setShowReportModal(false);
-                  setReportAppointmentId(null);
-                }}
-                onSuccess={handleReportSubmitted}
-              />
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                  onClick={() => {
+                    setShowReportForm(false);
+                    setReportAppointmentId(null);
+                  }}
+                />
+
+                <div className="relative min-h-screen flex items-center justify-center p-4">
+                  <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="sticky top-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 flex items-center justify-between border-b border-slate-200 z-10">
+                      <h2 className="text-2xl font-bold">Write Session Report</h2>
+                      <button
+                        onClick={() => {
+                          setShowReportForm(false);
+                          setReportAppointmentId(null);
+                        }}
+                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="p-6">
+                      <SessionReportForm
+                        appointmentId={reportAppointmentId}
+                        patientName={apt.patient?.full_name || "Patient"}
+                        appointmentDate={`${apt.appointment_date}T${apt.start_time}`}
+                        editMode={false}
+                        onSuccess={handleReportSubmitted}
+                        onClose={() => {
+                          setShowReportForm(false);
+                          setReportAppointmentId(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : null;
           })()
         }

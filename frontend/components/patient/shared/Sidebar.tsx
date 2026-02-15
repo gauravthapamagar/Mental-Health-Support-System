@@ -16,6 +16,7 @@ import {
   User,
   Settings,
   HelpCircle,
+  TrendingUp,
 } from "lucide-react";
 
 interface NavItem {
@@ -43,6 +44,12 @@ const mainNavItems: NavItem[] = [
     label: "Find Therapist",
     icon: Users,
     href: "/patient/therapists",
+  },
+  {
+    id: "progress",
+    label: "Your Progress",
+    icon: TrendingUp,
+    href: "/patient/progress",
   },
 ];
 

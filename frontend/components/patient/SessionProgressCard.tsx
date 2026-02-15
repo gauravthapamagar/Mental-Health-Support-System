@@ -5,6 +5,8 @@ import {
   Eye,
   Calendar,
   FileText,
+  TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import SessionReportView from "./SessionReportView";
 
@@ -18,6 +20,7 @@ interface SessionReport {
   homework_assigned?: string;
   notes_for_next_session?: string;
   patient_visible: boolean;
+  treatment_goals_addressed?: string[];
 }
 
 interface SessionProgressCardProps {
@@ -48,6 +51,13 @@ export default function SessionProgressCard({
     return "text-emerald-600";
   };
 
+  const getMoodBgColor = (mood: number) => {
+    if (mood <= 3) return "bg-red-100";
+    if (mood <= 5) return "bg-amber-100";
+    if (mood <= 7) return "bg-blue-100";
+    return "bg-emerald-100";
+  };
+
   const getOutcomeColor = (outcome: string) => {
     switch (outcome) {
       case "productive":
@@ -63,69 +73,104 @@ export default function SessionProgressCard({
     }
   };
 
+  const getOutcomeIcon = (outcome: string) => {
+    switch (outcome) {
+      case "productive":
+        return "✓";
+      case "breakthrough":
+        return "★";
+      case "needs_follow_up":
+        return "→";
+      case "blocked":
+        return "!";
+      default:
+        return "•";
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <>
-      <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          {/* Main Content */}
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <FileText size={24} className="text-blue-600" />
+      <div className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 overflow-hidden">
+        {/* Hover glow effect */}
+        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-bl-3xl"></div>
+
+        <div className="relative z-10 p-6 lg:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            {/* Left Content */}
+            <div className="flex-1 min-w-0">
+              {/* Date & Session Type */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                  <Calendar size={18} className="text-blue-600" />
+                </div>
                 <div>
-                  <p className="text-sm text-slate-600 font-semibold uppercase">Session Report</p>
-                  <p className="text-lg font-bold text-slate-900">
-                    {new Date(report.appointment_date).toLocaleDateString(undefined, {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Session Date</p>
+                  <h3 className="text-lg font-bold text-gray-900">{formatDate(report.appointment_date)}</h3>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap gap-4 items-center">
-              <div>
-                <p className="text-sm text-slate-600 font-semibold uppercase">Mood</p>
-                <p className={`text-2xl font-bold ${getMoodColor(report.mood_rating)}`}>
-                  {getMoodEmoji(report.mood_rating)} {report.mood_rating}/10
-                </p>
-              </div>
+              {/* Mood & Outcome Badges */}
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                {/* Mood Badge */}
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold ${getMoodBgColor(report.mood_rating)} ${getMoodColor(report.mood_rating)}`}>
+                  <span className="text-xl">{getMoodEmoji(report.mood_rating)}</span>
+                  <span>{report.mood_rating}/10</span>
+                </div>
 
-              <div>
-                <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold border ${getOutcomeColor(report.session_outcome)}`}>
+                {/* Outcome Badge */}
+                <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border ${getOutcomeColor(report.session_outcome)}`}>
+                  <span>{getOutcomeIcon(report.session_outcome)}</span>
                   {report.session_outcome_display || report.session_outcome}
                 </span>
+
+                {/* Homework Badge */}
+                {report.homework_assigned && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200">
+                    <Sparkles size={14} />
+                    Homework
+                  </div>
+                )}
+
+                {/* Goals Badge */}
+                {report.treatment_goals_addressed && report.treatment_goals_addressed.length > 0 && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200">
+                    <TrendingUp size={14} />
+                    {report.treatment_goals_addressed.length} Goals
+                  </div>
+                )}
               </div>
 
-              {report.homework_assigned && (
-                <div className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-200">
-                  ✓ Homework Assigned
+              {/* Session Summary Preview */}
+              {report.session_summary && (
+                <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Session Highlight</p>
+                  <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">
+                    {report.session_summary}
+                  </p>
                 </div>
               )}
             </div>
 
-            {report.session_summary && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-sm text-slate-600 font-semibold uppercase mb-2">Session Summary</p>
-                <p className="text-slate-700 text-sm leading-relaxed line-clamp-2">
-                  {report.session_summary}
-                </p>
-              </div>
-            )}
+            {/* Right Action */}
+            <button
+              onClick={() => setShowDetails(true)}
+              className="lg:flex-shrink-0 w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 rounded-xl font-semibold transition-all duration-200 border border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md"
+            >
+              <Eye size={18} />
+              <span className="hidden sm:inline">View Full Report</span>
+              <span className="sm:hidden">View</span>
+            </button>
           </div>
-
-          {/* Action Button */}
-          <button
-            onClick={() => setShowDetails(true)}
-            className="lg:self-start flex items-center gap-2 px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-semibold transition-colors"
-          >
-            <Eye size={18} />
-            <span className="hidden sm:inline">View Details</span>
-            <span className="sm:hidden">View</span>
-          </button>
         </div>
       </div>
 

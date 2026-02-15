@@ -4,7 +4,7 @@ import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import MentalHealthChatbot from "@/components/MentalHealthChatbot";
 import "./globals.css";
-
+import { Toaster } from 'react-hot-toast';
 // Fonts
 const geistSans = Geist({
   variable: "--font-geist-sans",

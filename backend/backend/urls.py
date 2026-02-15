@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/journal/', include('journal.urls')),
     path('api/matching/', include('matching.urls')),
     path('api/accounts/', include('accounts.verification_urls')),
+    path('api/community/', include('community.urls')),
     
     
 ]

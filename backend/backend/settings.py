@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'journal',
     'matching',
     'django_extensions',
+    'community',
 ]
 
 MIDDLEWARE = [

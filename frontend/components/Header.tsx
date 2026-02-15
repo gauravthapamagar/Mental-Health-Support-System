@@ -89,12 +89,14 @@ export default function Header() {
       ];
     }
 
-    // 3. Therapist Specific Links (Removed "Find Therapist" logic)
+    // 3. Therapist Specific Links
     if (userRole === "therapist") {
       return [
         { label: "Home", href: homeHref },
         { label: "My Blogs", href: "/therapist/my-blogs" },
         { label: "Blogs", href: "/blog" },
+        { label: "Community", href: "/therapist/community" },
+        { label: "Moderation", href: "/therapist/community/moderation" },
         { label: "Appointments", href: "/therapist/appointments" },
         { label: "Support", href: "/support" },
       ];
@@ -102,7 +104,11 @@ export default function Header() {
 
     // 4. Patient Specific Links
     if (userRole === "patient") {
-      return [...base, { label: "Support", href: "/support" }];
+      return [
+        ...base,
+        { label: "Community", href: "/patient/community" },
+        { label: "Support", href: "/support" },
+      ];
     }
 
     return [...base, { label: "Support", href: "/support" }];
