@@ -1,0 +1,21 @@
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/blog/', include('blogs.urls')),
+    path('api/', include('accounts.urls')),
+    path('api/surveys/', include('surveys.urls')),
+    path('api/booking/', include('booking.urls')),
+    path('api/chat/', include('chatbot.urls')),
+    path('api/journal/', include('journal.urls')),
+    path('api/matching/', include('matching.urls')),
+    path('api/accounts/', include('accounts.verification_urls')),
+    path('api/community/', include('community.urls')),
+    
+    
+]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

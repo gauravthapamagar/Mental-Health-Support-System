@@ -1,0 +1,40 @@
+from django.urls import path, include
+from . import views
+from . import views_payment, session_report_urls,views_video
+
+urlpatterns = [
+    # Public - Therapist discovery
+    path('therapists/', views.list_available_therapists, name='list-therapists'),
+    path('therapists/<int:therapist_id>/availability/', views.get_therapist_availability, name='therapist-availability'),
+    path('therapists/<int:therapist_id>/slots/', views.get_available_slots, name='available-slots'),
+    
+    # Patient - Appointment management
+    path('appointments/create/', views.create_appointment, name='create-appointment'),
+    path('appointments/my/', views.my_appointments, name='my-appointments'),
+    path('appointments/<int:appointment_id>/', views.appointment_detail, name='appointment-detail'),
+    path('appointments/<int:appointment_id>/cancel/', views.cancel_appointment, name='cancel-appointment'),
+    path('appointments/<int:appointment_id>/feedback/', views.submit_feedback, name='submit-feedback'),
+    
+    # Therapist - Appointment management
+    path('therapist/appointments/', views.therapist_appointments, name='therapist-appointments'),
+    path('therapist/appointments/<int:appointment_id>/confirm/', views.confirm_appointment, name='confirm-appointment'),
+    
+    # Statistics
+    path('stats/', views.appointment_stats, name='appointment-stats'),
+    
+    path('payments/initiate/', views_payment.initiate_payment, name='initiate-payment'),
+
+    # Patient verifies payment after Khalti redirect
+    path('payments/verify/', views_payment.verify_payment, name='verify-payment'),
+
+    # Check payment status for an appointment (both patient and therapist)
+    path('payments/status/<int:appointment_id>/', views_payment.payment_status, name='payment-status'),
+    
+    path('appointments/<int:appointment_id>/video/token/', views_video.generate_video_token, name='generate-video-token'),
+    path('appointments/<int:appointment_id>/video/start/', views_video.start_video_session, name='start-video-session'),
+    path('appointments/<int:appointment_id>/video/end/', views_video.end_video_session, name='end-video-session'),
+    path('appointments/<int:appointment_id>/video/status/', views_video.get_video_session_status, name='get-session-status'),
+    
+   
+    
+]+ session_report_urls.urlpatterns

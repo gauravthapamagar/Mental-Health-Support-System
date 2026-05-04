@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext"; // Import your Auth Context
+import { useAuth } from "@/context/AuthContext";
+import axios from "axios";
 import {
   User,
   Mail,
@@ -20,100 +21,302 @@ import {
   Zap,
   CheckCircle2,
   GraduationCap,
-  Loader2, // Added for loading state
+  Loader2,
+  Users,
+  FileText,
+  MapPin,
+  Home,
+  Building,
+  Globe,
+  Locate,
 } from "lucide-react";
 
 export default function SignupPage() {
-  const { register } = useAuth(); // Hook from your AuthContext
-  const [role, setRole] = useState("patient");
+  const { register } = useAuth();
+  const router = useRouter();
+
+  const [role, setRole] = useState<"patient" | "therapist">("patient");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const router = useRouter();
+
+  const [genders, setGenders] = useState([]);
+  const [professionTypes, setProfessionTypes] = useState([]);
 
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
     password2: "",
-    phone: "",
+    full_name: "",
+    phone_number: "",
     date_of_birth: "",
-    license_number: "",
-    specialization: "",
+    gender: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    basic_health_info: "",
+    terms_accepted: false,
+    profession_type: "",
+    license_id: "",
+    years_of_experience: "",
+    // ── Added address fields ──
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    country: "",
+    postal_code: "",
   });
 
-  const commonFields = [
-    { name: "username", placeholder: "Username", icon: User, type: "text" },
-    { name: "email", placeholder: "Email Address", icon: Mail, type: "email" },
-    { name: "phone", placeholder: "Phone Number", icon: Phone, type: "tel" },
-  ];
+  // 🔗 Fetch dropdown metadata from backend
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        // Mock data
+        const data = {
+          genders: ["male", "female", "other"],
+          profession_types: [
+            "psychologist",
+            "psychiatrist",
+            "counselor",
+            "therapist",
+            "social_worker",
+          ],
+        };
+        setGenders(data.genders);
+        setProfessionTypes(data.profession_types);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchMetadata();
+  }, []);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     if (errorMsg) setErrorMsg("");
   };
 
-  // --- INTEGRATION LOGIC ---
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    // 1️⃣ Common Validation
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrorMsg("Please enter a valid email address.");
+      return;
+    }
+    if (!formData.full_name || formData.full_name.length < 2) {
+      setErrorMsg("Full name must be at least 2 characters.");
+      return;
+    }
+    if (!formData.password || formData.password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (formData.password.includes(" ")) {
+      setErrorMsg("Password cannot contain spaces.");
+      return;
+    }
+    if (formData.password !== formData.password2) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+    if (!formData.phone_number || formData.phone_number.length < 10) {
+      setErrorMsg("Please enter a valid phone number (min 10 digits)."); // Basic check
+      return;
+    }
+    if (!formData.date_of_birth) {
+      setErrorMsg("Date of birth is required.");
+      return;
+    }
+    const dob = new Date(formData.date_of_birth);
+    const today = new Date();
+    if (dob > today) {
+      setErrorMsg("Date of birth cannot be in the future.");
+      return;
+    }
+
+    if (!formData.gender) {
+      setErrorMsg("Gender selection is required.");
+      return;
+    }
+
+    // 2️⃣ Role-Specific Validation
+    if (role === "patient") {
+      if (!formData.emergency_contact_name) {
+        setErrorMsg("Emergency contact name is required for patients.");
+        return;
+      }
+      if (!formData.emergency_contact_phone) {
+        setErrorMsg("Emergency contact phone is required for patients.");
+        return;
+      }
+      if (!formData.terms_accepted) {
+        setErrorMsg("You must accept the terms and conditions.");
+        return;
+      }
+    } else if (role === "therapist") {
+      if (!formData.profession_type) {
+        setErrorMsg("Please select your profession type.");
+        return;
+      }
+      if (!formData.license_id) {
+        setErrorMsg("License ID is required for verification.");
+        return;
+      }
+      if (
+        !formData.years_of_experience ||
+        Number(formData.years_of_experience) < 0
+      ) {
+        setErrorMsg("Please enter valid years of experience.");
+        return;
+      }
+    }
+
     setIsLoading(true);
     setErrorMsg("");
 
-    // Prepare payload exactly as backend expects
-    const payload = {
-      username: formData.username,
+    const payload: any = {
       email: formData.email,
       password: formData.password,
       password2: formData.password2,
-      role: role,
-      phone: formData.phone,
+      full_name: formData.full_name,
+      phone_number: formData.phone_number,
+      date_of_birth: formData.date_of_birth,
+      gender: formData.gender,
+      // ── Added address fields to payload ──
+      address_line_1: formData.address_line_1 || undefined,
+      address_line_2: formData.address_line_2 || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      country: formData.country || undefined,
+      postal_code: formData.postal_code || undefined,
     };
 
     if (role === "patient") {
-      payload.date_of_birth = formData.date_of_birth;
+      payload.emergency_contact_name = formData.emergency_contact_name;
+      payload.emergency_contact_phone = formData.emergency_contact_phone;
+      payload.basic_health_info = formData.basic_health_info || "";
+      payload.terms_accepted = formData.terms_accepted;
     } else {
-      payload.license_number = formData.license_number;
-      payload.specialization = formData.specialization;
+      payload.profession_type = formData.profession_type;
+      payload.license_id = formData.license_id;
+      payload.years_of_experience = Number(formData.years_of_experience);
     }
 
+    console.log("Sending payload:", payload); // Debug log
+
     try {
-      await register(payload);
-      // Redirection logic
-      if (role === "therapist") {
-        router.push("/therapist/dashboard");
-      } else {
-        router.push("/patient/dashboard");
-      }
+      await register(role, payload);
+      router.push(
+        role === "therapist" ? "/therapist/dashboard" : "/patient/dashboard",
+      );
     } catch (err: any) {
+      console.log("Full error:", err);
+      console.log("Error response:", err.response);
+      console.log("Error data:", err.response?.data);
+
       const data = err.response?.data;
+
       if (data) {
-        const firstKey = Object.keys(data)[0];
-        setErrorMsg(`${firstKey}: ${data[firstKey][0]}`);
+        if (typeof data === "object") {
+          let errorMessage = "";
+
+          if (data.error) {
+            errorMessage = Array.isArray(data.error)
+              ? data.error[0]
+              : data.error;
+          } else if (data.email) {
+            errorMessage = Array.isArray(data.email)
+              ? data.email[0]
+              : data.email;
+          } else if (data.password) {
+            const pwdError = Array.isArray(data.password)
+              ? data.password[0]
+              : data.password;
+            errorMessage = `Password: ${pwdError}`;
+          } else {
+            const firstKey = Object.keys(data)[0];
+            if (firstKey) {
+              const errorValue = data[firstKey];
+              const msg = Array.isArray(errorValue)
+                ? errorValue[0]
+                : errorValue;
+              const fieldName = firstKey
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+              errorMessage = `${fieldName}: ${msg}`;
+            }
+          }
+
+          setErrorMsg(
+            errorMessage ||
+              "Registration failed. Please check your information.",
+          );
+        } else if (typeof data === "string") {
+          setErrorMsg(data);
+        }
       } else {
-        setErrorMsg("Registration failed. Please try again.");
+        setErrorMsg(
+          "Registration failed. Please check your information and try again.",
+        );
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const commonFields = [
+    {
+      name: "full_name",
+      placeholder: "Full Name",
+      icon: User,
+      type: "text",
+    },
+    {
+      name: "email",
+      placeholder: "Email Address",
+      icon: Mail,
+      type: "email",
+    },
+    {
+      name: "phone_number",
+      placeholder: "Phone Number",
+      icon: Phone,
+      type: "tel",
+    },
+  ];
+
   return (
     <div className="relative min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 overflow-hidden font-sans">
-      {/* Background Decorative Blobs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col lg:flex-row">
-        {/* LEFT SIDE: Form */}
-        <div className="w-full lg:w-[45%] flex items-center py-12">
-          <div className="max-w-md w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col lg:flex-row py-12">
+        <div className="w-full lg:w-[45%] flex items-start">
+          <div className="max-w-md w-full pb-12">
             <header className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      d="M12 2v20M2 12h20"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
                 <span className="text-xl font-bold text-slate-900">
-                  MentalSathi
+                  CarePair
                 </span>
               </div>
               <h1 className="text-4xl font-bold text-slate-900 mb-2">
@@ -130,7 +333,6 @@ export default function SignupPage() {
               </p>
             </header>
 
-            {/* Error Message Display */}
             {errorMsg && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
                 {errorMsg}
@@ -138,7 +340,6 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role Switcher */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {[
                   { id: "patient", label: "Patient", icon: Heart },
@@ -160,7 +361,6 @@ export default function SignupPage() {
                 ))}
               </div>
 
-              {/* Dynamic Input Fields */}
               <div className="space-y-3">
                 {commonFields.map((field) => (
                   <FormInput
@@ -172,33 +372,185 @@ export default function SignupPage() {
                 ))}
 
                 {role === "patient" ? (
-                  <FormInput
-                    name="date_of_birth"
-                    type="date"
-                    icon={Calendar}
-                    value={formData.date_of_birth}
-                    onChange={handleInputChange}
-                  />
+                  <>
+                    <FormInput
+                      name="date_of_birth"
+                      type="date"
+                      icon={Calendar}
+                      value={formData.date_of_birth}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="relative">
+                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <FormInput
+                      name="emergency_contact_name"
+                      placeholder="Emergency Contact Name"
+                      icon={User}
+                      value={formData.emergency_contact_name}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="emergency_contact_phone"
+                      placeholder="Emergency Contact Phone"
+                      icon={Phone}
+                      type="tel"
+                      value={formData.emergency_contact_phone}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-4 w-5 h-5 text-slate-400 z-10" />
+                      <textarea
+                        name="basic_health_info"
+                        placeholder="Basic Health Information (optional)"
+                        value={formData.basic_health_info}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors resize-none"
+                      />
+                    </div>
+                  </>
                 ) : (
                   <>
                     <FormInput
-                      name="license_number"
-                      placeholder="License Number"
-                      icon={Award}
-                      value={formData.license_number}
+                      name="date_of_birth"
+                      type="date"
+                      icon={Calendar}
+                      value={formData.date_of_birth}
                       onChange={handleInputChange}
                     />
+
+                    <div className="relative">
+                      <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="relative">
+                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+                      <select
+                        required
+                        name="profession_type"
+                        value={formData.profession_type}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-600 transition-colors appearance-none"
+                      >
+                        <option value="">Select Profession Type</option>
+                        <option value="psychologist">Psychologist</option>
+                        <option value="psychiatrist">Psychiatrist</option>
+                        <option value="counselor">Counselor</option>
+                        <option value="therapist">Therapist</option>
+                        <option value="social_worker">Social Worker</option>
+                      </select>
+                    </div>
+
                     <FormInput
-                      name="specialization"
-                      placeholder="Specialization"
+                      name="license_id"
+                      placeholder="License ID"
+                      icon={Award}
+                      value={formData.license_id}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="years_of_experience"
+                      placeholder="Years of Experience"
                       icon={BookOpen}
-                      value={formData.specialization}
+                      type="number"
+                      value={formData.years_of_experience}
                       onChange={handleInputChange}
                     />
                   </>
                 )}
 
-                {/* Password Grid */}
+                {/* ── Added Address Section ── */}
+                <div className="pt-2 pb-1">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-500" />
+                    Address Information (optional)
+                  </h3>
+
+                  <div className="space-y-3">
+                    <FormInput
+                      name="address_line_1"
+                      placeholder="Address Line 1"
+                      icon={Home}
+                      value={formData.address_line_1}
+                      onChange={handleInputChange}
+                    />
+
+                    <FormInput
+                      name="address_line_2"
+                      placeholder="Address Line 2 (optional)"
+                      icon={Home}
+                      value={formData.address_line_2}
+                      onChange={handleInputChange}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormInput
+                        name="city"
+                        placeholder="City"
+                        icon={Locate}
+                        value={formData.city}
+                        onChange={handleInputChange}
+                      />
+
+                      <FormInput
+                        name="state"
+                        placeholder="State / Province"
+                        icon={Locate}
+                        value={formData.state}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormInput
+                        name="country"
+                        placeholder="Country"
+                        icon={Globe}
+                        value={formData.country}
+                        onChange={handleInputChange}
+                      />
+
+                      <FormInput
+                        name="postal_code"
+                        placeholder="Postal Code"
+                        icon={Building}
+                        value={formData.postal_code}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <FormInput
                     name="password"
@@ -230,6 +582,22 @@ export default function SignupPage() {
                     </button>
                   </div>
                 </div>
+
+                {role === "patient" && (
+                  <div className="flex items-start gap-3 pt-2">
+                    <input
+                      type="checkbox"
+                      name="terms_accepted"
+                      checked={formData.terms_accepted}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <label className="text-xs text-slate-600 leading-relaxed">
+                      I accept the terms and conditions and privacy policy
+                    </label>
+                  </div>
+                )}
               </div>
 
               <button
@@ -250,17 +618,28 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: Information Section (PRESERVED) */}
         <div className="hidden lg:flex w-[55%] pt-24 pb-12 flex-col items-center justify-start pl-12">
           <div className="max-w-xl w-full space-y-6">
             <div className="bg-white rounded-3xl p-8 shadow-2xl shadow-slate-200/50 border border-slate-100">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      d="M12 2v20M2 12h20"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">
-                    MentalSathi Platform
+                    CarePair Platform
                   </h3>
                   <p className="text-sm text-slate-600">8th Semester Project</p>
                 </div>
@@ -309,8 +688,6 @@ export default function SignupPage() {
   );
 }
 
-/* --- HELPER SUB-COMPONENTS --- */
-
 const FormInput = ({
   name,
   placeholder,
@@ -322,7 +699,6 @@ const FormInput = ({
   <div className="relative">
     <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
     <input
-      required
       type={type}
       name={name}
       value={value}

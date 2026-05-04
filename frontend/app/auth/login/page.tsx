@@ -1,20 +1,17 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Mail,
-  Lock,
-  Heart,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  Key,
-} from "lucide-react";
+import { useAuth } from "@/context/AuthContext"; // FIXED: lowercase
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Key } from "lucide-react";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,36 +19,75 @@ export default function LoginPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (errorMsg) setErrorMsg("");
   };
 
-  const handleSubmit = () => {
-    console.log("Logging in with:", formData);
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // Prevent default form behavior
+    if (e) {
+      e.preventDefault();
+    }
+
+    // Validation
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Please enter both email and password");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      await login({
+        email: formData.email,
+        password: formData.password,
+      });
+      // ✅ Redirect handled by AuthContext
+    } catch (err: any) {
+      const data = err.response?.data;
+      setErrorMsg(data?.detail || "Invalid email or password");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !isLoading) {
+      handleSubmit();
+    }
   };
 
   return (
-    /* 1. FULL SCREEN WRAPPER: Fixed and high Z-index */
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-      {/* 2. BLURRED BACKDROP: Click here to go home */}
       <div
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity cursor-pointer"
         onClick={() => router.push("/")}
       />
 
-      {/* 3. MAIN CARD: Added relative z-10 to stay above backdrop */}
       <div className="relative z-10 w-full max-w-5xl grid lg:grid-cols-2 bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/50 overflow-hidden animate-in fade-in zoom-in duration-300">
-        {/* LEFT SIDE: Login Form */}
+        {/* LEFT SIDE */}
         <div className="p-8 lg:p-16 flex flex-col justify-center bg-white/80">
           <header className="mb-10">
             <div
               className="flex items-center gap-2 mb-8 cursor-pointer group"
               onClick={() => router.push("/")}
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
-                <Heart className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                <svg
+                  className="w-6 h-6 text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path
+                    d="M12 2v20M2 12h20"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-              <span className="text-xl font-bold text-slate-900">
-                MentalSathi
-              </span>
+              <span className="text-xl font-bold text-slate-900">CarePair</span>
             </div>
 
             <h1 className="text-3xl font-extrabold text-slate-900 mb-2">
@@ -68,15 +104,24 @@ export default function LoginPage() {
             </p>
           </header>
 
-          <div className="space-y-4">
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="email"
                 name="email"
                 placeholder="Email Address"
+                value={formData.email}
                 onChange={handleInputChange}
-                className="w-full pl-12 pr-4 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="w-full pl-12 pr-4 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm disabled:opacity-50"
               />
             </div>
 
@@ -86,12 +131,17 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
+                value={formData.password}
                 onChange={handleInputChange}
-                className="w-full pl-12 pr-12 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="w-full pl-12 pr-12 py-4 bg-white/50 border-2 border-slate-100 rounded-2xl text-sm outline-none focus:border-blue-600 focus:bg-white transition-all shadow-sm disabled:opacity-50"
               />
               <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                disabled={isLoading}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -101,49 +151,32 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="flex items-center justify-end px-1">
-              <span className="text-xs font-semibold text-blue-600 cursor-pointer hover:underline">
-                Forgot password?
-              </span>
-            </div>
-
             <button
-              onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group"
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
           <footer className="mt-10 pt-8 border-t border-slate-100">
-            <div className="flex items-center gap-3 text-slate-400">
-              <ShieldCheck className="w-5 h-5" />
-              <p className="text-[10px] uppercase tracking-widest font-bold">
-                Secure Enterprise-grade Encryption
-              </p>
-            </div>
+            <div className="flex items-center gap-3 text-slate-400"></div>
           </footer>
         </div>
 
-        {/* RIGHT SIDE: Visual/Branding */}
-        <div
-          className="hidden lg:flex bg-gradient-to-br from-blue-600 to-indigo-700 p-16 flex-col justify-between relative overflow-hidden 
-          /* THE FIX FOR THE WHITE GAP */
-          rounded-r-[2.5rem] -ml-[1px] border-l border-white/10"
-        >
-          {/* Abstract Background Decoration */}
-          <div className="absolute top-0 right-0 w-full h-full opacity-10">
-            <svg
-              width="100%"
-              height="100%"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-            </svg>
-          </div>
-
+        {/* RIGHT SIDE */}
+        <div className="hidden lg:flex bg-gradient-to-br from-blue-600 to-indigo-700 p-16 flex-col justify-between relative overflow-hidden rounded-r-[2.5rem] -ml-[1px] border-l border-white/10">
           <div className="relative z-10">
             <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mb-8">
               <Key className="w-8 h-8 text-white" />
@@ -154,7 +187,6 @@ export default function LoginPage() {
               continues here.
             </h2>
           </div>
-
           <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20">
             <p className="text-white/90 italic text-lg mb-4">
               "Healing takes courage, and we all have courage, even if we have

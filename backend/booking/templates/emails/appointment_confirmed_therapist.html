@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #28a745; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; background-color: #f8f9fa; border-radius: 5px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        .meeting-link { background-color: #e7f3ff; padding: 15px; border-left: 4px solid #2196F3; margin-top: 15px; }
+        .patient-info { background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Appointment Confirmed ✓</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hi {{ greeting_name }},</p>
+            
+            <p>Your appointment has been successfully confirmed. Here are the details:</p>
+            
+            <h3>Appointment Details:</h3>
+            <ul>
+                <li><strong>Date & Time:</strong> {{ appointment_datetime }}</li>
+                <li><strong>{{ other_party_role | title }}:</strong> {{ other_party_name }}</li>
+                <li><strong>Timezone:</strong> {{ timezone }}</li>
+            </ul>
+            
+            {% if meeting_link %}
+            <div class="meeting-link">
+                <strong>Meeting Link:</strong><br>
+                <a href="{{ meeting_link }}" target="_blank">{{ meeting_link }}</a>
+            </div>
+            {% endif %}
+            
+            <div class="patient-info">
+                <strong>Patient Information:</strong><br>
+                Name: {{ other_party_name }}<br>
+                Email: (Patient has been notified)
+            </div>
+            
+            <p><strong>Important Reminders:</strong></p>
+            <ul>
+                <li>Prepare your session materials and environment</li>
+                <li>Ensure you have a stable internet connection</li>
+                <li>Join a few minutes early if it's an online session</li>
+                <li>Review any notes you may have from your previous session</li>
+            </ul>
+            
+            <p>The patient has been notified and will receive their confirmation shortly.</p>
+            
+            <p>If you need to cancel or reschedule, please inform the patient as soon as possible.</p>
+            
+            <p>Best regards,<br>{{ system_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ system_name }}. All rights reserved.</p>
+            <p><a href="{{ platform_url }}">View Your Appointments</a></p>
+        </div>
+    </div>
+</body>
+</html>
