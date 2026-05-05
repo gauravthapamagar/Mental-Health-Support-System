@@ -2,7 +2,9 @@
 
 A comprehensive full-stack web application designed to provide mental health support services, connecting patients with therapists and fostering a supportive community. The platform offers appointment booking, video consultations, mental health assessments, therapy blogs, journaling, and community features.
 
-##  Features
+## Features
+
+[Screenshot: Patient Dashboard - Add screenshot here]
 
 ### For Patients
 - **User Authentication & Profiles** - Secure sign-up and personalized patient profiles
@@ -16,6 +18,8 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Session Reports** - Post-session documentation and progress tracking
 - **Payment Processing** - Khalti payment integration for booking sessions
 
+[Screenshot: Therapist Matching Feature - Add screenshot here]
+
 ### For Therapists
 - **Professional Profiles** - Showcase credentials, specializations, and experience
 - **Availability Management** - Set working hours and manage schedules
@@ -24,6 +28,8 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Verification** - Identity and credential verification system
 - **Analytics** - Track client interactions and session history
 
+[Screenshot: Therapist Profile - Add screenshot here]
+
 ### Admin Features
 - **User Management** - Manage patients, therapists, and admin accounts
 - **Content Management** - Moderate blogs and community posts
@@ -31,8 +37,10 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **System Analytics** - Monitor platform usage and health metrics
 - **Payment Tracking** - View and manage payment transactions
 
-##  Project Architecture
+[Screenshot: Admin Dashboard - Add screenshot here]
 
+##  Project Architecture
+[Architecture Diagram - Add system architecture diagram here]
 ### Backend Stack
 - **Framework**: Django 4.x with Django REST Framework
 - **Database**: PostgreSQL (via Django ORM)
@@ -52,7 +60,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Notifications**: React Hot Toast, React Toastify
 - **Authentication**: JWT-based with Axios interceptors
 
-##  Project Structure
+## Project Structure
 
 ```
 Mental-Health-Support-System/
@@ -81,7 +89,9 @@ Mental-Health-Support-System/
     └── tsconfig.json          # TypeScript configuration
 ```
 
-##  Getting Started
+## Getting Started
+
+[Demo Video - Add demo or walkthrough video here]
 
 ### Prerequisites
 - Python 3.8+
@@ -212,7 +222,7 @@ The application uses JWT (JSON Web Tokens) for API authentication:
 - **Refresh Token**: Long-lived token for obtaining new access tokens
 - **Role-based Access Control**: Different permissions for patients, therapists, and admins
 
-## 📡 API Documentation
+## API Documentation
 
 API endpoints are organized by module:
 - `/api/auth/` - Authentication endpoints
@@ -225,7 +235,9 @@ API endpoints are organized by module:
 - `/api/journal/` - Journal entries
 - `/api/matching/` - Therapist matching
 
-## 🎯 Core Technologies
+[API Documentation Diagram - Add API endpoints overview here]
+
+## Core Technologies
 
 ### Backend
 - Django & DRF
@@ -244,7 +256,9 @@ API endpoints are organized by module:
 - Agora RTC React
 - Axios
 
-## 📝 Environment Variables
+## Environment Variables
+
+[Configuration Guide - Add environment setup screenshot here]
 
 ### Backend
 ```
@@ -266,6 +280,8 @@ NEXT_PUBLIC_AGORA_APP_ID - Agora RTC application ID
 
 ##  Testing
 
+[Test Results - Add test coverage report here]
+
 ### Run backend tests
 ```bash
 cd backend
@@ -279,6 +295,8 @@ npm test
 ```
 
 ##  Deployment
+
+[Deployment Architecture - Add deployment setup diagram here]
 
 ### Backend Deployment
 - Use Daphne as ASGI server for production
