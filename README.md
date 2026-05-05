@@ -2,7 +2,7 @@
 
 A comprehensive full-stack web application designed to provide mental health support services, connecting patients with therapists and fostering a supportive community. The platform offers appointment booking, video consultations, mental health assessments, therapy blogs, journaling, and community features.
 
-## 🌟 Features
+##  Features
 
 ### For Patients
 - **User Authentication & Profiles** - Secure sign-up and personalized patient profiles
@@ -31,7 +31,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **System Analytics** - Monitor platform usage and health metrics
 - **Payment Tracking** - View and manage payment transactions
 
-## 🏗️ Project Architecture
+##  Project Architecture
 
 ### Backend Stack
 - **Framework**: Django 4.x with Django REST Framework
@@ -52,7 +52,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Notifications**: React Hot Toast, React Toastify
 - **Authentication**: JWT-based with Axios interceptors
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 Mental-Health-Support-System/
@@ -81,7 +81,7 @@ Mental-Health-Support-System/
     └── tsconfig.json          # TypeScript configuration
 ```
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Python 3.8+
@@ -164,7 +164,7 @@ npm run dev
 
 The frontend will be available at `http://localhost:3000`
 
-## 🔑 Key Modules
+##  Key Modules
 
 ### Accounts Module
 - User authentication (patients, therapists, admins)
@@ -204,7 +204,7 @@ The frontend will be available at `http://localhost:3000`
 - Private user entries
 - Reflection and tracking
 
-## 🔐 Authentication & Authorization
+##  Authentication & Authorization
 
 The application uses JWT (JSON Web Tokens) for API authentication:
 
@@ -264,7 +264,7 @@ NEXT_PUBLIC_API_URL - Backend API URL
 NEXT_PUBLIC_AGORA_APP_ID - Agora RTC application ID
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Run backend tests
 ```bash
@@ -278,7 +278,7 @@ cd frontend
 npm test
 ```
 
-## 🚢 Deployment
+##  Deployment
 
 ### Backend Deployment
 - Use Daphne as ASGI server for production
@@ -291,7 +291,7 @@ npm test
 - Deploy to Vercel, Netlify, or similar platforms
 - Configure API endpoints for production
 
-## 📚 Additional Resources
+##  Additional Resources
 
 - [Django Documentation](https://docs.djangoproject.com/)
 - [Next.js Documentation](https://nextjs.org/docs)
@@ -299,7 +299,7 @@ npm test
 - [Agora RTC Documentation](https://docs.agora.io/)
 - [Khalti API Documentation](https://khalti.com/developers/)
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -307,15 +307,15 @@ npm test
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👥 Support
+##  Support
 
 For support, issues, or questions, please open an issue in the repository or contact the development team.
 
-## 🎓 About
+##  About
 
 The Mental Health Support System is built with the goal of making mental health services more accessible and affordable to everyone. By connecting patients with qualified therapists and fostering a supportive community, we aim to contribute to better mental health outcomes for our users.
 
