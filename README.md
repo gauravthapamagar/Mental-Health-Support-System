@@ -4,7 +4,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 
 ## Features
 
-[Screenshot: Patient Dashboard - Add screenshot here]
+[Screenshot: Patient Dashboard - coming soon]
 
 ### For Patients
 - **User Authentication & Profiles** - Secure sign-up and personalized patient profiles
@@ -18,7 +18,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Session Reports** - Post-session documentation and progress tracking
 - **Payment Processing** - Khalti payment integration for booking sessions
 
-[Screenshot: Therapist Matching Feature - Add screenshot here]
+[Screenshot: Therapist Matching Feature - coming soon]
 
 ### For Therapists
 - **Professional Profiles** - Showcase credentials, specializations, and experience
@@ -28,7 +28,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **Verification** - Identity and credential verification system
 - **Analytics** - Track client interactions and session history
 
-[Screenshot: Therapist Profile - Add screenshot here]
+[Screenshot: Therapist Profile - coming soon]
 
 ### Admin Features
 - **User Management** - Manage patients, therapists, and admin accounts
@@ -37,7 +37,7 @@ A comprehensive full-stack web application designed to provide mental health sup
 - **System Analytics** - Monitor platform usage and health metrics
 - **Payment Tracking** - View and manage payment transactions
 
-[Screenshot: Admin Dashboard - Add screenshot here]
+[Screenshot: Admin Dashboard - coming soon]
 
 ##  Project Architecture
 [Architecture Diagram - Add system architecture diagram here]
